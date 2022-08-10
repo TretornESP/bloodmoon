@@ -43,7 +43,7 @@ WIP Os for my twitch series: https://www.twitch.tv/damebanda
 
 - **Limine**. Inside the folder:
 
-    git clone https://github.com/limine-bootloader/limine.git --branch=v3.0-branch-binary --depth=1
+      git clone https://github.com/limine-bootloader/limine.git --branch=v3.0-branch-binary --depth=1
 
 
 ## How to compile
