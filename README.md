@@ -34,14 +34,14 @@ WIP Os for my twitch series: https://www.twitch.tv/damebanda
 
 ## Requirements
 
-**binutils** and **gcc** default toolchain stuff
+- **binutils** and **gcc** default toolchain stuff
 
-**xorriso**
+- **xorriso**
 
-**qemu** (optional)
+- **qemu** (optional)
 
 
-**Limine**. Inside the folder:
+- **Limine**. Inside the folder:
 
     git clone https://github.com/limine-bootloader/limine.git --branch=v3.0-branch-binary --depth=1
 
