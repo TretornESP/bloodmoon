@@ -30,6 +30,7 @@ WIP Os for my twitch series: https://www.twitch.tv/damebanda
 - [ ] Network drivers
 - [ ] Network stack
 - [ ] Graphical interface
+- [ ] Advanced device drivers (USB)
 
 ## Requirements
 
