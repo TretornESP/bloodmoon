@@ -34,12 +34,12 @@ WIP Os for my twitch series: https://www.twitch.tv/damebanda
 
 ## Requirements
 
-binutils and gcc default toolchain stuff
-xorriso
-qemu (optional)
+**binutils** and **gcc** default toolchain stuff
+**xorriso**
+**qemu** (optional)
 
 
-Limine. Inside the folder:
+**Limine**. Inside the folder:
 
     git clone https://github.com/limine-bootloader/limine.git --branch=v3.0-branch-binary --depth=1
 
@@ -52,11 +52,11 @@ my config and probs wont work with yours.
 
 to compile just run:
 
-make setup
-make
+    make setup
+    make
 
 you can cleanup garbage with the classic:
 
-make clean.
+    make clean
 
-Note: go.sh is redundant with make, used only to automate from vscode.
+Note: **go.sh** is redundant with make, used only to automate from vscode.
