@@ -35,7 +35,9 @@ WIP Os for my twitch series: https://www.twitch.tv/damebanda
 ## Requirements
 
 **binutils** and **gcc** default toolchain stuff
+
 **xorriso**
+
 **qemu** (optional)
 
 
