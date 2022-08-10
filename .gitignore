@@ -1,0 +1,11 @@
+.vscode
+*.o
+*.obj
+*.elf
+*.iso
+*.efi
+*.img
+*.bin
+
+limine/
+build/
