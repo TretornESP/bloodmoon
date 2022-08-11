@@ -13,6 +13,7 @@ PHDRS
 SECTIONS
 {
     . = 0xffffffff80000000;
+    KERNEL_START = .;
 
     .text : {
         *(.text .text.*)
@@ -32,4 +33,6 @@ SECTIONS
     /DISCARD/ : {
         *(.note .note.*)
     }
+
+    KERNEL_END = .;
 }

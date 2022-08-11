@@ -11,7 +11,7 @@ void dbg_print(const char * str) {
 }
 
 void panic(const char * str) {
-    dbg_print("KERNEL PANIC!\n");
+    dbg_print("\nKERNEL PANIC!\n");
     dbg_print(str);
     dbg_print("\n");
     while(1);
@@ -22,7 +22,7 @@ void panic(const char * str) {
  * Written by Lukás Chmela
  * Released under GPLv3.
  */
-char* itoa(int value, int base) {
+char* itoa(int64_t value, int base) {
     // check that the base if valid
     for (int i = 0; i < BUFFERSIZE; i++) {
         boot_conversor_buffer[i] = 0;
@@ -30,7 +30,7 @@ char* itoa(int value, int base) {
     if (base < 2 || base > 36) { *boot_conversor_buffer = '\0'; return boot_conversor_buffer; }
 
     char* ptr = boot_conversor_buffer, *ptr1 = boot_conversor_buffer, tmp_char;
-    int tmp_value;
+    int64_t tmp_value;
 
     do {
         tmp_value = value;

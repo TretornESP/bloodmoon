@@ -3,6 +3,7 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif // __GNUC__
+#include "../util/dbgprinter.h" //DELETEME
 #define MEMMAP_USABLE                 0x0
 #define MEMMAP_RESERVED               0x1
 #define MEMMAP_ACPI_RECLAIMABLE       0x2
@@ -18,6 +19,15 @@ struct chunk_data {
 };
 
 void get_total_memory_cb(void * global_override, uint64_t base, uint64_t length, uint64_t type) {
+        dbg_print("[Current: ");
+        dbg_print(itoa(*(uint64_t*)global_override, 16));
+        dbg_print(" ] Address: 0x");
+        dbg_print(itoa(base, 16));
+        dbg_print(" Pages: ");
+        dbg_print(itoa(length >> 12, 10));
+        dbg_print(" Type: ");
+        dbg_print(itoa(type, 10));
+        dbg_print("\n");
     *(uint64_t*)global_override += length;
 }
 
@@ -35,6 +45,36 @@ void init_memory_cb(void * global_override, uint64_t base, uint64_t length, uint
             chunk->size = length;
             chunk->addr = base;
         }
+    }
+}
+
+void reserve_memory_cb(void * global_override, uint64_t base, uint64_t length, uint64_t type) {
+    void (*func)(void*, uint64_t);
+    *(void**) (&func) = global_override;
+    static uint64_t total_mem;
+
+    total_mem += length;
+    dbg_print("Total memory: ");
+    dbg_print(itoa(total_mem, 16));
+    dbg_print("\n");
+
+    if (type != MEMMAP_USABLE) {
+        dbg_print("Address: 0x");
+        dbg_print(itoa(base, 16));
+        dbg_print(" Pages: ");
+        dbg_print(itoa(length >> 12, 10));
+        dbg_print(" Type: ");
+        dbg_print(itoa(type, 10));
+        dbg_print("\n");
+        func((void*)base, length >> 12); //Maybe change it for a different pagesize
+    } else {
+        dbg_print("[IGNORED] Address: 0x");
+        dbg_print(itoa(base, 16));
+        dbg_print(" Pages: ");
+        dbg_print(itoa(length >> 12, 10));
+        dbg_print(" Type: ");
+        dbg_print(itoa(type, 10));
+        dbg_print("\n");
     }
 }
 

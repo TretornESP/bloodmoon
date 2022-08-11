@@ -19,5 +19,6 @@ void _start(void) {
     dbg_print("\n");
     
     init_memory();
+
     done();
 }
