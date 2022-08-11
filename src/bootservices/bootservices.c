@@ -13,6 +13,11 @@ void service_error() {
 }
 
 void generic_terminal_callback(struct limine_terminal* terminal, uint64_t type, uint64_t p1, uint64_t p2, uint64_t p3) {
+    (void)terminal;
+    (void)type;
+    (void)p1;
+    (void)p2;
+    (void)p3;
     //TODO
 }
 
@@ -66,12 +71,4 @@ void set_terminal_writer(uint64_t terminal) {
         service_error();
     }
     terminal_writer = terminal;
-}
-
-void set_stack_size(uint64_t size) {
-    struct limine_stack_size_request stack_size_request = {
-        .id = LIMINE_STACK_SIZE_REQUEST,
-        .revision = 0,
-        .stack_size = size
-    };
 }

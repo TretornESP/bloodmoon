@@ -10,6 +10,13 @@ void dbg_print(const char * str) {
     writer(str, strlen(str));
 }
 
+void panic(const char * str) {
+    dbg_print("KERNEL PANIC!\n");
+    dbg_print(str);
+    dbg_print("\n");
+    while(1);
+}
+
 /**
  * C++ version 0.4 char* style "itoa":
  * Written by Lukás Chmela
