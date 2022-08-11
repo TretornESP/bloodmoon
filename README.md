@@ -1,6 +1,9 @@
+![Logo](https://github.com/TretornESP/bloodmoon/raw/main/bmoonlogo.jpg.png)
+
 # bloodmoon
 
 WIP Os for my twitch series: https://www.twitch.tv/damebanda
+
 
 ## State:
 
