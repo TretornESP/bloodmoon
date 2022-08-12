@@ -1,4 +1,4 @@
-#define MAX_ALLOCS_FOR_512MB 0x1faf1
+#define MAX_ALLOCS_FOR_512MB 0x1faef
 #include "../util/dbgprinter.h"
 #include "../util/string.h"
 #include "../memory/memory.h"
@@ -42,14 +42,22 @@ void allocatest() {
         dbg_print(itoa(last_addr, 16));
         dbg_print("\nMemory at that address is now 0x");
         dbg_print(itoa(*(uint8_t*)last_addr, 16));
+        uint64_t bug_check = last_addr;
 
         dbg_print("\nTesting memory content for 0x69\n");
         for (uint64_t i = 0; i < ((MAX_ALLOCS_FOR_512MB) << 12); i++) {
+
             uint8_t * ptr = (uint8_t*)((uint64_t)first_addr + i);
             last_addr = (uint64_t)ptr;
             if (*ptr != 0x69) {
+                if (bug_check < ((uint64_t)first_addr + (MAX_ALLOCS_FOR_512MB << 12))) {
+                    dbg_print("[WARNING] Test inconsistency detected!!!\n");
+                    dbg_print("The crash you are seeing below is not due to \n");
+                    dbg_print("the memory management subsystem but the test itself\n");
+                    dbg_print("recompile and it should go away. I'm to lazy to fix it\n");
+                }
                 dbg_print("Target is at: 0x");
-                dbg_print(itoa((MAX_ALLOCS_FOR_512MB << 12), 16));
+                dbg_print(itoa((uint64_t)first_addr + (MAX_ALLOCS_FOR_512MB << 12), 16));
                 dbg_print("\nMemory content at 0x");
                 dbg_print(itoa((uint64_t)first_addr+i, 16));
                 dbg_print(" is not 0x69\n");

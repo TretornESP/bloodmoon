@@ -6,6 +6,7 @@
 *.efi
 *.img
 *.bin
+*.gdb
 
 limine/
 build/
