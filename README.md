@@ -1,4 +1,4 @@
-![Logo](https://github.com/TretornESP/bloodmoon/raw/main/bmoonlogo.jpg.png)
+![Logo](https://github.com/TretornESP/bloodmoon/raw/main/logo.png)
 
 # bloodmoon
 
