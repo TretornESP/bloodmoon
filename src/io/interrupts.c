@@ -8,26 +8,31 @@ struct idtr idtr;
 
 __attribute__((interrupt)) void PageFault_Handler(struct interrupt_frame * frame) {
     dbg_print("PageFault_Handler\n");
+    (void)frame;
     while(1);
 }
 
 __attribute__((interrupt)) void DoubleFault_Handler(struct interrupt_frame * frame) {
     dbg_print("DoubleFault_Handler\n");
+    (void)frame;
     while(1);
 }
 
 __attribute__((interrupt)) void GPFault_Handler(struct interrupt_frame * frame) {
     dbg_print("GPFault_Handler\n");
+    (void)frame;
     while(1);
 }
 
 __attribute__((interrupt)) void KeyboardInt_Handler(struct interrupt_frame * frame) {
     dbg_print("KeyboardInt_Handler\n");
+    (void)frame;
     while(1);
 }
 
 __attribute__((interrupt)) void MouseInt_Handler(struct interrupt_frame * frame) {
     dbg_print("MouseInt_Handler\n");
+    (void)frame;
     while(1);
 }
 

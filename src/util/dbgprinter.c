@@ -10,6 +10,11 @@ void dbg_print(const char * str) {
     writer(str, strlen(str));
 }
 
+void putchar(char chr) {
+    void (*writer)(const char*, uint64_t) = get_terminal_writer();
+    writer(&chr, 1);
+}
+
 void panic(const char * str) {
     dbg_print("\nKERNEL PANIC!\n");
     dbg_print(str);

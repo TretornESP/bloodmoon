@@ -94,9 +94,8 @@ int init_memory() {
     memory = (struct system_memory*)first_available_address;
     memory->bitfield = (uint8_t*)ALIGN_ADDR(first_available_address + sizeof(struct system_memory));
 
-    dbg_print("Testing GET_PAGE_BIT...\n");
     memset(memory->bitfield, 0x55, 100);
-    dbg_print("\n");
+
     for (int i = 0; i < 100; i++) {
         for (int j = 0; j < 8; j++) {
             if (j % 2 == 1) {
@@ -108,7 +107,6 @@ int init_memory() {
             }
         }
     }
-    dbg_print("GET_PAGE_BIT passed\n");
 
     memset(memory->bitfield, 0, bitfield_entries);
 
@@ -130,18 +128,6 @@ int init_memory() {
 
     reserve_pages((void*)0, used_space);
 
-    dbg_print("First free address: 0x");
-    dbg_print(itoa(memory->first_available_page_addr, 16));
-    dbg_print("\n");
-    dbg_print("First really free addr: 0x");
-    dbg_print(itoa(memory->first_available_page_addr+(used_space << 12), 16));
-    dbg_print("\n");
-    dbg_print("Bitfield state:");
-    for (int i = 0;i < 100; i++) {
-        dbg_print(" ");
-        dbg_print(itoa(memory->bitfield[i], 16));
-    }
-    dbg_print("\n");
     return 1;
 }
 

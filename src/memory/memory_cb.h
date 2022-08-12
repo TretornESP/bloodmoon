@@ -19,15 +19,6 @@ struct chunk_data {
 };
 
 void get_total_memory_cb(void * global_override, uint64_t base, uint64_t length, uint64_t type) {
-        dbg_print("[Current: ");
-        dbg_print(itoa(*(uint64_t*)global_override, 16));
-        dbg_print(" ] Address: 0x");
-        dbg_print(itoa(base, 16));
-        dbg_print(" Pages: ");
-        dbg_print(itoa(length >> 12, 10));
-        dbg_print(" Type: ");
-        dbg_print(itoa(type, 10));
-        dbg_print("\n");
     *(uint64_t*)global_override += length;
 }
 

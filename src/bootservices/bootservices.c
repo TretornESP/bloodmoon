@@ -66,6 +66,14 @@ uint64_t get_memory_map_type(uint64_t index) {
     return CALL_SERVICE(MEMMAP)->entries[index]->type;
 }
 
+uint64_t get_kernel_address_physical() {
+    return CALL_SERVICE(KERNEL)->physical_base;
+}
+
+uint64_t get_kernel_address_virtual() {
+    return CALL_SERVICE(KERNEL)->virtual_base;
+}
+
 void set_terminal_writer(uint64_t terminal) {
     if (terminal >= get_terminal_count()) {
         service_error();

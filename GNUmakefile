@@ -70,9 +70,6 @@ override CFLAGS +=       \
     -march=x86-64        \
     -mabi=sysv           \
     -mno-80387           \
-    -mno-mmx             \
-    -mno-sse             \
-    -mno-sse2            \
     -mno-red-zone        \
     -mcmodel=kernel      \
     -MMD
@@ -106,6 +103,11 @@ all:
 	@echo "Done!"
 
 kernel: $(OBJS) link
+
+$(OBJDIR)/io/interrupts.o: $(SRCDIR)/io/interrupts.c
+	@ echo !==== COMPILING $^
+	@ mkdir -p $(@D)
+	$(CC) $(CFLAGS) -mgeneral-regs-only -c $^ -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	@ echo !==== COMPILING $^
