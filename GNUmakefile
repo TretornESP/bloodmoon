@@ -165,5 +165,7 @@ run:
 	$(QEMU) $(QFLAGS) $(ISODIR)/$(ISO)
 
 debug:
+	@make kernel
+	@make buildimg
 	$(CMDNEWSCREEN) $(GDB) $(GDBFLAGS) &
 	$(QEMU) -S -s $(QFLAGS) $(ISODIR)/$(ISO)

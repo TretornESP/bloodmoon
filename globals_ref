@@ -2,3 +2,4 @@ src/bootservices/bootservices.c@terminal_writer
 src/bootservices/limine_requests.h
 src/util/dbgprinter.c@boot_conversor_buffer
 src/memory/memory.c@memory
+src/io/interrupts.c@idtr
