@@ -5,6 +5,7 @@
 struct system_memory {
     uint64_t total_available_pages;
     uint64_t first_available_page_addr;
+    uint64_t last_available_page_address;
     uint64_t total_memory;
     uint64_t total_pages;
     uint8_t * bitfield;

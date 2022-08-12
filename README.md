@@ -3,14 +3,17 @@
 # bloodmoon
 
 WIP Os for my twitch series: https://www.twitch.tv/damebanda
-
+Current memory usage:
+```
+6MB
+```
 
 ## State:
 
 - [x] Basic bootstrap
 - [x] Interface with limine
 - [x] Basic print functionality
-- [ ] Page frame allocator
+- [x] Page frame allocator
 - [ ] CPU Structures (GDT, IDT, TSS, LDT)
 - [ ] Paging and mappings
 - [ ] Memory sectoring and protection

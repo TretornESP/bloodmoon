@@ -1,3 +1,8 @@
+// Page frame allocator for bloodmoon
+// By xabier iglesias (xabier.iglesias.perez@udc.es)
+// Feel free to use this code as you want, but keep this header intact.
+// Please don't blame me if it doesn't work.
+
 #include "memory.h"
 #include "memory_cb.h"
 
@@ -13,7 +18,7 @@
 
 #define SET_PAGE_BIT(x) (memory->bitfield[(x) >> 3] |= (1 << ((x) % 8)))
 #define CLEAR_PAGE_BIT(x) (memory->bitfield[(x) >> 3] &= ~(1 << ((x) % 8)))
-#define GET_PAGE_BIT(x) (memory->bitfield[(x) >> 3] >> ((x) % 8) & 1)
+#define GET_PAGE_BIT(x) ((memory->bitfield[(x) >> 3] & (1 << ((x) % 8))) >> ((x) % 8))
 
 struct system_memory * memory;
 
@@ -88,23 +93,41 @@ int init_memory() {
 
     memory = (struct system_memory*)first_available_address;
     memory->bitfield = (uint8_t*)ALIGN_ADDR(first_available_address + sizeof(struct system_memory));
+
+    dbg_print("Testing GET_PAGE_BIT...\n");
+    memset(memory->bitfield, 0x55, 100);
+    dbg_print("\n");
+    for (int i = 0; i < 100; i++) {
+        for (int j = 0; j < 8; j++) {
+            if (j % 2 == 1) {
+                if (GET_PAGE_BIT(i*8 + j) == 1)
+                    panic("init_memory: GET_PAGE_BIT failed");
+            } else {
+                if (GET_PAGE_BIT(i*8 + j) == 0)
+                    panic("init_memory: GET_PAGE_BIT failed");
+            }
+        }
+    }
+    dbg_print("GET_PAGE_BIT passed\n");
+
     memset(memory->bitfield, 0, bitfield_entries);
 
     memory->total_available_pages = available_pages;
     memory->total_memory = total_memory;
     memory->total_pages = total_pages;
 
-
     memory->free_memory = last_available_address - first_available_address;
     memory->locked_memory = 0;
     memory->reserved_memory = 0;
 
+    memory->last_available_page_address = last_available_address;
     memory->first_available_page_addr = first_available_address;
 
     if (!IS_ALIGNED(memory) || !IS_ALIGNED(memory->bitfield) || !IS_ALIGNED(memory->first_available_page_addr))
         panic("Memory alignment error!");
 
     uint64_t used_space = (bitfield_entries + sizeof(struct system_memory) + (3 << 12)) >> 12;
+
     reserve_pages((void*)0, used_space);
 
     dbg_print("First free address: 0x");
@@ -164,14 +187,12 @@ void* request_page() {
     }
 
     lock_page((void*)(last_requested << 12));
+
     if (GET_PAGE_BIT(last_requested) == 0)
         panic("Page not reserved!"); //Deleteme
 
     statistics_requested++; //Deleteme
 
-    dbg_print("Locked page: 0x");
-    dbg_print(itoa(last_requested << 12, 16));
-    dbg_print("\n");
     return (void*)(memory->first_available_page_addr+(last_requested << 12));
 }
 
@@ -181,13 +202,17 @@ void free_page(void* addr) {
 
     if (addr_uint < memory->first_available_page_addr)
         panic("Page below active range!"); //Deleteme
-    dbg_print("Trying to unlock entry: 0x");
-    dbg_print(itoa(normaliced_address, 16));
-    dbg_print("\n");
+
+    if (GET_PAGE_BIT(normaliced_address >> 12) == 0)
+        panic("Page was not locked!"); //Deleteme
+
     unlock_page((void*)normaliced_address);
-    if (GET_PAGE_BIT((normaliced_address >> 12) + 1) == 0) {
+    
+    if (GET_PAGE_BIT((normaliced_address >> 12)) == 1) {
         dbg_print("Im about to crash at: 0x");
         dbg_print(itoa(normaliced_address, 16));
+        dbg_print("Page was: ");
+        dbg_print(itoa(normaliced_address >> 12, 16));
         panic("Page not freed!");
     }
 }
