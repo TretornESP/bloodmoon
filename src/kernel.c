@@ -13,6 +13,7 @@ static void done(void) {
 
 void _start(void) {
 
+    //allocatest_bench_crash(); //If running allocatest, first run this once!!!
     allocatest();
 /*
     const char * name = get_bootloader_name();
