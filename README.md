@@ -15,7 +15,7 @@ Current memory usage:
 - [x] Interface with limine
 - [x] Basic print functionality
 - [x] Page frame allocator
-- [ ] CPU Structures (GDT, IDT, TSS, LDT)
+- [x] CPU Structures (GDT, IDT, TSS, LDT) (needs improvements)
 - [ ] Paging and mappings
 - [ ] Memory sectoring and protection
 - [ ] Advanced print functionality
