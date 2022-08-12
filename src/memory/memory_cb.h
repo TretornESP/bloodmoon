@@ -48,34 +48,4 @@ void init_memory_cb(void * global_override, uint64_t base, uint64_t length, uint
     }
 }
 
-void reserve_memory_cb(void * global_override, uint64_t base, uint64_t length, uint64_t type) {
-    void (*func)(void*, uint64_t);
-    *(void**) (&func) = global_override;
-    static uint64_t total_mem;
-
-    total_mem += length;
-    dbg_print("Total memory: ");
-    dbg_print(itoa(total_mem, 16));
-    dbg_print("\n");
-
-    if (type != MEMMAP_USABLE) {
-        dbg_print("Address: 0x");
-        dbg_print(itoa(base, 16));
-        dbg_print(" Pages: ");
-        dbg_print(itoa(length >> 12, 10));
-        dbg_print(" Type: ");
-        dbg_print(itoa(type, 10));
-        dbg_print("\n");
-        func((void*)base, length >> 12); //Maybe change it for a different pagesize
-    } else {
-        dbg_print("[IGNORED] Address: 0x");
-        dbg_print(itoa(base, 16));
-        dbg_print(" Pages: ");
-        dbg_print(itoa(length >> 12, 10));
-        dbg_print(" Type: ");
-        dbg_print(itoa(type, 10));
-        dbg_print("\n");
-    }
-}
-
 #endif // _MEMORY_CB_H

@@ -11,9 +11,9 @@
 
 #define ADDR_TO_PAGE(x) ((uint64_t)(x) >> 12)
 
-#define SET_PAGE_BIT(x) (memory->bitfield[(x) >> 3] |= (1 << ((x) % 8)));
-#define CLEAR_PAGE_BIT(x) (memory->bitfield[(x) >> 3] &= ~(1 << ((x) % 8)));
-#define GET_PAGE_BIT(x) (memory->bitfield[(x) >> 3] >> ((x) % 8) & 1);
+#define SET_PAGE_BIT(x) (memory->bitfield[(x) >> 3] |= (1 << ((x) % 8)))
+#define CLEAR_PAGE_BIT(x) (memory->bitfield[(x) >> 3] &= ~(1 << ((x) % 8)))
+#define GET_PAGE_BIT(x) (memory->bitfield[(x) >> 3] >> ((x) % 8) & 1)
 
 struct system_memory * memory;
 
@@ -28,20 +28,30 @@ void iterate_memory(void (*callback)(void*, uint64_t, uint64_t, uint64_t), void 
     }
 }
 
+struct system_memory * test_get_memory() {
+    return memory;
+}
+
 void set_page_bit(void* address) {
-    if (ADDR_TO_PAGE(address) > memory->total_pages) {
+    if (ADDR_TO_PAGE(address) > memory->total_available_pages) {
         dbg_print("\nCrashing at: ");
-        dbg_print(itoa(memory->total_pages, 16));
+        dbg_print(itoa(memory->total_available_pages, 16));
         dbg_print("\n");
         panic("set_page_bit: address out of bounds");
     }
     SET_PAGE_BIT(ADDR_TO_PAGE(address));
+    if (GET_PAGE_BIT(ADDR_TO_PAGE(address)) != 1) {
+        dbg_print("\nCrashing at: ");
+        dbg_print(itoa(memory->total_available_pages, 16));
+        dbg_print("\n");
+        panic("set_page_bit: bit not set");
+    }
 }
 
 void clear_page_bit(void* address) {
-    if (ADDR_TO_PAGE(address) > memory->total_pages) {
+    if (ADDR_TO_PAGE(address) > memory->total_available_pages) {
         dbg_print("\nCrashing at: ");
-        dbg_print(itoa(memory->total_pages, 16));
+        dbg_print(itoa(memory->total_available_pages, 16));
         dbg_print("\n");
         panic("clear_page_bit: address out of bounds");
     }
@@ -49,58 +59,67 @@ void clear_page_bit(void* address) {
 }
 
 uint8_t get_page_bit(void* address) {
-    if (ADDR_TO_PAGE(address) > memory->total_pages) {
-        dbg_print("\nCrashing addr: 0x");
-        dbg_print(itoa((uint64_t)address, 16));
+    if (ADDR_TO_PAGE(address) > memory->total_available_pages) {
+        dbg_print("\nCrashing page: 0x");
+        dbg_print(itoa((uint64_t)ADDR_TO_PAGE(address), 16));
         dbg_print(" against: 0x");
-        dbg_print(itoa(memory->total_pages, 16));
+        dbg_print(itoa(memory->total_available_pages, 16));
         dbg_print("\n");
         panic("get_page_bit: address out of bounds");
     }
     return (uint8_t)GET_PAGE_BIT(ADDR_TO_PAGE(address));
 }
 
-void init_memory() {
+int init_memory() {
     static struct chunk_data biggest_avail_chunk;
-    if (biggest_avail_chunk.size > 0) return;
+    if (biggest_avail_chunk.size > 0) return 0;
 
     uint64_t total_memory = get_total_memory(); //Divide by pagesize and by byte size (12+3)
-    uint64_t total_pages = ((total_memory % 0x100) == 0) ? (total_memory >> 12) : (total_memory >> 12) + 1;
-    uint64_t bitfield_entries = ((total_pages % 0x8) == 0) ? (total_pages >> 3) : (total_pages >> 3) + 1;
-
-    iterate_memory(init_memory_cb, (void*)&biggest_avail_chunk);
+    uint64_t total_pages = total_memory >> 12; //We discard incomplete pages
     
-    //We are subtracting: size of the bitfield, size of the memory descriptor struct, up to three pages per alignment
+    iterate_memory(init_memory_cb, (void*)&biggest_avail_chunk);
+    uint64_t first_available_address = ALIGN_ADDR(biggest_avail_chunk.addr); 
+    uint64_t last_available_address = ALIGN_ADDR(biggest_avail_chunk.addr + biggest_avail_chunk.size);   
+    uint64_t available_pages = (last_available_address - first_available_address) >> 12; //We discard last page if incomplete!
+    uint64_t bitfield_entries =  ((available_pages % 8)==0) ? (available_pages >> 3) : (available_pages >> 3) + 1;
+
     if (biggest_avail_chunk.size < (bitfield_entries + sizeof(struct system_memory) + (3 << 12)))
-        panic("Not enough memory for startup!");
+        panic("init_memory: not enough memory for memory bitfield");
 
-    uint64_t first_addr = ALIGN_ADDR(biggest_avail_chunk.addr);
-    uint64_t last_addr = biggest_avail_chunk.addr + biggest_avail_chunk.size;
-    memory = (struct system_memory*)ALIGN_ADDR(first_addr + bitfield_entries + 1);
-
-    memory->bitfield = (uint8_t*)(first_addr);
-    memory->total_pages = total_pages;
-    memory->first_available_page_addr = ALIGN_ADDR((uint64_t)memory + sizeof(struct system_memory) + 1);
-    memory->total_available_pages = ((last_addr - memory->first_available_page_addr) >> 12) - 1;
-
+    memory = (struct system_memory*)first_available_address;
+    memory->bitfield = (uint8_t*)ALIGN_ADDR(first_available_address + sizeof(struct system_memory));
     memset(memory->bitfield, 0, bitfield_entries);
 
-    memory->free_memory = memory->total_available_pages << 12;
+    memory->total_available_pages = available_pages;
+    memory->total_memory = total_memory;
+    memory->total_pages = total_pages;
+
+
+    memory->free_memory = last_available_address - first_available_address;
     memory->locked_memory = 0;
     memory->reserved_memory = 0;
+
+    memory->first_available_page_addr = first_available_address;
 
     if (!IS_ALIGNED(memory) || !IS_ALIGNED(memory->bitfield) || !IS_ALIGNED(memory->first_available_page_addr))
         panic("Memory alignment error!");
 
-    dbg_print("\nBITFIELD ENTRIES: ");
-    dbg_print(itoa(memory->total_pages, 16));
-    dbg_print("\n");
-    iterate_memory(reserve_memory_cb, (void*)reserve_pages);
+    uint64_t used_space = (bitfield_entries + sizeof(struct system_memory) + (3 << 12)) >> 12;
+    reserve_pages((void*)0, used_space);
 
-    uint64_t kernel_pages = ADDR_TO_PAGE((uint64_t)KERNEL_END - (uint64_t)KERNEL_START);
-    //lock_pages((void*)KERNEL_START, kernel_pages);
-    //Lock global variables!!
-    return;
+    dbg_print("First free address: 0x");
+    dbg_print(itoa(memory->first_available_page_addr, 16));
+    dbg_print("\n");
+    dbg_print("First really free addr: 0x");
+    dbg_print(itoa(memory->first_available_page_addr+(used_space << 12), 16));
+    dbg_print("\n");
+    dbg_print("Bitfield state:");
+    for (int i = 0;i < 100; i++) {
+        dbg_print(" ");
+        dbg_print(itoa(memory->bitfield[i], 16));
+    }
+    dbg_print("\n");
+    return 1;
 }
 
 uint64_t get_total_memory() {
@@ -125,6 +144,52 @@ void reserve_page(void* address) {
 
     memory->free_memory -= PAGESIZE;
     memory->reserved_memory += PAGESIZE;
+}
+
+void* request_page() {
+    static uint64_t last_requested;
+    static uint64_t statistics_requested; //Deleteme
+    uint64_t first = last_requested-1;
+
+    while (GET_PAGE_BIT(last_requested) == 1) {
+        if (last_requested >= memory->total_available_pages)
+            last_requested = 0;
+        if (last_requested == first) {
+            dbg_print("\nRequested up to: ");
+            dbg_print(itoa(statistics_requested, 16));
+            dbg_print("\n NOW I WILL CRASH LIKE A HERO!\n");
+            panic("No free pages available!"); //Change with page swap!!
+        }
+        last_requested++;
+    }
+
+    lock_page((void*)(last_requested << 12));
+    if (GET_PAGE_BIT(last_requested) == 0)
+        panic("Page not reserved!"); //Deleteme
+
+    statistics_requested++; //Deleteme
+
+    dbg_print("Locked page: 0x");
+    dbg_print(itoa(last_requested << 12, 16));
+    dbg_print("\n");
+    return (void*)(memory->first_available_page_addr+(last_requested << 12));
+}
+
+void free_page(void* addr) {
+    uint64_t addr_uint = (uint64_t)addr;
+    uint64_t normaliced_address = (addr_uint - memory->first_available_page_addr);
+
+    if (addr_uint < memory->first_available_page_addr)
+        panic("Page below active range!"); //Deleteme
+    dbg_print("Trying to unlock entry: 0x");
+    dbg_print(itoa(normaliced_address, 16));
+    dbg_print("\n");
+    unlock_page((void*)normaliced_address);
+    if (GET_PAGE_BIT((normaliced_address >> 12) + 1) == 0) {
+        dbg_print("Im about to crash at: 0x");
+        dbg_print(itoa(normaliced_address, 16));
+        panic("Page not freed!");
+    }
 }
 
 void unreserve_page(void* address) {

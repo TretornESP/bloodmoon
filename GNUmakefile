@@ -9,7 +9,7 @@ override GDBCFG := debug.gdb
 
 CC := /usr/bin/cc
 LD := /usr/bin/ld
-LMN := limine/limine-deploy
+LMN := limine/limine-deploy.exe
 
 # This are specific to my setup, please modify them!!!!
 ########################################################################
@@ -32,13 +32,31 @@ GDBPORT ?= 1234
 ABSDIR := $(shell pwd)
 LMNDIR := limine
 SRCDIR := src
+BUILDHOME := build
 BUILDDIR := build/bin
 OBJDIR := build/lib
 ISOBUILDDIR := build/iso_root
 ISODIR := build/image
+
+LMNREPO := https://github.com/limine-bootloader/limine.git
+LMNBRCH := v3.0-branch-binary
+
 DIRS := $(wildcard $(SRCDIR)/*)
 
 rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
+
+# Check that given variables are set and all have non-empty values,
+# die with an error otherwise.
+#
+# Params:
+#   1. Variable name(s) to test.
+#   2. (optional) Error message to print.
+check_defined = \
+    $(strip $(foreach 1,$1, \
+        $(call __check_defined,$1,$(strip $(value 2)))))
+__check_defined = \
+    $(if $(value $1),, \
+      $(error Undefined $1$(if $2, ($2))))
 
 override CFLAGS +=       \
     -I.                  \
@@ -121,12 +139,18 @@ setup:
 	@mkdir -p $(OBJDIR)
 	@mkdir -p $(ISOBUILDDIR)
 	@mkdir -p $(ISODIR)
+	@git clone $(LMNREPO) --branch=$(LMNBRCH) --depth=1
 	@cp -v $(LMNDIR)/limine.sys $(LMNDIR)/limine-cd.bin $(LMNDIR)/limine-cd-efi.bin $(ISOBUILDDIR)
 	@echo file $(ABSDIR)/$(BUILDDIR)/$(KERNEL) > debug.gdb
 	@echo target remote $(WSLHOSTIP):$(GDBPORT) >> debug.gdb
 	@echo set disassembly-flavor intel >> debug.gdb
 	@echo b $(KERNEL_ENTRY) >> debug.gdb
 	@echo c >> debug.gdb
+
+cleansetup:
+	@rm -rf $(BUILDHOME)
+	@rm -f debug.gdb
+	@rm -rf $(LMNDIR)
 
 buildimg:
 	@cp -v limine.cfg $(BUILDDIR)/$(KERNEL) $(ISOBUILDDIR)
