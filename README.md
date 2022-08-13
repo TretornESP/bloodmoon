@@ -107,7 +107,7 @@ a build task (ctrl+shift+b).
 
 ## Acknoledgements and credits
 
-Marco Paland (info@paland.com)
-Lukás Chmela
-Absurd Poncho
-The Limine project
+- Marco Paland (info@paland.com)
+- Lukás Chmela
+- Absurd Poncho
+- The Limine project
