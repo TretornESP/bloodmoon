@@ -4,3 +4,4 @@ src/util/dbgprinter.c@boot_conversor_buffer
 src/memory/memory.c@memory
 src/io/interrupts.c@idtr
 src/memory/paging.c@pml4
+src/memory/heap.c@heap

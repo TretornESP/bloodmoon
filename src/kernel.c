@@ -6,6 +6,7 @@
 #include "memory/paging.h"
 #include "io/interrupts.h"
 #include "util/string.h"
+#include "memory/heap.h"
 
 static void done(void) {
     for (;;) {
@@ -26,16 +27,10 @@ void _start(void) {
     init_memory();
     init_interrupts();
     init_paging();
+    init_heap((void*)0x0000100000000000, 0x10);
 
-    void * target = request_page();
-    memset(target, 0x0, 0x1000);
-    map_memory((void*)0xffffffffdeadb000, target);
-
-    uint64_t* ptr1 = (uint64_t*)0xffffffffdeadb000;
-
-    PAGE_RESTRICT_WRITE((void*)ptr1);
-
-    *ptr1 = 0xdeadbeef;
+    for (int i = 0; i < 10; i++)
+        printf("Malloced address: 0x%llx\n", (uint64_t)malloc(0x100));
 
     printf("Im still alive, gonna sleep for a while\n");
 
