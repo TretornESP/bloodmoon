@@ -18,7 +18,7 @@ Current memory usage:
 - [x] CPU Structures (GDT, IDT, TSS, LDT) (needs improvements)
 - [ ] Paging and mappings
 - [ ] Memory sectoring and protection
-- [ ] Advanced print functionality
+- [x] Advanced print functionality
 - [ ] Heap
 - [ ] I/O Basic interfaces
 - [ ] Keyboard drivers
