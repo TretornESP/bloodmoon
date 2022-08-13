@@ -5,6 +5,7 @@
 #include "memory/memory.h"
 #include "memory/paging.h"
 #include "io/interrupts.h"
+#include "util/string.h"
 
 static void done(void) {
     for (;;) {
@@ -25,6 +26,16 @@ void _start(void) {
     init_memory();
     init_interrupts();
     init_paging();
+
+    void * target = request_page();
+    memset(target, 0x0, 0x1000);
+    map_memory((void*)0xffffffffdeadb000, target);
+
+    uint64_t* ptr1 = (uint64_t*)0xffffffffdeadb000;
+
+    PAGE_RESTRICT_WRITE((void*)ptr1);
+
+    *ptr1 = 0xdeadbeef;
 
     printf("Im still alive, gonna sleep for a while\n");
 

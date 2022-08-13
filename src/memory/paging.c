@@ -138,3 +138,59 @@ void map_memory(void* virtual_memory, void* physical_memory) {
     pte.writeable = 1;
     pt->entries[map.P_i] = pte;
 }
+
+void set_page_perms(void* address, uint8_t permissions) {
+    struct page_map_index map;
+    address_to_map((uint64_t)address, &map);
+
+    struct page_directory_entry pde;
+    struct page_directory *pd;
+
+    pde = pml4->entries[map.PDP_i];
+    pd = (struct page_directory*)((uint64_t)pde.page_ppn << 12);
+    pde = pd->entries[map.PD_i];
+    pd = (struct page_directory*)((uint64_t)pde.page_ppn << 12);
+    pde = pd->entries[map.PT_i];
+    
+    struct page_table *pt = (struct page_table*)((uint64_t)pde.page_ppn << 12);
+    struct page_table_entry *pte = &pt->entries[map.P_i];
+
+    pte->writeable = (permissions & 1);
+    pte->user_access = ((permissions & 2) >> 1);
+    pte->execution_disabled = ((permissions & 4) >> 2);
+}
+
+uint8_t get_page_perms(void* address) {
+    struct page_map_index map;
+    address_to_map((uint64_t)address, &map);
+
+    struct page_directory_entry pde;
+    struct page_directory *pd;
+
+    pde = pml4->entries[map.PDP_i];
+    pd = (struct page_directory*)((uint64_t)pde.page_ppn << 12);
+    pde = pd->entries[map.PD_i];
+    pd = (struct page_directory*)((uint64_t)pde.page_ppn << 12);
+    pde = pd->entries[map.PT_i];
+    
+    struct page_table *pt = (struct page_table*)((uint64_t)pde.page_ppn << 12);
+    struct page_table_entry pte = pt->entries[map.P_i];
+
+    uint8_t result = pte.writeable;
+    result |= (pte.user_access << 1);
+    result |= (pte.execution_disabled << 2);
+
+    return result;
+}
+
+void page_set(void* address, uint8_t field) {
+    uint8_t perms = get_page_perms(address);
+    perms |= field;
+    set_page_perms(address, perms);
+}
+
+void page_clear(void* address, uint8_t field) {
+    uint8_t perms = get_page_perms(address);
+    perms &= ~field;
+    set_page_perms(address, perms);
+}

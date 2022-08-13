@@ -17,7 +17,7 @@ Current memory usage:
 - [x] Page frame allocator
 - [x] CPU Structures (GDT, IDT, TSS, LDT) (needs improvements)
 - [x] Paging and mappings
-- [ ] Memory sectoring and protection
+- [x] Memory sectoring and protection
 - [x] Advanced print functionality
 - [ ] Heap
 - [ ] I/O Basic interfaces
