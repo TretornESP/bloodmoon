@@ -40,10 +40,6 @@ char* get_bootloader_version() {
     return CALL_SERVICE(BOOTLOADER)->version;
 }
 
-uint64_t get_hhdm_offset() {
-    return CALL_SERVICE(HHDM)->offset;
-}
-
 uint64_t get_terminal_count() {
     return CALL_SERVICE(TERMINAL)->terminal_count;
 }

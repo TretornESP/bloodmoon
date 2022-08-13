@@ -1,6 +1,8 @@
-#ifndef _ALLOCATEST_H
-#define _ALLOCATEST_H
+#ifndef _TESTS_H
+#define _TESTS_H
 
 void allocatest();
 void allocatest_bench_crash();
+
+void pagetest();
 #endif

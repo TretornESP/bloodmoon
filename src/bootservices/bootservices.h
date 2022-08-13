@@ -8,7 +8,6 @@ void   (*get_terminal_writer())(const char*, uint64_t);
 char*    get_bootloader_name();
 char*    get_bootloader_version();
 
-uint64_t get_hhdm_offset();
 uint64_t get_terminal_count();
 uint64_t get_current_terminal();
 

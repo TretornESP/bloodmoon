@@ -5,6 +5,7 @@ ENTRY(_start)
 
 PHDRS
 {
+    loop    PT_LOAD FLAGS((1 << 0) | (1 << 2));
     text    PT_LOAD FLAGS((1 << 0) | (1 << 2));
     rodata  PT_LOAD FLAGS((1 << 2));
     data    PT_LOAD FLAGS((1 << 1) | (1 << 2));
@@ -12,6 +13,11 @@ PHDRS
 
 SECTIONS
 {
+    .loop : AT(0x10000)
+    {
+        build/lib/loop/*.o (*.text)
+    } :loop
+
     . = 0xffffffff80000000;
     KERNEL_START = .;
 

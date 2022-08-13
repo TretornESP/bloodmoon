@@ -1,4 +1,6 @@
 #define MAX_ALLOCS_FOR_512MB 0x1faef
+
+#include "tests.h"
 #include "../util/dbgprinter.h"
 #include "../util/string.h"
 #include "../memory/memory.h"

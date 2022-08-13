@@ -9,7 +9,6 @@
 #include "../util/string.h"
 #include "../util/dbgprinter.h"
 #include "../bootservices/bootservices.h"
-#define PAGESIZE 0x1000
 
 #define ALIGN_ADDR(x) (((PAGESIZE-1)&(x)) ? ((x+PAGESIZE) & ~(PAGESIZE-1)):(x))
 #define IS_ALIGNED(x) ((((uint64_t)(x))&(PAGESIZE-1)) == 0)
