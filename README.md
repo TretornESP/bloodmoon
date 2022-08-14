@@ -25,7 +25,7 @@ Current memory usage:
 - [x] Heap
 - [x] I/O Basic interfaces
 - [x] Keyboard drivers
-- [ ] ACHI structures
+- [ ] ACPI structures
 - [ ] Clocks and signal lines
 - [ ] Proces structures
 - [ ] Task switching

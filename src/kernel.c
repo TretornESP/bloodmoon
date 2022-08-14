@@ -8,6 +8,7 @@
 #include "util/string.h"
 #include "memory/heap.h"
 #include "drivers/keyboard.h"
+#include "dev/acpi.h"
 
 void _start(void) {
 
@@ -24,16 +25,6 @@ void _start(void) {
     init_heap();
     init_interrupts();
 
-    printf("Malloced address: 0x%llx\n", (uint64_t)malloc(0x8000));
-    void * address = malloc(0x8000);
-    printf("Malloced address: 0x%llx\n", (uint64_t)address);
-    printf("Malloced address: 0x%llx\n", (uint64_t)malloc(0x100));
-    free(address);
-    printf("Freed address: 0x%llx\n", (uint64_t)address);
-
-    printf("Malloced address: 0x%llx\n", (uint64_t)malloc(0x100));
-
-    printf("Im still alive, gonna sleep for a while\n");
-
+    debug_acpi();
     while(1);
 }

@@ -7,4 +7,5 @@ uint64_t strlen(const char *str);
 void memset(void *dest, int c, uint64_t n);
 void strncpy(char *dest, const char *src, uint64_t n);
 void memcpy(void *dest, const void *src, uint64_t n);
+uint64_t memcmp(const void *dest, const void *src, uint64_t n);
 #endif

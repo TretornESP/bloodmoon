@@ -1,5 +1,6 @@
 override KERNEL := kernel.elf
 override ISO := limine-cd.iso
+override IMG := limine-cd.img
 override LIMINECFG := limine.cfg
 override GDBCFG := debug.gdb
 
@@ -10,6 +11,7 @@ override GDBCFG := debug.gdb
 CC := /usr/bin/cc
 LD := /usr/bin/ld
 LMN := limine/limine-deploy.exe
+BOOTEFI := ./limine/BOOTX64.EFI
 
 # This are specific to my setup, please modify them!!!!
 ########################################################################
@@ -21,7 +23,9 @@ WSLHOSTIP := $(shell ipconfig.exe | grep 'vEthernet (WSL)' -a -A4 | tail -n1 | c
 
 KERNEL_ENTRY := _start
 
-QFLAGS ?= -m 512 -boot d -cdrom
+QFLAGS ?= -cpu qemu64 -machine q35 -m 512 -boot d -cdrom 
+QFLAGSEXP ?= -cpu qemu64 -machine q35 -m 512 -boot d -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -net none -drive file=
+
 CFLAGS ?= -O2 -g -Wall -Wextra -Wpedantic -pipe -std=c11
 NASMFLAGS ?= -F dwarf -g
 LDFLAGS ?=
@@ -163,8 +167,36 @@ buildimg:
         $(ISOBUILDDIR) -o $(ISODIR)/$(ISO)
 	$(LMN) $(ISODIR)/$(ISO)
 
+buildimgexp:
+	@dd if=/dev/zero of=$(ISODIR)/$(IMG) bs=512 count=93750
+	@mformat -i $(ISODIR)/$(IMG) -f 1440 ::
+	@mmd -i $(ISODIR)/$(IMG) ::/EFI
+	@mmd -i $(ISODIR)/$(IMG) ::/EFI/BOOT
+	@mcopy -i $(ISODIR)/$(IMG) $(BOOTEFI) ::/EFI/BOOT
+	@mcopy -i $(ISODIR)/$(IMG) ./startup.nsh ::
+	@mcopy -i $(ISODIR)/$(IMG) $(BUILDDIR)/$(KERNEL) ::
+	@mcopy -i $(ISODIR)/$(IMG) ./limine.cfg ::
+
 run:
 	$(QEMU) $(QFLAGS) $(ISODIR)/$(ISO)
+
+run_exp:
+	$(QEMU) $(QFLAGSEXP)$(ISODIR)/$(IMG)
+
+exp:
+	@make kernel
+	@echo "Building experimental ISO..."
+	@make buildimgexp
+	@echo "Running experimental QEMU..."
+	@make run_exp
+	@echo "Done!"
+
+debuge:
+	@make kernel
+	@echo "Building experimental ISO..."
+	@make buildimgexp
+	@echo "Running experimental QEMU..."
+	$(QEMU) -S -s $(QFLAGSEXP)$(ISODIR)/$(IMG)
 
 debug:
 	@make kernel

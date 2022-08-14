@@ -70,6 +70,10 @@ uint64_t get_kernel_address_virtual() {
     return CALL_SERVICE(KERNEL)->virtual_base;
 }
 
+uint64_t get_rsdp_address() {
+    return (uint64_t)CALL_SERVICE(RSDP)->address;
+}
+
 void set_terminal_writer(uint64_t terminal) {
     if (terminal >= get_terminal_count()) {
         service_error();

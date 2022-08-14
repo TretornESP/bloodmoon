@@ -5,6 +5,7 @@
 #define TERMINAL    terminal_request
 #define MEMMAP      memmap_request
 #define KERNEL      kernel_address_request
+#define RSDP        rsdp_request
 
 static volatile struct limine_terminal_request terminal_request = {
     .id = LIMINE_TERMINAL_REQUEST,
@@ -20,6 +21,10 @@ static volatile struct limine_memmap_request memmap_request = {
 };
 static volatile struct limine_kernel_address_request kernel_address_request = {
     .id = LIMINE_KERNEL_ADDRESS_REQUEST,
+    .revision = 0
+};
+static volatile struct limine_rsdp_request rsdp_request = {
+    .id = LIMINE_RSDP_REQUEST,
     .revision = 0
 };
 #endif // _LIMINE_REQUESTS_H
