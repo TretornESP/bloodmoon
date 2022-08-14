@@ -70,6 +70,7 @@ void init_heap() {
 }
 
 void* malloc(uint64_t size) {
+
     if ((size % 10) > 0) {
         size -= (size % 0x10);
         size += 0x10;

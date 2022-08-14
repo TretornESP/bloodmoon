@@ -23,9 +23,8 @@ Current memory usage:
 - [x] Memory sectoring and protection
 - [x] Advanced print functionality
 - [x] Heap
-- [ ] I/O Basic interfaces
-- [ ] Keyboard drivers
-- [ ] Mouse drivers
+- [x] I/O Basic interfaces
+- [x] Keyboard drivers
 - [ ] ACHI structures
 - [ ] Clocks and signal lines
 - [ ] Proces structures
@@ -39,6 +38,7 @@ Current memory usage:
 - [ ] Basic software utilities
 - [ ] Network drivers
 - [ ] Network stack
+- [ ] Mouse drivers
 - [ ] Graphical interface
 - [ ] Advanced device drivers (USB)
 

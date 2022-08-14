@@ -7,20 +7,9 @@
 #include "io/interrupts.h"
 #include "util/string.h"
 #include "memory/heap.h"
-
-#include "test/tests.h"
-
-static void done(void) {
-    for (;;) {
-        __asm__("hlt");
-    }
-}
+#include "drivers/keyboard.h"
 
 void _start(void) {
-
-    heaptest();
-
-    /*
 
     printf("Bootloader: %s\n", get_bootloader_name());
     printf("Total Memory: 0x%llx\n", get_total_memory());
@@ -31,9 +20,9 @@ void _start(void) {
     printf("KERNEL END:   %llx\n", &KERNEL_END);
 
     init_memory();
-    init_interrupts();
     init_paging();
-    init_heap((void*)0x0000100000000000, 0x100);
+    init_heap();
+    init_interrupts();
 
     printf("Malloced address: 0x%llx\n", (uint64_t)malloc(0x8000));
     void * address = malloc(0x8000);
@@ -44,7 +33,7 @@ void _start(void) {
 
     printf("Malloced address: 0x%llx\n", (uint64_t)malloc(0x100));
 
-    printf("Im still alive, gonna sleep for a while\n");*/
+    printf("Im still alive, gonna sleep for a while\n");
 
-    done();
+    while(1);
 }
