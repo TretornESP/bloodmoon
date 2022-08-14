@@ -1,6 +1,6 @@
 ![Logo](https://github.com/TretornESP/bloodmoon/raw/main/logo.png)
 
-![Completion](https://badgen.net/badge/project%20completion/33%25/green?icon=github)
+![Completion](https://github.com/TretornESP/bloodmoon/raw/main/badge.svg)
 
 # bloodmoon
 
