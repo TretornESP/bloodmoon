@@ -1,4 +1,5 @@
 #include "pci.h"
+#include "devices.h"
 #include "../memory/paging.h"
 #include "../util/printf.h"
 
@@ -14,7 +15,13 @@ void enumerate_function(uint64_t device_address, uint64_t function) {
     if (pci_device_header->device_id == 0x0) return;
     if (pci_device_header->device_id == 0xFFFF) return;
 
-    printf("Dev: %x Vend: %x\n", pci_device_header->device_id, pci_device_header->vendor_id);
+    printf("%s %s: %s %s / %s\n",
+        get_device_class(pci_device_header->class_code),
+        get_subclass_name(pci_device_header->class_code, pci_device_header->subclass),
+        get_vendor_name(pci_device_header->vendor_id),
+        get_device_name(pci_device_header->vendor_id, pci_device_header->device_id),
+        get_prog_interface(pci_device_header->class_code, pci_device_header->subclass, pci_device_header->prog_if)
+    );
 }
 
 void enumerate_device(uint64_t bus_address, uint64_t device) {

@@ -7,3 +7,4 @@ src/memory/paging.c@pml4
 src/memory/heap.c@heap
 src/drivers/keyboard.c@keyboard
 src/drivers/keyboard.c2@asciitable
+src/dev/devices.c@pci_device_classes

@@ -1,5 +1,4 @@
 @echo -off
-set StartupDelay 0
 mode 80 25
 
 cls
