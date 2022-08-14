@@ -1,6 +1,9 @@
 ![Logo](https://github.com/TretornESP/bloodmoon/raw/main/logo.png)
 
+![Completion](https://badgen.net/badge/project%20completion/33%25/green?icon=github)
+
 # bloodmoon
+
 
 WIP Os for my twitch series: https://www.twitch.tv/damebanda
 
