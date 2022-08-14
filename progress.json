@@ -1,3 +1,6 @@
 {
-	progress: "33%"
+  "schemaVersion": 1,
+  "label": "progress",
+  "message": "33%",
+  "color": "lightgrey"
 }
