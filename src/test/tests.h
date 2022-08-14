@@ -5,4 +5,6 @@ void allocatest();
 void allocatest_bench_crash();
 
 void pagetest();
+
+void heaptest();
 #endif

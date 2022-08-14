@@ -8,6 +8,8 @@
 #include "util/string.h"
 #include "memory/heap.h"
 
+#include "test/tests.h"
+
 static void done(void) {
     for (;;) {
         __asm__("hlt");
@@ -15,6 +17,10 @@ static void done(void) {
 }
 
 void _start(void) {
+
+    heaptest();
+
+    /*
 
     printf("Bootloader: %s\n", get_bootloader_name());
     printf("Total Memory: 0x%llx\n", get_total_memory());
@@ -27,12 +33,18 @@ void _start(void) {
     init_memory();
     init_interrupts();
     init_paging();
-    init_heap((void*)0x0000100000000000, 0x10);
+    init_heap((void*)0x0000100000000000, 0x100);
 
-    for (int i = 0; i < 10; i++)
-        printf("Malloced address: 0x%llx\n", (uint64_t)malloc(0x100));
+    printf("Malloced address: 0x%llx\n", (uint64_t)malloc(0x8000));
+    void * address = malloc(0x8000);
+    printf("Malloced address: 0x%llx\n", (uint64_t)address);
+    printf("Malloced address: 0x%llx\n", (uint64_t)malloc(0x100));
+    free(address);
+    printf("Freed address: 0x%llx\n", (uint64_t)address);
 
-    printf("Im still alive, gonna sleep for a while\n");
+    printf("Malloced address: 0x%llx\n", (uint64_t)malloc(0x100));
+
+    printf("Im still alive, gonna sleep for a while\n");*/
 
     done();
 }

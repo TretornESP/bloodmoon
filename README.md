@@ -19,7 +19,7 @@ Current memory usage:
 - [x] Paging and mappings
 - [x] Memory sectoring and protection
 - [x] Advanced print functionality
-- [ ] Heap
+- [x] Heap
 - [ ] I/O Basic interfaces
 - [ ] Keyboard drivers
 - [ ] Mouse drivers
