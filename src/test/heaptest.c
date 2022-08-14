@@ -8,7 +8,7 @@ void heaptest() {
     
     init_memory();
     init_paging();
-    init_heap((void*)0x0000100000000000, 0x100);
+    init_heap();
 
     printf("Malloced address: 0x%llx\n", (uint64_t)malloc(0x8000));
     void * address = malloc(0x8000);

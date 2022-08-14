@@ -2,6 +2,9 @@
 #include "paging.h"
 #include "memory.h"
 
+#define HEAP_START 0x0000100000000000
+#define PAGE_COUNT 0x100
+
 #include "../util/printf.h"
 
 struct heap heap;
@@ -45,19 +48,19 @@ void debug_heap() {
     }
 }
 
-void init_heap(void* heap_address, uint64_t page_count) {
-    void* pos = heap_address;
+void init_heap() {
+    void* pos = (void*)(uint64_t)HEAP_START;
 
-    for (uint64_t i = 0; i < page_count; i++) {
+    for (uint64_t i = 0; i < PAGE_COUNT; i++) {
         map_memory(pos, request_page());
         pos = (void*)((uint64_t)pos + PAGESIZE);
     }
 
-    uint64_t heap_length = page_count * PAGESIZE;
+    uint64_t heap_length = PAGE_COUNT * PAGESIZE;
 
-    heap.heap_start = heap_address;
+    heap.heap_start = (void*)(uint64_t)HEAP_START;
     heap.heap_end = (void*)((uint64_t)heap.heap_start + heap_length);
-    struct heap_seg_header* start_seg = (struct heap_seg_header*)heap_address;
+    struct heap_seg_header* start_seg = (struct heap_seg_header*)HEAP_START;
     start_seg->length = heap_length - sizeof(struct heap_seg_header);
     start_seg->next = 0;
     start_seg->prev = 0;
@@ -143,8 +146,8 @@ void expand_heap(uint64_t length) {
 }
 
 void free(void * address) {
-    struct heap_seg_header* segment = (struct heap_seg_header*)((uint64_t)address - 0x20);
+    struct heap_seg_header* segment = (struct heap_seg_header*)((uint64_t)address - sizeof(struct heap_seg_header));
     segment->free = 1;
-    combine_forward(segment);  //0000000000000160
-    combine_backward(segment); //00000000000001a0
+    combine_forward(segment);
+    combine_backward(segment);
 }

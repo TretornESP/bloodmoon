@@ -16,7 +16,7 @@ struct heap {
     struct heap_seg_header* last_header;
 };
 
-void init_heap(void*, uint64_t);
+void init_heap();
 
 void * malloc(uint64_t);
 void free(void*);
