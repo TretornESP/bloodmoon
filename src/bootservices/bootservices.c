@@ -74,6 +74,14 @@ uint64_t get_rsdp_address() {
     return (uint64_t)CALL_SERVICE(RSDP)->address;
 }
 
+uint64_t get_smbios32_address() {
+    return (uint64_t)CALL_SERVICE(SMBIOS)->entry_32;
+}
+
+uint64_t get_smbios64_address() {
+    return (uint64_t)CALL_SERVICE(SMBIOS)->entry_64;
+}
+
 void set_terminal_writer(uint64_t terminal) {
     if (terminal >= get_terminal_count()) {
         service_error();

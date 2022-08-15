@@ -4,6 +4,7 @@
 #include "../util/dbgprinter.h"
 #include "../memory/memory.h"
 #include "../drivers/keyboard.h"
+#include "../scheduling/pit.h"
 
 #define PIC1_COMMAND 0x20
 #define PIC1_DATA 0x21
@@ -93,6 +94,12 @@ __attribute__((interrupt)) void MouseInt_Handler(struct interrupt_frame * frame)
     while(1);
 }
 
+__attribute__((interrupt)) void PitInt_Handler(struct interrupt_frame * frame) {
+    (void)frame;
+    tick();
+    pic_end_master();
+}
+
 void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uint8_t selector) {
     struct idtdescentry* interrupt = (struct idtdescentry*)(idtr.offset + entry_offset * sizeof(struct idtdescentry));
     set_offset(interrupt, handler);
@@ -113,14 +120,15 @@ void init_interrupts() {
     set_idt_gate((uint64_t)GPFault_Handler,     0xD,    IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)KeyboardInt_Handler, 0x21,   IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)MouseInt_Handler,    0x2C,   IDT_TA_InterruptGate, 0x28);
-
+    set_idt_gate((uint64_t)PitInt_Handler,      0x20,   IDT_TA_InterruptGate, 0x28);
+    
     __asm__("lidt %0" : : "m"(idtr));
 
     remap_pic();
 
     init_keyboard();
 
-    outb(PIC1_DATA, 0xf9);
+    outb(PIC1_DATA, 0xf8);
     outb(PIC2_DATA, 0xef);
 
     __asm__("sti");

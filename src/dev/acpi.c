@@ -6,7 +6,7 @@
 #include "../util/printf.h"
 #include "../util/dbgprinter.h"
 
-uint8_t checksum(struct acpi_sdt_header* table_header)
+uint8_t acpi_sdt_checksum(struct acpi_sdt_header* table_header)
 {
     uint8_t sum = 0;
  
@@ -74,7 +74,7 @@ void* init_acpi_vt(void* rsdp_address) {
     struct xsdt* xsdt = (struct xsdt*)(uint64_t)(rsdp->xsdt_address);
     struct acpi_sdt_header* mcfg = find_xsdt(xsdt, "MCFG", 4);
 
-    if (!checksum(mcfg))
+    if (!acpi_sdt_checksum(mcfg))
         panic("XSDT checksum mismatch");
 
     return (void*)mcfg;
@@ -101,7 +101,7 @@ void* init_acpi_vz(void* rsdp_address) {
     struct rsdt* rsdt = (struct rsdt*)(uint64_t)(rsdp->rsdt_address);
     struct acpi_sdt_header* mcfg = find_rsdt(rsdt, "MCFG", 4);
 
-    if (!checksum(mcfg))
+    if (!acpi_sdt_checksum(mcfg))
         panic("RSDT checksum mismatch");
 
     return (void*)mcfg;

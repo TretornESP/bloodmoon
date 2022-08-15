@@ -8,3 +8,5 @@ src/memory/heap.c@heap
 src/drivers/keyboard.c@keyboard
 src/drivers/keyboard.c2@asciitable
 src/dev/devices.c@pci_device_classes
+src/scheduling/pit.c@pit
+src/dev/smbios_interface.c@smbios

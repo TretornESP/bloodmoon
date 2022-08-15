@@ -77,6 +77,7 @@ override CFLAGS +=       \
     -mno-red-zone        \
     -mcmodel=kernel      \
     -MMD
+override CFLAGS += $(CEXTRA)
 
 override LDFLAGS +=         \
     -nostdlib               \
@@ -199,7 +200,7 @@ debuge:
 	$(QEMU) -S -s $(QFLAGSEXP)$(ISODIR)/$(IMG)
 
 debug:
-	@make kernel
+	@make CEXTRA=-O0 kernel
 	@make buildimg
 	$(CMDNEWSCREEN) $(GDB) $(GDBFLAGS) &
 	$(QEMU) -S -s $(QFLAGS) $(ISODIR)/$(ISO)

@@ -21,6 +21,9 @@ uint64_t get_kernel_address_virtual();
 
 uint64_t get_rsdp_address();
 
+uint64_t get_smbios32_address();
+uint64_t get_smbios64_address();
+
 void     set_terminal_extra_handler(); //TODO
 void     set_terminal_writer(uint64_t terminal);
 
