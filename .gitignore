@@ -7,6 +7,9 @@
 *.img
 *.bin
 *.gdb
+*.out
+
+test.c
 
 limine/
 build/
