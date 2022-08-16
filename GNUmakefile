@@ -12,6 +12,7 @@ CC := /usr/bin/cc
 LD := /usr/bin/ld
 LMN := limine/limine-deploy.exe
 BOOTEFI := ./limine/BOOTX64.EFI
+ASMC := nasm
 
 # This are specific to my setup, please modify them!!!!
 ########################################################################
@@ -122,7 +123,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 $(OBJDIR)/%_asm.o: $(SRCDIR)/%.asm
 	@ echo !==== COMPILING $^
 	@ mkdir -p $(@D)
-	$(ASMC) $(CFLAGS) $^ -f elf64 -o $@
+	$(ASMC) $^ -felf64 -o $@
 
 $(OBJDIR)/%_s.o: $(SRCDIR)/%.S
 	@ echo !==== COMPILING $^

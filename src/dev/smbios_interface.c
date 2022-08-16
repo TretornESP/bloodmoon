@@ -1,6 +1,8 @@
 #include "smbios_interface.h"
-#include "../util/printf.h"
 #include "smbios.h"
+
+#include "../util/printf.h" // Required for printf
+
 #define EXTRACT(x) ((uint8_t)((1 << (x.length)) - 1) & ((*(uint64_t*)x.pointer) >> (x.bit)))
 
 struct smbios_data smbios;

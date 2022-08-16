@@ -11,6 +11,19 @@
 #include "dev/acpi.h"
 #include "scheduling/pit.h"
 #include "dev/smbios_interface.h"
+#include "scheduling/scheduler.h"
+
+void t1() {
+    int i = 10;
+    while (i--)
+        kwrite("a");
+}
+
+void t2() {
+    int i = 10;
+    while (i--)
+        kwrite("b");
+}
 
 void _start(void) {
 
@@ -20,7 +33,7 @@ void _start(void) {
     init_pit();
     init_interrupts();
     init_smbios_interface();
+    init_scheduler();
 
-    dump_smbios();
     while(1);
 }

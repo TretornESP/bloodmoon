@@ -1,10 +1,10 @@
 #include "smbios.h"
 #include "smbios_interface.h"
 
-#include "../util/printf.h"
-#include "../util/string.h"
-#include "../bootservices/bootservices.h"
-#include "../util/dbgprinter.h"
+#include "../util/printf.h"               //Required for: printf
+#include "../util/string.h"               //Required for: memcmp, strlen
+#include "../bootservices/bootservices.h" //Required for: get_smbios32_address, get_smbios64_address
+#include "../util/dbgprinter.h"           //Required for: panic
 
 char * get_smbios_string(void * first_addr, uint8_t index) {
     char * addr = first_addr;
@@ -186,13 +186,6 @@ void process_bios_information(uint16_t version, void* bios_information, struct s
     if (version < 30) {
         struct smbios24_bios_information * bios = (struct smbios24_bios_information *)bios_information;
         void * strings_addr = (void*)((uint64_t)bios + sizeof(struct smbios24_bios_information));
-        printf("BIOS v%d Information table at [%p]: Vendor: %s Version: %s, Release Date: %s\n",
-            version,
-            bios,
-            get_smbios_string(strings_addr, bios->vendor),
-            get_smbios_string(strings_addr, bios->version),
-            get_smbios_string(strings_addr, bios->release_date)
-        );
         
         char * vendor_string = get_smbios_string(strings_addr, bios->vendor);
         char * version_string = get_smbios_string(strings_addr, bios->version);
@@ -274,7 +267,6 @@ uint8_t smbios_checksum(uint8_t* entry, uint64_t len)
 
 
 void init_smbios32(struct smbios2_entry_point * entry, struct smbios_data* data) {
-    //printf("SMBIOSv2 at: 0x%p major: %d minor: %d \n", entry, entry->major_version, entry->minor_version);
     
     struct smbios_header* header = (struct smbios_header *)(uint64_t)entry->table_address;
     for (uint16_t i = 0; i < entry->number_of_structures; i++) {
