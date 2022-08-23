@@ -11,8 +11,9 @@
 #define TASK_CREATED         6
 #define TASK_FREE            7
 
+void dump_processes();
 void kwrite(const char*);
-int8_t spawn(void*);
+void spawn(void*);
 void kyield();
 void init_scheduler();
 #endif

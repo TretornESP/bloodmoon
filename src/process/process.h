@@ -37,7 +37,10 @@ struct task {
     struct descriptors* descriptors;
 };
 
+void kyieldtest();
+void kwritest(const char);
 extern void setContext(CPU_CONTEXT*);
 extern void getContext(CPU_CONTEXT*);
-
+extern void setContextNoRip(CPU_CONTEXT*);
+void dump_context(CPU_CONTEXT*);
 #endif

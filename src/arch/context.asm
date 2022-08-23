@@ -1,6 +1,7 @@
 [bits 64]
 getContext:
     mov [rdi],    rax
+    pop rax
     mov [rdi+8],  rbx
     mov [rdi+16], rcx
     mov [rdi+24], rdx
@@ -14,20 +15,21 @@ getContext:
     mov [rdi+88], r12
     mov [rdi+96], r14
     mov [rdi+104], r15
-    mov [rdi+112], rbp
-    mov [rdi+120], rsp
+    mov [rdi+112], rsp
+    mov [rdi+120], rbp
+    mov [rdi+128], QWORD 0xdeadbeef
     pop rsi
-    mov [rdi+128], rsi
-    push rsi
+    push rax
+    mov rax, [rdi]
     ret
 
 setContext:
+    pop rax
     mov rax, [rdi]
     mov rbx, [rdi+8]
     mov rcx, [rdi+16]
     mov rdx, [rdi+24]
     mov rsi, [rdi+32]
-    mov rdi, [rdi+40]
     mov r8,  [rdi+48]
     mov r9,  [rdi+56]
     mov r10, [rdi+64]
@@ -36,10 +38,11 @@ setContext:
     mov r13, [rdi+88]
     mov r14, [rdi+96]
     mov r15, [rdi+104]
-    mov rbp, [rdi+112]
-    mov rsp, [rdi+120]
-    jmp [rdi+128]
-    jmp $ ; We should never get here
+    mov rsp, [rdi+112]
+    mov rbp, [rdi+120]
+    push QWORD [rdi+128]
+    mov rdi, [rdi+40]
+    ret
 
 setContextNoRip:
     mov rax, [rdi]
@@ -47,7 +50,6 @@ setContextNoRip:
     mov rcx, [rdi+16]
     mov rdx, [rdi+24]
     mov rsi, [rdi+32]
-    mov rdi, [rdi+40]
     mov r8,  [rdi+48]
     mov r9,  [rdi+56]
     mov r10, [rdi+64]
@@ -56,8 +58,9 @@ setContextNoRip:
     mov r13, [rdi+88]
     mov r14, [rdi+96]
     mov r15, [rdi+104]
-    mov rbp, [rdi+112]
-    mov rsp, [rdi+120]
+    mov rsp, [rdi+112]
+    mov rbp, [rdi+120]
+    mov rdi, [rdi+40]
     ret
 
 GLOBAL getContext

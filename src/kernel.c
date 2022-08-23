@@ -11,18 +11,41 @@
 #include "dev/acpi.h"
 #include "scheduling/pit.h"
 #include "dev/smbios_interface.h"
-#include "scheduling/scheduler.h"
+#include "process/process.h"
+
+CPU_CONTEXT saved_context;
+int ready = 0;
 
 void t1() {
     int i = 10;
     while (i--)
-        kwrite("a");
+        kwritest('a');
 }
 
 void t2() {
     int i = 10;
     while (i--)
-        kwrite("b");
+        kwritest('b');
+}
+
+void kyieldtest() {
+    CPU_CONTEXT context;
+    getContext(&context);
+    if (ready) {
+        CPU_CONTEXT saved;
+        memcpy(&saved, &saved_context, sizeof(CPU_CONTEXT));
+        memcpy(&saved_context, &context, sizeof(CPU_CONTEXT));
+        setContext(&saved);
+    } else {
+        memcpy(&saved_context, &context, sizeof(CPU_CONTEXT));
+        ready = 1;
+        t2();
+    }
+}
+
+void kwritest(const char chr) {
+    __asm__("call kyieldtest");
+    printf("%c\n", chr);
 }
 
 void _start(void) {
@@ -33,7 +56,7 @@ void _start(void) {
     init_pit();
     init_interrupts();
     init_smbios_interface();
-    init_scheduler();
 
+    t1();
     while(1);
 }
