@@ -26,8 +26,8 @@ Current memory usage:
 - [x] I/O Basic interfaces
 - [x] Keyboard drivers
 - [x] ACPI structures
-- [ ] Clocks and signal lines
-- [ ] Proces structures
+- [x] Clocks and signal lines (signal lines moved forward)
+- [x] Proces structures
 - [ ] Task switching
 - [ ] Basic concurrency
 - [ ] Basic FS
