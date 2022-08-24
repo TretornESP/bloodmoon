@@ -1,12 +1,19 @@
 [bits 64]
 getContext:
-    mov [rdi],    rax
-    pop rax
     mov [rdi+8],  rbx
     mov [rdi+16], rcx
+
+    pop rax ; Saving return address
+    mov [rdi+128], rax
+
+    pop rcx ; Saving original rax value
+    mov [rdi],    rcx
+
+    pop rbx ; Saving original rdi value
+    mov [rdi+40], rbx
+
     mov [rdi+24], rdx
     mov [rdi+32], rsi
-    mov [rdi+40], rdi
     mov [rdi+48], r8
     mov [rdi+56], r9
     mov [rdi+64], r10
@@ -17,10 +24,12 @@ getContext:
     mov [rdi+104], r15
     mov [rdi+112], rsp
     mov [rdi+120], rbp
-    mov [rdi+128], QWORD 0xdeadbeef
-    pop rsi
     push rax
+
     mov rax, [rdi]
+    mov rbx, [rdi+8]
+    mov rcx, [rdi+16]
+
     ret
 
 setContext:
@@ -40,9 +49,7 @@ setContext:
     mov r15, [rdi+104]
     mov rsp, [rdi+112]
     mov rbp, [rdi+120]
-    push QWORD [rdi+128]
-    mov rdi, [rdi+40]
-    ret
+    jmp [rdi+128]
 
 setContextNoRip:
     mov rax, [rdi]

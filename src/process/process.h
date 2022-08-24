@@ -1,6 +1,26 @@
 #ifndef _PROCESS_H
 #define _PROCESS_H
 #include <stdint.h>
+
+#define SAVE_CONTEXT(a) __asm__("movq %%rax, (%0)\n\t"\
+                                "movq %%rbx, 8(%0)\n\t"\
+                                "movq %%rcx, 16(%0)\n\t"\
+                                "movq %%rdx, 24(%0)\n\t"\
+                                "movq %%rsi, 32(%0)\n\t"\
+                                "movq %%rdi, 40(%0)\n\t"\
+                                "movq %%r8, 48(%0)\n\t"\
+                                "movq %%r9, 56(%0)\n\t"\
+                                "movq %%r10, 64(%0)\n\t"\
+                                "movq %%r11, 72(%0)\n\t"\
+                                "movq %%r12, 80(%0)\n\t"\
+                                "movq %%r13, 88(%0)\n\t"\
+                                "movq %%r14, 96(%0)\n\t"\
+                                "movq %%r15, 104(%0)\n\t"\
+                                "movq %%rbp, 112(%0)\n\t"\
+                                "movq %%rsp, 120(%0)\n\t"\
+                                : : "m" (a)\
+                            );
+
 typedef struct __attribute__((packed)){
     uint64_t rax;
     uint64_t rbx;

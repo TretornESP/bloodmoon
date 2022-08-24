@@ -49,6 +49,7 @@ void kwritest(const char chr) {
 }
 
 void _start(void) {
+    CPU_CONTEXT context;
 
     init_memory();
     init_paging();
@@ -56,7 +57,5 @@ void _start(void) {
     init_pit();
     init_interrupts();
     init_smbios_interface();
-
-    t1();
-    while(1);
+    SAVE_CONTEXT(&context)
 }
