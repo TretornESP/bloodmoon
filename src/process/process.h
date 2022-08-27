@@ -2,24 +2,32 @@
 #define _PROCESS_H
 #include <stdint.h>
 
-#define SAVE_CONTEXT(a) __asm__("movq %%rax, (%0)\n\t"\
-                                "movq %%rbx, 8(%0)\n\t"\
-                                "movq %%rcx, 16(%0)\n\t"\
-                                "movq %%rdx, 24(%0)\n\t"\
-                                "movq %%rsi, 32(%0)\n\t"\
-                                "movq %%rdi, 40(%0)\n\t"\
-                                "movq %%r8, 48(%0)\n\t"\
-                                "movq %%r9, 56(%0)\n\t"\
-                                "movq %%r10, 64(%0)\n\t"\
-                                "movq %%r11, 72(%0)\n\t"\
-                                "movq %%r12, 80(%0)\n\t"\
-                                "movq %%r13, 88(%0)\n\t"\
-                                "movq %%r14, 96(%0)\n\t"\
-                                "movq %%r15, 104(%0)\n\t"\
-                                "movq %%rbp, 112(%0)\n\t"\
-                                "movq %%rsp, 120(%0)\n\t"\
-                                : : "m" (a)\
-                            );
+#define SAVE_CONTEXT(a) __asm__("push %rdi\npush %rax"); getContext(a);
+
+#define __SET_CONTEXT(a) __asm__(\
+        "movq 8(%0), %%rbx\n\t"\
+        "movq 16(%0), %%rcx\n\t"\
+        "movq 24(%0), %%rdx\n\t"\
+        "movq 32(%0), %%rsi\n\t"\
+        "movq 40(%0), %%rdi\n\t"\
+        "movq 48(%0), %%r8\n\t"\
+        "movq 56(%0), %%r9\n\t"\
+        "movq 64(%0), %%r10\n\t"\
+        "movq 72(%0), %%r11\n\t"\
+        "movq 80(%0), %%r12\n\t"\
+        "movq 88(%0), %%r13\n\t"\
+        "movq 96(%0), %%r14\n\t"\
+        "movq 104(%0), %%r15\n\t"\
+        "movq 112(%0), %%rsp\n\t"\
+        "movq 120(%0), %%rbp\n\t"\
+        "movq 8(%0), %%rbx\n\t"\
+        "movq (%0), %%rax\n\t"\
+        : : "r" (a)\
+    );
+
+#define SET_CONTEXT(a)\
+    register CPU_CONTEXT* cpu __asm__("rax") = a;\
+    __SET_CONTEXT(cpu);
 
 typedef struct __attribute__((packed)){
     uint64_t rax;

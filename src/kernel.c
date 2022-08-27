@@ -30,7 +30,7 @@ void t2() {
 
 void kyieldtest() {
     CPU_CONTEXT context;
-    getContext(&context);
+    SAVE_CONTEXT(&context);
     if (ready) {
         CPU_CONTEXT saved;
         memcpy(&saved, &saved_context, sizeof(CPU_CONTEXT));
@@ -44,18 +44,17 @@ void kyieldtest() {
 }
 
 void kwritest(const char chr) {
-    __asm__("call kyieldtest");
+    kyieldtest();
     printf("%c\n", chr);
 }
 
 void _start(void) {
-    CPU_CONTEXT context;
-
     init_memory();
     init_paging();
     init_heap();
     init_pit();
     init_interrupts();
     init_smbios_interface();
-    SAVE_CONTEXT(&context)
+    t1();
+    while(1);
 }
