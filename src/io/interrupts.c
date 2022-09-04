@@ -108,7 +108,7 @@ void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uin
 }
 
 
-void init_interrupts() {
+void init_interrupts(uint8_t pit_disable) {
 
     __asm__("cli");
 
@@ -128,7 +128,7 @@ void init_interrupts() {
 
     init_keyboard();
 
-    outb(PIC1_DATA, 0xf8);
+    outb(PIC1_DATA, 0xf8 + pit_disable); //PIT IS DISABLED
     outb(PIC2_DATA, 0xef);
 
     __asm__("sti");

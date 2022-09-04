@@ -111,28 +111,28 @@ all:
 kernel: $(OBJS) link
 
 $(OBJDIR)/io/interrupts.o: $(SRCDIR)/io/interrupts.c
-	@ echo !==== COMPILING $^
+#	@ echo !==== COMPILING $^
 	@ mkdir -p $(@D)
-	$(CC) $(CFLAGS) -mgeneral-regs-only -c $^ -o $@
+	@$(CC) $(CFLAGS) -mgeneral-regs-only -c $^ -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
-	@ echo !==== COMPILING $^
+#	@ echo !==== COMPILING $^
 	@ mkdir -p $(@D)
-	$(CC) $(CFLAGS) -c $^ -o $@
+	@$(CC) $(CFLAGS) -c $^ -o $@
 
 $(OBJDIR)/%_asm.o: $(SRCDIR)/%.asm
-	@ echo !==== COMPILING $^
+#	@ echo !==== COMPILING $^
 	@ mkdir -p $(@D)
-	$(ASMC) $^ -felf64 -o $@
+	@$(ASMC) $^ -felf64 -o $@
 
 $(OBJDIR)/%_s.o: $(SRCDIR)/%.S
-	@ echo !==== COMPILING $^
+#	@ echo !==== COMPILING $^
 	@ mkdir -p $(@D)
-	$(ASMC) $(NASMFLAGS) $^ -f elf64 -o $@
+	@$(ASMC) $(NASMFLAGS) $^ -f elf64 -o $@
 
 link: 
-	@ echo !==== LINKING $^
-	$(LD) $(LDFLAGS) -o $(BUILDDIR)/kernel.elf $(OBJS)
+#	@ echo !==== LINKING $^
+	@$(LD) $(LDFLAGS) -o $(BUILDDIR)/kernel.elf $(OBJS)
 
 clean:
 	@rm -rf $(OBJDIR)/*
@@ -180,7 +180,7 @@ buildimgexp:
 	@mcopy -i $(ISODIR)/$(IMG) ./limine.cfg ::
 
 run:
-	$(QEMU) $(QFLAGS) $(ISODIR)/$(ISO)
+	$(QEMU) $(QFLAGS) $(ISODIR)/$(ISO) -drive file=$(ISODIR)/test.img
 
 run_exp:
 	$(QEMU) $(QFLAGSEXP)$(ISODIR)/$(IMG)

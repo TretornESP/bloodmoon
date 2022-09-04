@@ -3,9 +3,10 @@
 #include <stdint.h>
 #include "memory.h"
 
-#define PAGE_USER_BIT   0x2
-#define PAGE_WRITE_BIT  0x1
-#define PAGE_NX_BIT     0x4
+#define PAGE_WRITE_BIT     0x1
+#define PAGE_USER_BIT      0x2
+#define PAGE_NX_BIT        0x4
+#define PAGE_CACHE_DISABLE 0x8
 
 #define PAGE_ALLOW_WRITE(x)     ((page_set  ((x), PAGE_WRITE_BIT)))
 #define PAGE_RESTRICT_WRITE(x)  ((page_clear((x), PAGE_WRITE_BIT)))
@@ -13,6 +14,8 @@
 #define PAGE_RESTRICT_USER(x)   ((page_clear((x), PAGE_USER_BIT )))
 #define PAGE_ALLOW_NX(x)        ((page_set  ((x), PAGE_NX_BIT   )))
 #define PAGE_RESTRICT_NX(x)     ((page_clear((x), PAGE_NX_BIT   )))
+#define PAGE_DISABLE_CACHE(x)   ((page_set  ((x), PAGE_CACHE_DISABLE)))
+#define PAGE_ENABLE_CACHE(x)    ((page_clear((x), PAGE_CACHE_DISABLE)))
 
 struct page_directory_entry {
     uint64_t present                   :1;
@@ -66,7 +69,9 @@ struct page_map_index{
 void init_paging();
 void address_to_map(uint64_t, struct page_map_index*);
 void map_memory(void*, void*);
-
+void debug_memory_map(void*, void*);
+uint64_t virtual_to_physical(void*);
+void * request_page_identity();
 void page_set(void*, uint8_t);
 void page_clear(void*, uint8_t);
 

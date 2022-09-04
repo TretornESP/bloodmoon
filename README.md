@@ -30,7 +30,7 @@ Current memory usage:
 - [x] Proces structures
 - [ ] Task switching
 - [ ] Basic concurrency
-- [ ] Basic FS
+- [x] Basic FS (in process)
 - [ ] Process loading
 - [ ] Syscalls
 - [ ] Userspace
@@ -107,6 +107,47 @@ a build task (ctrl+shift+b).
     ]
 }
 ```
+
+## Driver support
+
+For adding drivers simply create a file in the drivers folder with at least the following
+
+```c
+#include "../dev/devices.h"
+
+//Add here your functions
+uint64_t my_read(struct file *file, uint64_t offset, uint64_t size, uint8_t *buffer) {
+    //True read operation
+    return 0;
+}
+
+struct file_operations fops = {
+    .read = my_read
+};
+
+void init_dummy_driver(void) {
+    //8 is the major number for SCSI devices, use your own.
+    register_block(8, "DRIVER NAME", &fops);
+}
+
+void exit_dummy_driver(void) {unregister_block(8);}
+```
+
+Then, at some time you must call the init function of your driver:
+
+```c
+init_dummy_driver();
+
+```
+
+Now you are ready to call generic functions like:
+
+```c
+    device_read("/dev/sda", 8, 0, buffer);
+```
+
+As long as **/dev/sda** is a valid device with major=8, the function will call your driver.
+
 
 ## Acknoledgements and credits
 

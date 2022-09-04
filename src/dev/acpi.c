@@ -107,7 +107,7 @@ void* init_acpi_vz(void* rsdp_address) {
     return (void*)mcfg;
 }
 
-void debug_acpi() {
+void init_acpi() {
     char signature[9];
     char oemid[7];
     char oemtableid[9];

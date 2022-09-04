@@ -10,6 +10,6 @@ __attribute__((interrupt)) void KeyboardInt_Handler(struct interrupt_frame *);
 __attribute__((interrupt)) void MouseInt_Handler(struct interrupt_frame *);
 __attribute__((interrupt)) void PitInt_Handler(struct interrupt_frame *);
 
-void init_interrupts();
+void init_interrupts(uint8_t);
 
 #endif

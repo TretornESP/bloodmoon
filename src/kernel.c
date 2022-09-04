@@ -1,60 +1,45 @@
 #include "bootservices/bootservices.h"
 
-#include "util/dbgprinter.h"
-#include "util/printf.h"
 #include "memory/memory.h"
 #include "memory/paging.h"
-#include "io/interrupts.h"
-#include "util/string.h"
 #include "memory/heap.h"
-#include "drivers/keyboard.h"
-#include "dev/acpi.h"
 #include "scheduling/pit.h"
+#include "io/interrupts.h"
 #include "dev/smbios_interface.h"
-#include "process/process.h"
+#include "dev/devices.h"
+#include "drivers/disk.h"
+#include "util/printf.h"
 
-CPU_CONTEXT saved_context;
-int ready = 0;
-
-void t1() {
-    int i = 10;
-    while (i--)
-        kwritest('a');
-}
-
-void t2() {
-    int i = 10;
-    while (i--)
-        kwritest('b');
-}
-
-void kyieldtest() {
-    CPU_CONTEXT context;
-    SAVE_CONTEXT(&context);
-    if (ready) {
-        CPU_CONTEXT saved;
-        memcpy(&saved, &saved_context, sizeof(CPU_CONTEXT));
-        memcpy(&saved_context, &context, sizeof(CPU_CONTEXT));
-        setContext(&saved);
-    } else {
-        memcpy(&saved_context, &context, sizeof(CPU_CONTEXT));
-        ready = 1;
-        t2();
-    }
-}
-
-void kwritest(const char chr) {
-    kyieldtest();
-    printf("%c\n", chr);
-}
 
 void _start(void) {
     init_memory();
     init_paging();
     init_heap();
     init_pit();
-    init_interrupts();
+    init_interrupts(1);
     init_smbios_interface();
-    t1();
+    init_devices();
+    init_drive();
+
+    uint8_t * buffer = (uint8_t*)malloc(0x4000);
+    device_read("/dev/sda", 8, 0, buffer);
+
+    for (int i = 0; i < 0x1000; i++) {
+        printf("%c", buffer[i]);
+    }
+    /*
+    printf("Drives detected: %d\n", get_port_count());
+
+    for (int i = 0; i < get_port_count(); i++) {
+        uint8_t * buffer = get_buffer(i);
+        device_read(i, 0, 1);
+        printf("Port %d: ");
+        
+        for (int j = 0; j < 512; j++) {
+            printf("%c", buffer[j]);
+        }
+        printf("\n\n");
+    }
+    */
     while(1);
 }

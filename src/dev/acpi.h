@@ -55,6 +55,5 @@ struct device_config {
     uint32_t reserved;
 };
 
-void debug_acpi();
-
+void init_acpi();
 #endif

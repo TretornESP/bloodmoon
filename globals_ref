@@ -10,3 +10,5 @@ src/drivers/keyboard.c2@asciitable
 src/dev/devices.c@pci_device_classes
 src/scheduling/pit.c@pit
 src/dev/smbios_interface.c@smbios
+src/ahci/ahci.c@ahci_ports
+src/ahci/ahci.c@port_count

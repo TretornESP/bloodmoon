@@ -1,5 +1,13 @@
 #include "devices.h"
+#include "ahci.h"
+#include "../memory/memory.h"
 #include "../util/dbgprinter.h"
+#include "../util/string.h"
+#include "../util/printf.h"
+
+struct device_driver char_device_drivers[256] = {0};
+struct device_driver block_device_drivers[256] = {0};
+struct device* devices;
 
 const char* pci_device_classes[] = {
     "Unclassified",
@@ -232,4 +240,95 @@ const char* get_prog_interface(uint8_t class_code, uint8_t subclass_code, uint8_
         }
     }
     return itoa(prog_interface, 16);
+}
+
+void insert_device(uint8_t major, struct pci_device_header* pci, const char * prefix) {
+    char name[32];
+    memset(name, 0, 32);
+
+    struct device* device = devices;
+    uint8_t minor = 0;
+    while (device->next != 0) {
+        if (device->major == major)
+            minor++;
+        device = device->next;
+    }
+
+
+    snprintf(name, 32, "%s%x", prefix, minor+0xa);
+
+    printf("Registering device: %s [MAJ: %d MIN: %d PCI: %p]\n", name, major, minor, pci);
+
+    device->next = (struct device*) request_page();
+    memset(device->next, 0, sizeof(struct device));
+
+    device->next = 0;
+    device->bc = ((major & 0x80) >> 7);
+    device->major = major & 0x7f;
+    device->minor = minor;
+    strncpy(device->name, name, strlen(name));
+    device->pci = pci;
+}
+
+void register_device(struct pci_device_header* pci) {
+    switch (pci->class_code){
+        case 0x01: {
+            switch (pci->subclass){
+                case 0x06: {
+                    switch (pci->prog_if){
+                        case 0x01:
+                            init_ahci(pci);
+                            for (int i = 0; i < get_port_count(); i++) {
+                                insert_device(BLOCK_SCSI, pci, "/dev/sd");
+                            }
+                    }
+                    break;
+                }
+            }
+            break;
+        }
+    }
+}
+
+void register_char(uint8_t major, const char* name, struct file_operations* fops) {
+    strncpy(char_device_drivers[major].name, name, strlen(name));
+    char_device_drivers[major].registered = 1;
+    char_device_drivers[major].fops = fops;
+}
+
+void register_block(uint8_t major, const char* name, struct file_operations* fops) {
+    strncpy(block_device_drivers[major].name, name, strlen(name));
+    block_device_drivers[major].registered = 1;
+    block_device_drivers[major].fops = fops;
+    printf("Registered block device: %s [MAJ: %d]\n", name, major);
+}
+
+void unregister_block(uint8_t major) {
+    block_device_drivers[major].registered = 0;
+}
+
+void unregister_char(uint8_t major) {
+    char_device_drivers[major].registered = 0;
+}
+
+void init_devices() {
+    devices = (struct device*)request_page();
+    memset(devices, 0, sizeof(struct device));
+
+    init_acpi();
+}
+
+uint64_t device_read(const char * device, uint64_t size, uint64_t offset, uint8_t* buffer) {
+    struct device* dev = devices;
+    do {
+        if (memcmp((void*)dev->name, (void*)device, strlen(device)) == 0) {
+            if (dev->bc == 0) {
+                return block_device_drivers[dev->major].fops->read(dev->minor, size, offset, buffer);
+            } else {
+                return char_device_drivers[dev->major].fops->read(dev->minor, size, offset, buffer);
+            }
+        }
+        dev = dev->next;
+    } while (dev->next != 0);
+    return 0;
 }
