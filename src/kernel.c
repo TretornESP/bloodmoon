@@ -27,19 +27,6 @@ void _start(void) {
     for (int i = 0; i < 0x1000; i++) {
         printf("%c", buffer[i]);
     }
-    /*
-    printf("Drives detected: %d\n", get_port_count());
-
-    for (int i = 0; i < get_port_count(); i++) {
-        uint8_t * buffer = get_buffer(i);
-        device_read(i, 0, 1);
-        printf("Port %d: ");
-        
-        for (int j = 0; j < 512; j++) {
-            printf("%c", buffer[j]);
-        }
-        printf("\n\n");
-    }
-    */
+    
     while(1);
 }
