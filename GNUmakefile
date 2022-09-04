@@ -180,7 +180,7 @@ buildimgexp:
 	@mcopy -i $(ISODIR)/$(IMG) ./limine.cfg ::
 
 run:
-	$(QEMU) $(QFLAGS) $(ISODIR)/$(ISO) -drive file=$(ISODIR)/test.img
+	$(QEMU) $(QFLAGS) $(ISODIR)/$(ISO) -drive file=$(ISODIR)/test.fake
 
 run_exp:
 	$(QEMU) $(QFLAGSEXP)$(ISODIR)/$(IMG)

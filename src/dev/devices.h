@@ -47,7 +47,7 @@ struct file_operations {
 
 struct device_driver {
     struct file_operations *fops;
-    uint8_t registered = 0;
+    uint8_t registered;
     char name[32];
 };
 
