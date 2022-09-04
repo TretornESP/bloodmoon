@@ -21,10 +21,10 @@ void _start(void) {
     init_devices();
     init_drive();
 
-    uint8_t * buffer = (uint8_t*)malloc(0x4000);
-    device_read("/dev/sda", 8, 0, buffer);
+    uint8_t * buffer = (uint8_t*)malloc(0x1000);
+    device_read("/dev/sda", 1, 0, buffer);
 
-    for (int i = 0; i < 0x1000; i++) {
+    for (int i = 0; i < 512; i++) {
         printf("%c", buffer[i]);
     }
     

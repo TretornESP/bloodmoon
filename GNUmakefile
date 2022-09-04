@@ -170,8 +170,8 @@ buildimg:
 	$(LMN) $(ISODIR)/$(ISO)
 
 buildimgexp:
-	@dd if=/dev/zero of=$(ISODIR)/$(IMG) bs=512 count=93750
-	@mformat -i $(ISODIR)/$(IMG) -f 1440 ::
+	@dd if=/dev/zero of=$(ISODIR)/$(IMG) bs=1048576 count=16
+	@mkfs.vfat -v -f2 -n BLOODMOON -r224 -F16 $(ISODIR)/$(IMG)
 	@mmd -i $(ISODIR)/$(IMG) ::/EFI
 	@mmd -i $(ISODIR)/$(IMG) ::/EFI/BOOT
 	@mcopy -i $(ISODIR)/$(IMG) $(BOOTEFI) ::/EFI/BOOT
