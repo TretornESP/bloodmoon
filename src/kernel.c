@@ -9,7 +9,8 @@
 #include "dev/devices.h"
 #include "drivers/disk.h"
 #include "util/printf.h"
-
+#include "util/string.h"
+#include "fs/fat32.h"
 
 void _start(void) {
     init_memory();
@@ -21,12 +22,8 @@ void _start(void) {
     init_devices();
     init_drive();
 
-    uint8_t * buffer = (uint8_t*)malloc(0x1000);
-    device_read("/dev/sda", 1, 0, buffer);
-
-    for (int i = 0; i < 512; i++) {
-        printf("%c", buffer[i]);
-    }
-    
+    fat32_debug();
+    printf("VIVO\n");
     while(1);
+
 }

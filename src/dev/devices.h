@@ -67,7 +67,7 @@ const char* get_subclass_name(uint8_t, uint8_t);
 const char* get_prog_interface(uint8_t, uint8_t, uint8_t);
 
 void register_device(struct pci_device_header*);
-
+void device_list();
 void register_char(uint8_t, const char*, struct file_operations*);
 void register_block(uint8_t, const char*, struct file_operations*);
 void unregister_char(uint8_t);

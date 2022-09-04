@@ -14,9 +14,16 @@
 #define HBA_PxCMD_ST   0x0001
 
 #define ATA_CMD_READ_DMA_EX 0x25
+#define ATA_CMD_WRITE_DMA_EX 0x35
+#define ATA_CMD_IDENTIFY 0xEC
+#define ATA_CMD_PACKET 0xA0
+
 #define ATA_DEV_BUSY 0x80
 #define ATA_DEV_DRQ 0x08
 #define HBA_PxIS_TFES (1 << 30)
+
+#define ATAPI_READ_CMD 0xA8
+
 
 enum port_type {
     PORT_TYPE_NONE = 0,
@@ -149,9 +156,14 @@ struct hba_command_table {
 } __attribute__ ((packed));
 
 void init_ahci(struct pci_device_header*);
-void configure_port(struct ahci_port*);
-void probe_ports(struct hba_memory*);
+
 uint8_t read_port(uint8_t, uint64_t, uint32_t);
+uint8_t write_port(uint8_t, uint64_t, uint32_t);
+
+uint8_t write_atapi_port(uint8_t, uint64_t, uint32_t);
+uint8_t read_atapi_port(uint8_t, uint64_t, uint32_t);
+
 uint8_t * get_buffer(uint8_t);
 uint8_t get_port_count();
+enum port_type get_port_type(uint8_t);
 #endif

@@ -155,3 +155,4 @@ As long as **/dev/sda** is a valid device with major=8, the function will call y
 - Lukás Chmela
 - Absurd Poncho
 - The Limine project
+- strawberryhacker

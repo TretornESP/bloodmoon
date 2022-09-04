@@ -1,6 +1,7 @@
 override KERNEL := kernel.elf
 override ISO := limine-cd.iso
 override IMG := limine-cd.img
+override IMG_RAW := raw.img
 override LIMINECFG := limine.cfg
 override GDBCFG := debug.gdb
 
@@ -147,6 +148,7 @@ setup:
 	@mkdir -p $(OBJDIR)
 	@mkdir -p $(ISOBUILDDIR)
 	@mkdir -p $(ISODIR)
+	@dd if=/dev/zero of=$(ISODIR)/$(IMG_RAW) bs=4096 count=65527
 	@git clone $(LMNREPO) --branch=$(LMNBRCH) --depth=1
 	@cp -v $(LMNDIR)/limine.sys $(LMNDIR)/limine-cd.bin $(LMNDIR)/limine-cd-efi.bin $(ISOBUILDDIR)
 	@echo file $(ABSDIR)/$(BUILDDIR)/$(KERNEL) > debug.gdb
@@ -170,17 +172,18 @@ buildimg:
 	$(LMN) $(ISODIR)/$(ISO)
 
 buildimgexp:
-	@dd if=/dev/zero of=$(ISODIR)/$(IMG) bs=1048576 count=16
-	@mkfs.vfat -v -f2 -n BLOODMOON -r224 -F16 $(ISODIR)/$(IMG)
+	@cp $(ISODIR)/$(IMG_RAW) $(ISODIR)/$(IMG)
+	@mkfs.vfat -v -f2 -n C -r224 -F32 $(ISODIR)/$(IMG)
 	@mmd -i $(ISODIR)/$(IMG) ::/EFI
 	@mmd -i $(ISODIR)/$(IMG) ::/EFI/BOOT
 	@mcopy -i $(ISODIR)/$(IMG) $(BOOTEFI) ::/EFI/BOOT
 	@mcopy -i $(ISODIR)/$(IMG) ./startup.nsh ::
 	@mcopy -i $(ISODIR)/$(IMG) $(BUILDDIR)/$(KERNEL) ::
 	@mcopy -i $(ISODIR)/$(IMG) ./limine.cfg ::
+	@mcopy -i $(ISODIR)/$(IMG) ./test.fake ::/TEST
 
 run:
-	$(QEMU) $(QFLAGS) $(ISODIR)/$(ISO) -drive file=$(ISODIR)/test.fake
+	$(QEMU) $(QFLAGS) $(ISODIR)/$(ISO)
 
 run_exp:
 	$(QEMU) $(QFLAGSEXP)$(ISODIR)/$(IMG)

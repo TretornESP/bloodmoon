@@ -262,7 +262,6 @@ void insert_device(uint8_t major, struct pci_device_header* pci, const char * pr
     device->next = (struct device*) request_page();
     memset(device->next, 0, sizeof(struct device));
 
-    device->next = 0;
     device->bc = ((major & 0x80) >> 7);
     device->major = major & 0x7f;
     device->minor = minor;
@@ -279,8 +278,27 @@ void register_device(struct pci_device_header* pci) {
                         case 0x01:
                             init_ahci(pci);
                             for (int i = 0; i < get_port_count(); i++) {
-                                insert_device(BLOCK_SCSI, pci, "/dev/sd");
+                                switch (get_port_type(i)) {
+                                    case PORT_TYPE_SATA:
+                                        insert_device(0x8, pci, "/dev/hd");
+                                        break;
+                                    case PORT_TYPE_SATAPI:
+                                        insert_device(0x9, pci, "/dev/cd");
+                                        break;
+                                    case PORT_TYPE_SEMB:
+                                        insert_device(0xa, pci, "/dev/semb");
+                                        break;
+                                    case PORT_TYPE_PM:
+                                        insert_device(0xb, pci, "/dev/pm");
+                                        break;
+                                    case PORT_TYPE_NONE:
+                                        insert_device(0xc, pci, "/dev/unknown");
+                                        break;
+                                }
                             }
+                            break;
+                        default:
+                            printf("Unknown AHCI interface: %x\n", pci->prog_if);
                     }
                     break;
                 }
@@ -318,14 +336,38 @@ void init_devices() {
     init_acpi();
 }
 
+void device_list() {
+    struct device* dev = devices;
+    while (dev != 0 && dev->name != 0) {
+        printf("Device: %s [MAJ: %d MIN: %d]\n", dev->name, dev->major, dev->minor);
+        dev = dev->next;
+    }
+}
+
 uint64_t device_read(const char * device, uint64_t size, uint64_t offset, uint8_t* buffer) {
     struct device* dev = devices;
-    do {
+    while (dev != 0 && dev->name != 0) {
         if (memcmp((void*)dev->name, (void*)device, strlen(device)) == 0) {
             if (dev->bc == 0) {
                 return block_device_drivers[dev->major].fops->read(dev->minor, size, offset, buffer);
             } else {
                 return char_device_drivers[dev->major].fops->read(dev->minor, size, offset, buffer);
+            }
+        }
+        dev = dev->next;
+    }
+    
+    return 0;
+}
+
+uint64_t device_write(const char * device, uint64_t size, uint64_t offset, uint8_t* buffer) {
+    struct device* dev = devices;
+    do {
+        if (memcmp((void*)dev->name, (void*)device, strlen(device)) == 0) {
+            if (dev->bc == 0) {
+                return block_device_drivers[dev->major].fops->write(dev->minor, size, offset, buffer);
+            } else {
+                return char_device_drivers[dev->major].fops->write(dev->minor, size, offset, buffer);
             }
         }
         dev = dev->next;

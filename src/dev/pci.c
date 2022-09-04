@@ -25,22 +25,6 @@ void enumerate_function(uint64_t device_address, uint64_t function) {
     );
 
     register_device(pci_device_header);
-
-/*
-    switch(pci_device_header->class_code) {
-        case 0x01:
-            switch(pci_device_header->subclass) {
-                case 0x06:
-                    switch(pci_device_header->prog_if) {
-                        case 0x01:
-                            init_ahci(pci_device_header);
-                            break;
-                    }
-                    break;
-            }
-            break;
-    }
-*/
 }
 
 void enumerate_device(uint64_t bus_address, uint64_t device) {

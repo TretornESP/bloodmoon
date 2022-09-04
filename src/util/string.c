@@ -42,3 +42,40 @@ void memcpy(void *dest, const void *src, uint64_t size) {
     }
     return 0;
  }
+
+ 
+void store32(void* dest, uint32_t value) {
+	uint8_t* dest_ptr = (uint8_t *)dest;
+	*dest_ptr++ = (uint8_t)value;
+	value >>= 8;
+	*dest_ptr++ = (uint8_t)value;
+	value >>= 8;
+	*dest_ptr++ = (uint8_t)value;
+	value >>= 8;
+	*dest_ptr++ = (uint8_t)value;
+}
+
+void store16(void* dest, uint16_t value) {
+	uint8_t* dest_ptr = (uint8_t *)dest;
+	*dest_ptr++ = (uint8_t)value;
+	value >>= 8;
+	*dest_ptr++ = (uint8_t)value;
+}
+
+uint32_t load32(const void* src) {
+	uint32_t value = 0;
+	const uint8_t* src_ptr = (const uint8_t *)src;
+	value |= *src_ptr++;
+	value |= (*src_ptr++ << 8);
+	value |= (*src_ptr++ << 16);
+	value |= (*src_ptr++ << 24);
+	return value;
+}
+
+uint16_t load16(const void* src) {
+	uint16_t value = 0;
+	const uint8_t* src_ptr = (const uint8_t *)src;
+	value |= *src_ptr++;
+	value |= (*src_ptr++ << 8);
+	return value;
+}
