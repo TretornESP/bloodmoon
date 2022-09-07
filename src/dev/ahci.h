@@ -157,6 +157,7 @@ struct hba_command_table {
 
 void init_ahci(struct pci_device_header*);
 
+uint8_t identify(uint8_t);
 uint8_t read_port(uint8_t, uint64_t, uint32_t);
 uint8_t write_port(uint8_t, uint64_t, uint32_t);
 

@@ -374,3 +374,18 @@ uint64_t device_write(const char * device, uint64_t size, uint64_t offset, uint8
     } while (dev->next != 0);
     return 0;
 }
+
+uint64_t device_ioctl (const char * device, uint32_t op, void* buffer) {
+    struct device* dev = devices;
+    do {
+        if (memcmp((void*)dev->name, (void*)device, strlen(device)) == 0) {
+            if (dev->bc == 0) {
+                return block_device_drivers[dev->major].fops->ioctl(dev->minor, op, buffer);
+            } else {
+                return char_device_drivers[dev->major].fops->ioctl(dev->minor, op, buffer);
+            }
+        }
+        dev = dev->next;
+    } while (dev->next != 0);
+    return 0; 
+}

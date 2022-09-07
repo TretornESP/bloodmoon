@@ -22,7 +22,19 @@ void _start(void) {
     init_devices();
     init_drive();
 
-    fat32_debug();
+    uint8_t * buffer = malloc(0x1000);
+    memset(buffer, 0, 0x1000);
+    
+    device_ioctl("/dev/hda", IOCTL_ATAPI_IDENTIFY, buffer);
+    struct sata_ident* dev = (struct sata_ident*) buffer;
+    
+    for (int i = 0; i < 0x200; i++) {
+        printf("%x ", buffer[i]);
+    }
+    printf("\nSATA IDENT LBA SIZE: %lx\n", dev->lba_capacity);
+
+
+    //fat32_debug();
     printf("VIVO\n");
     while(1);
 

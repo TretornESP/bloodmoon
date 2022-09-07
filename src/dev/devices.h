@@ -18,7 +18,7 @@ struct file_operations {
     //int (*iterate) (struct file *, struct dir_context *);
     //int (*iterate_shared) (struct file *, struct dir_context *);
     //__poll_t (*poll) (struct file *, struct poll_table_struct *);
-    //long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
+    uint64_t (*ioctl) (uint8_t, uint32_t, void*);
     //long (*compat_ioctl) (struct file *, unsigned int, unsigned long);
     //int (*mmap) (struct file *, struct vm_area_struct *);
     //unsigned long mmap_supported_flags;
@@ -75,6 +75,7 @@ void unregister_block(uint8_t);
 
 void init_devices();
 
+uint64_t device_ioctl (const char *, uint32_t, void*);
 uint64_t device_read(const char *, uint64_t, uint64_t, uint8_t*);
 uint64_t device_write(const char *, uint64_t, uint64_t, uint8_t*);
 

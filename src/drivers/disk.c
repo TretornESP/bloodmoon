@@ -53,14 +53,27 @@ uint64_t dd_disk_atapi_write(uint8_t port, uint64_t size, uint64_t offset, uint8
     return size;
 }
 
+uint64_t dd_ioctl (uint8_t port, uint32_t op , void* data) {
+    uint8_t * hw_buffer = get_buffer(port);
+
+    switch (op) {
+        case IOCTL_ATAPI_IDENTIFY:
+            identify(port);
+            memcpy(data, hw_buffer, 512);
+    }
+    return 0;
+}
+
 struct file_operations ata_fops = {
     .read = dd_disk_read,
-    .write = dd_disk_write
+    .write = dd_disk_write,
+    .ioctl = dd_ioctl
 };
 
 struct file_operations atapi_fops = {
     .read = dd_disk_atapi_read,
-    .write = dd_disk_atapi_write
+    .write = dd_disk_atapi_write,
+    .ioctl = dd_ioctl
 };
 
 void init_drive(void) {
