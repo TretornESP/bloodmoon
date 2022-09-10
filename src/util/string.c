@@ -62,6 +62,32 @@ void store16(void* dest, uint16_t value) {
 	*dest_ptr++ = (uint8_t)value;
 }
 
+uint64_t load64(const void* src) {
+    uint64_t value = 0;
+    const uint8_t* src_ptr = (const uint8_t *)src;
+    value |= *src_ptr++;
+    value |= (*src_ptr++ << 8);
+    value |= (*src_ptr++ << 16);
+    value |= (*src_ptr++ << 24);
+    value |= ((uint64_t)*src_ptr++ << 32);
+    value |= ((uint64_t)*src_ptr++ << 40);
+    value |= ((uint64_t)*src_ptr++ << 48);
+    value |= ((uint64_t)*src_ptr++ << 56);
+    return value;
+}
+
+uint64_t load48(const void* src) {
+    uint64_t value = 0;
+    const uint8_t* src_ptr = (const uint8_t *)src;
+    value |= *src_ptr++;
+    value |= (*src_ptr++ << 8);
+    value |= (*src_ptr++ << 16);
+    value |= (*src_ptr++ << 24);
+    value |= ((uint64_t)*src_ptr++ << 32);
+    value |= ((uint64_t)*src_ptr++ << 40);
+    return value;
+}
+
 uint32_t load32(const void* src) {
 	uint32_t value = 0;
 	const uint8_t* src_ptr = (const uint8_t *)src;

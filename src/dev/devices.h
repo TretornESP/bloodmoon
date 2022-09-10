@@ -56,6 +56,7 @@ struct device {
     uint8_t major;
     uint8_t minor;
     char name[32];
+    uint8_t internal_id;
     struct pci_device_header *pci;
     struct device *next;
 };

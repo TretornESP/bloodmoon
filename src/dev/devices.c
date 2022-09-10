@@ -242,7 +242,7 @@ const char* get_prog_interface(uint8_t class_code, uint8_t subclass_code, uint8_
     return itoa(prog_interface, 16);
 }
 
-void insert_device(uint8_t major, struct pci_device_header* pci, const char * prefix) {
+void insert_device(uint8_t major, struct pci_device_header* pci, const char * prefix, uint8_t id) {
     char name[32];
     memset(name, 0, 32);
 
@@ -257,7 +257,7 @@ void insert_device(uint8_t major, struct pci_device_header* pci, const char * pr
 
     snprintf(name, 32, "%s%x", prefix, minor+0xa);
 
-    printf("Registering device: %s [MAJ: %d MIN: %d PCI: %p]\n", name, major, minor, pci);
+    printf("Registering device: %s [MAJ: %d MIN: %d ID: %d PCI: %p]\n", name, major, minor, id, pci);
 
     device->next = (struct device*) request_page();
     memset(device->next, 0, sizeof(struct device));
@@ -267,9 +267,11 @@ void insert_device(uint8_t major, struct pci_device_header* pci, const char * pr
     device->minor = minor;
     strncpy(device->name, name, strlen(name));
     device->pci = pci;
+    device->internal_id = id;
 }
 
 void register_device(struct pci_device_header* pci) {
+    printf("Device detected: %x, %x, %x\n", pci->class_code, pci->subclass, pci->prog_if);
     switch (pci->class_code){
         case 0x01: {
             switch (pci->subclass){
@@ -280,19 +282,19 @@ void register_device(struct pci_device_header* pci) {
                             for (int i = 0; i < get_port_count(); i++) {
                                 switch (get_port_type(i)) {
                                     case PORT_TYPE_SATA:
-                                        insert_device(0x8, pci, "/dev/hd");
+                                        insert_device(0x8, pci, "/dev/hd", i);
                                         break;
                                     case PORT_TYPE_SATAPI:
-                                        insert_device(0x9, pci, "/dev/cd");
+                                        insert_device(0x9, pci, "/dev/cd", i);
                                         break;
                                     case PORT_TYPE_SEMB:
-                                        insert_device(0xa, pci, "/dev/semb");
+                                        insert_device(0xa, pci, "/dev/semb", i);
                                         break;
                                     case PORT_TYPE_PM:
-                                        insert_device(0xb, pci, "/dev/pm");
+                                        insert_device(0xb, pci, "/dev/pm", i);
                                         break;
                                     case PORT_TYPE_NONE:
-                                        insert_device(0xc, pci, "/dev/unknown");
+                                        insert_device(0xc, pci, "/dev/unknown", i);
                                         break;
                                 }
                             }
@@ -349,9 +351,9 @@ uint64_t device_read(const char * device, uint64_t size, uint64_t offset, uint8_
     while (dev != 0 && dev->name != 0) {
         if (memcmp((void*)dev->name, (void*)device, strlen(device)) == 0) {
             if (dev->bc == 0) {
-                return block_device_drivers[dev->major].fops->read(dev->minor, size, offset, buffer);
+                return block_device_drivers[dev->major].fops->read(dev->internal_id, size, offset, buffer);
             } else {
-                return char_device_drivers[dev->major].fops->read(dev->minor, size, offset, buffer);
+                return char_device_drivers[dev->major].fops->read(dev->internal_id, size, offset, buffer);
             }
         }
         dev = dev->next;
@@ -365,9 +367,9 @@ uint64_t device_write(const char * device, uint64_t size, uint64_t offset, uint8
     do {
         if (memcmp((void*)dev->name, (void*)device, strlen(device)) == 0) {
             if (dev->bc == 0) {
-                return block_device_drivers[dev->major].fops->write(dev->minor, size, offset, buffer);
+                return block_device_drivers[dev->major].fops->write(dev->internal_id, size, offset, buffer);
             } else {
-                return char_device_drivers[dev->major].fops->write(dev->minor, size, offset, buffer);
+                return char_device_drivers[dev->major].fops->write(dev->internal_id, size, offset, buffer);
             }
         }
         dev = dev->next;
@@ -380,9 +382,9 @@ uint64_t device_ioctl (const char * device, uint32_t op, void* buffer) {
     do {
         if (memcmp((void*)dev->name, (void*)device, strlen(device)) == 0) {
             if (dev->bc == 0) {
-                return block_device_drivers[dev->major].fops->ioctl(dev->minor, op, buffer);
+                return block_device_drivers[dev->major].fops->ioctl(dev->internal_id, op, buffer);
             } else {
-                return char_device_drivers[dev->major].fops->ioctl(dev->minor, op, buffer);
+                return char_device_drivers[dev->major].fops->ioctl(dev->internal_id, op, buffer);
             }
         }
         dev = dev->next;

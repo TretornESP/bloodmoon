@@ -43,6 +43,7 @@ BUILDDIR := build/bin
 OBJDIR := build/lib
 ISOBUILDDIR := build/iso_root
 ISODIR := build/image
+MNTDIR := /mnt/bloodmoon
 
 LMNREPO := https://github.com/limine-bootloader/limine.git
 LMNBRCH := v3.0-branch-binary
@@ -173,7 +174,6 @@ buildimg:
 
 buildimgexp:
 	@cp $(ISODIR)/$(IMG_RAW) $(ISODIR)/$(IMG)
-	@mkfs.vfat -v -f2 -n C -r224 -F32 $(ISODIR)/$(IMG)
 	@mmd -i $(ISODIR)/$(IMG) ::/EFI
 	@mmd -i $(ISODIR)/$(IMG) ::/EFI/BOOT
 	@mcopy -i $(ISODIR)/$(IMG) $(BOOTEFI) ::/EFI/BOOT
@@ -182,11 +182,48 @@ buildimgexp:
 	@mcopy -i $(ISODIR)/$(IMG) ./limine.cfg ::
 	@mcopy -i $(ISODIR)/$(IMG) ./test.fake ::/TEST
 
+buildimggpt:
+
+	$(eval LOOP_DEV_PATH := $(shell losetup -a | grep $(IMG) | cut -d: -f1))
+	@echo Loop device path: $(LOOP_DEV_PATH)
+	
+	@sudo sgdisk --new 0::0 --typecode 0:ef00 $(LOOP_DEV_PATH)
+	@sudo partprobe $(LOOP_DEV_PATH)
+	@sudo mkfs.fat -n PATATA -F32 $(LOOP_DEV_PATH)p1
+	@sudo mkdir $(MNTDIR)
+	@sudo mount $(LOOP_DEV_PATH)p1 $(MNTDIR)
+
+	@echo Disk mounted, creating files
+	@sudo mkdir -p $(MNTDIR)/efi/boot
+	@sudo mkdir -p $(MNTDIR)/test
+
+	@sudo cp $(BOOTEFI) $(MNTDIR)/efi/boot
+	@sudo cp ./startup.nsh $(MNTDIR)
+	@sudo cp $(BUILDDIR)/$(KERNEL) $(MNTDIR)
+	@sudo cp ./limine.cfg $(MNTDIR)
+	@sudo cp ./test/test.fake $(MNTDIR)/test
+	@echo Files created, finishing...
+	@sudo umount $(MNTDIR)
+	@sudo rm -rf $(MNTDIR)
+	@sudo losetup -d $(LOOP_DEV_PATH)
+
 run:
 	$(QEMU) $(QFLAGS) $(ISODIR)/$(ISO)
 
 run_exp:
 	$(QEMU) $(QFLAGSEXP)$(ISODIR)/$(IMG)
+
+gpt:
+	@make kernel
+	@echo "Building GPT..."
+#This is required to be before buildimggpt!
+	@cp $(ISODIR)/$(IMG_RAW) $(ISODIR)/$(IMG)
+	@sudo losetup -f $(ISODIR)/$(IMG)
+# Due to eval weird behaviour
+	@make buildimggpt
+	@echo "Running GPT QEMU..."
+	@make run_exp
+	@echo "Done!"
 
 exp:
 	@make kernel

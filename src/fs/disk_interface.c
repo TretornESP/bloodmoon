@@ -35,7 +35,7 @@ uint8_t disk_initialize(disk_e disk) {
 uint8_t disk_read(disk_e disk, uint8_t* buffer, uint32_t lba, uint32_t count) {
 	switch (disk) {
 		case DISK_SATA_DRIVE:
-			return device_read("/dev/sda", count, lba, buffer);
+			return device_read("/dev/hda", count, lba, buffer);
 		case DISK_USB_DRIVE:
 			return 0;
 		case DISK_SD_CARD:
@@ -48,7 +48,7 @@ uint8_t disk_read(disk_e disk, uint8_t* buffer, uint32_t lba, uint32_t count) {
 uint8_t disk_write(disk_e disk, uint8_t* buffer, uint32_t lba, uint32_t count) {
 	switch (disk) {
 		case DISK_SATA_DRIVE:
-			return device_write("/dev/sda", count, lba, buffer);
+			return device_write("/dev/hda", count, lba, buffer);
 		case DISK_USB_DRIVE:
 			return 0;
 		case DISK_SD_CARD:

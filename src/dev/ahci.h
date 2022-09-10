@@ -152,7 +152,7 @@ struct hba_command_table {
     uint8_t command_fis[64];
     uint8_t atapi_command[16];
     uint8_t reserved[48];
-    struct hba_prdt_entry prdt_entry[1];
+    struct hba_prdt_entry prdt_entry[32];
 } __attribute__ ((packed));
 
 void init_ahci(struct pci_device_header*);

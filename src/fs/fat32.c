@@ -4,6 +4,7 @@
 //------------------------------------------------------------------------------
 
 #include "fat32.h"
+#include "gpt.h"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-function"
 
@@ -702,20 +703,19 @@ void fat32_debug() {
 
 	// Try to mount the disk. If this is not working the disk initialize 
 	// functions may be ehh...
-	disk_mount(DISK_SATA_DRIVE);
-	
-	for (uint8_t i = 0; i < 6; i++) {
-		printf("S: %d c: %d\n", cluster_size_lut[i].clust_size, cluster_size_lut[i].sector_cnt);
-	}
-	
+	uint8_t partitions = disk_mount(DISK_SATA_DRIVE);
+
+	if (!partitions)
+		return;
+		
 	struct volume_s* tmp = volume_get('C');
 	printf("Volume: %c:\n", tmp->letter);
-	while(1);
+
 	uint32_t cluster;
 	
 	fat_get_cluster(tmp, &cluster);
 	fat_table_set(tmp, 33, 0);
-	fat_print_table(tmp, 0);
+	//fat_print_table(tmp, 0);
 
 	// Print all the volumes on the system
 	printf("Displaying system volumes:\n");
@@ -737,6 +737,7 @@ void fat32_debug() {
 	fat_dir_open(&dir, "C:/TEST/", 0);
 	
 	struct info_s* info = (struct info_s *)malloc(sizeof(struct info_s));
+	memset(info, 0, sizeof(struct info_s));
 	fstatus status;
 	printf("\nListing directories in: C:/TEST\n");
 	do {
@@ -778,43 +779,71 @@ uint8_t disk_mount(disk_e disk) {
 	// Read MBR sector at LBA address zero
 	if (!disk_read(disk, mount_buffer, 0, 1)) return 0;
 
-	printf("MBR buffer: ");
-	for (int i = 0; i < 512; i++) {
-		printf("%c", mount_buffer[i]);
-	}
-	printf("\n");
-
 	// Check the boot signature in the MBR
 	if (load16(mount_buffer + MBR_BOOT_SIG) != MBR_BOOT_SIG_VALUE) {
 		return 0;
 	}
 
-	if (!disk_read(disk, mount_buffer, 1, 1)) return 0;
-	printf("GPT buffer: ");
-	for (int i = 0; i < 512; i++) {
-		printf("%c", mount_buffer[i]);
+	struct gpt_header *gpt_header = (struct gpt_header *)malloc(sizeof(struct gpt_header));
+	memset((uint8_t*)gpt_header, 0, sizeof(struct gpt_header));
+	if (!disk_read(disk, (uint8_t*)gpt_header, 1, 1)) return 0;
+
+	if (gpt_header->signature != GPT_SIGNATURE)
+		return 0;
+
+	struct gpt_entry gpt_entries[gpt_header->partition_count];
+	for (uint32_t i = 0; i < gpt_header->partition_count; i+=4) {
+		uint32_t lba = gpt_header->partition_table_lba + ((i * gpt_header->partition_entry_size) >> 9);
+		if (!disk_read(disk, (uint8_t*)(&gpt_entries[i]), lba, 1)) return 0;
 	}
-	printf("\n");
 
-	while (1);
+	uint32_t valid_partitions = 0;
 
+	char buffer[36];
+	for (uint32_t i = 0; i < gpt_header->partition_count; i++) {
+
+		sprintf(buffer, "%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",\
+			load32(&(gpt_entries[i].type_guid[0])),\
+			load16(&(gpt_entries[i].type_guid[4])),\
+			load16(&(gpt_entries[i].type_guid[6])),\
+			gpt_entries[i].type_guid[8],\
+			gpt_entries[i].type_guid[9],\
+			gpt_entries[i].type_guid[10],\
+			gpt_entries[i].type_guid[11],\
+			gpt_entries[i].type_guid[12],\
+			gpt_entries[i].type_guid[13],\
+			gpt_entries[i].type_guid[14],\
+			gpt_entries[i].type_guid[15]\
+		);
+
+		if (!memcmp(buffer, GPT_NO_ENTRY, strlen(GPT_NO_ENTRY))) {
+			//We asume valid partitions are sequential!
+			break;
+		}
+
+		valid_partitions++;
+		
+		if (!memcmp(buffer, GPT_EFI_ENTRY, strlen(GPT_EFI_ENTRY))) {
+			printf("EFI partition found at LBA 0x%llx\n", gpt_entries[i].first_lba);
+		}
+	}
 
 	// Retrieve the partition info from all four partitions, thus avoiding 
 	// multiple accesses to the MBR sector
-	struct partition_s partitions[4];
-	for (uint8_t i = 0; i < 4; i++) {
-		uint32_t offset = MBR_PARTITION + i * MBR_PARTITION_SIZE; //MAX = 446 + 4*16
+	struct partition_s partitions[valid_partitions];
+	for (uint8_t i = 0; i < valid_partitions; i++) {
 		
-		partitions[i].lba = load32(mount_buffer + offset + PAR_LBA);
-		partitions[i].size = load32(mount_buffer + offset + PAR_SIZE);
-		partitions[i].type = mount_buffer[offset + PAR_TYPE];
-		partitions[i].status = mount_buffer[offset + PAR_STATUS];
-		printf("Partition %d: %d %d %d\n", i, partitions[i].lba, partitions[i].size, partitions[i].type);
+		partitions[i].lba = gpt_entries[i].first_lba;
+		partitions[i].size = gpt_entries[i].last_lba - gpt_entries[i].first_lba;
+		partitions[i].type = 0;
+		partitions[i].status = 0;
+		printf("Partition %d: LBA %d, size %d\n", i, partitions[i].lba, partitions[i].size);
 	}
 	
 	
 	// Search for a valid FAT32 file systems on all valid paritions
-	for (uint8_t i = 0; i < 4; i++) {
+	uint8_t fat_partitions = 0;
+	for (uint8_t i = 0; i < valid_partitions; i++) {
 		if (partitions[i].lba) {
 			if (!disk_read(disk, mount_buffer, partitions[i].lba, 1)) {
 				return 0;
@@ -822,10 +851,11 @@ uint8_t disk_mount(disk_e disk) {
 			
 			// Check if the current partition contains a FAT32 file system
 			if (fat_search(mount_buffer)) {
-				
+				printf("FAT32 found at LBA %x\n", partitions[i].lba);
 				// Allocate the file system structure
 				struct volume_s* vol = (struct volume_s *)malloc(sizeof(struct volume_s));
-				
+				memset(vol, 0, sizeof(struct volume_s));
+
 				// Update FAT32 information
 				vol->sector_size = load16(mount_buffer + BPB_SECTOR_SIZE);
 				vol->cluster_size = mount_buffer[BPB_CLUSTER_SIZE];
@@ -846,17 +876,19 @@ uint8_t disk_mount(disk_e disk) {
 				// Sector zero will not exist in any file system. This forces 
 				// the code to read the first block from the storage device
 				vol->buffer_lba = 0;
-				
 				// Get the volume label
 				fat_get_vol_label(vol, vol->label);
 
 				// Add the newly made volume to the list of system volumes
 				fat_volume_add(vol);
-				printf("Added volume: %s\n", vol->label);
+				printf("Added volume: %s, %c\n", vol->label, vol->letter);
+				fat_partitions++;
+			} else {
+				printf("No FAT32 found at LBA %x\n", partitions[i].lba);
 			}
 		}
 	}
-	return 1;
+	return fat_partitions;
 }
 
 /// Remove the volumes corresponding with a physical disk and delete the memory.
