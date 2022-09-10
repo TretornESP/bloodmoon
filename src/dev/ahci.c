@@ -85,7 +85,11 @@ uint8_t identify(uint8_t port_no) {
     return 1;
 }
 
-uint8_t write_atapi_port(uint8_t port_no, uint64_t sector, uint32_t sector_count) {return 0;}
+uint8_t write_atapi_port(uint8_t port_no, uint64_t sector, uint32_t sector_count) {
+    uint32_t useless = port_no+sector+sector_count;
+    useless += 1;
+    panic("write_atapi_port not implemented"); return 0;
+}
 
 uint8_t read_atapi_port(uint8_t port_no, uint64_t sector, uint32_t sector_count) {
     printf("Atapi read issued (port %d, sector %d, sector_count %d)\n", port_no, sector, sector_count);

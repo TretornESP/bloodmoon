@@ -692,21 +692,14 @@ void fat_print_info(struct info_s* info) {
 /// This is the `main` functions that is used to tast the file system
 void fat32_debug() {
 		
-	const struct clust_size_s cluster_size_lut[] = {
-		{      66600,	0  },			// Disks up to 32.5 MB	
-		{     532480,	1  },			// Disks up to 260 MB	, 0.5k clusters
-		{   16777216,	8  },			// Disks up to 8 GB		, 4k clusters
-		{   33554432,	16 },			// Disks up to 16 GB	, 8k clusters
-		{   67108864,	32 },			// Disks up to 32 GB	, 16k clusters
-		{ 0xFFFFFFFF,	64 }			// Disks > 32 GB		, 32k clusters<
-	};
-
 	// Try to mount the disk. If this is not working the disk initialize 
 	// functions may be ehh...
 	uint8_t partitions = disk_mount(DISK_SATA_DRIVE);
 
-	if (!partitions)
+	if (!partitions) {
+		printf("No FAT32 partitions found\n");
 		return;
+	}
 		
 	struct volume_s* tmp = volume_get('C');
 	printf("Volume: %c:\n", tmp->letter);

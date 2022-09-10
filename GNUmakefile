@@ -174,13 +174,14 @@ buildimg:
 
 buildimgexp:
 	@cp $(ISODIR)/$(IMG_RAW) $(ISODIR)/$(IMG)
+	@mkfs.fat -F32 $(ISODIR)/$(IMG)
 	@mmd -i $(ISODIR)/$(IMG) ::/EFI
 	@mmd -i $(ISODIR)/$(IMG) ::/EFI/BOOT
 	@mcopy -i $(ISODIR)/$(IMG) $(BOOTEFI) ::/EFI/BOOT
 	@mcopy -i $(ISODIR)/$(IMG) ./startup.nsh ::
 	@mcopy -i $(ISODIR)/$(IMG) $(BUILDDIR)/$(KERNEL) ::
 	@mcopy -i $(ISODIR)/$(IMG) ./limine.cfg ::
-	@mcopy -i $(ISODIR)/$(IMG) ./test.fake ::/TEST
+	@mcopy -i $(ISODIR)/$(IMG) ./test/test.fake ::/TEST
 
 buildimggpt:
 
@@ -211,7 +212,7 @@ run:
 	$(QEMU) $(QFLAGS) $(ISODIR)/$(ISO)
 
 run_exp:
-	$(QEMU) $(QFLAGSEXP)$(ISODIR)/$(IMG)
+	$(QEMU) $(QFLAGSEXP)$(ISODIR)/$(IMG) -cdrom ./test/cuak.iso
 
 gpt:
 	@make kernel
