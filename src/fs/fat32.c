@@ -690,18 +690,18 @@ void fat_print_info(struct info_s* info) {
 //------------------------------------------------------------------------------
 
 /// This is the `main` functions that is used to tast the file system
-void fat32_debug() {
+void fat32_debug(const char* disk) {
 		
 	// Try to mount the disk. If this is not working the disk initialize 
 	// functions may be ehh...
-	uint8_t partitions = disk_mount(DISK_SATA_DRIVE);
+	uint8_t partitions = disk_mount(disk);
 
 	if (!partitions) {
 		printf("No FAT32 partitions found\n");
 		return;
 	}
 		
-	struct volume_s* tmp = volume_get('C');
+	struct volume_s* tmp = volume_get('D');
 	printf("Volume: %c:\n", tmp->letter);
 
 	uint32_t cluster;
@@ -727,19 +727,15 @@ void fat32_debug() {
 	
 	// List all directories
 	struct dir_s dir;
-	fat_dir_open(&dir, "C:/TEST/", 0);
+	fat_dir_open(&dir, "D:/export", 0);
 	
 	struct info_s* info = (struct info_s *)malloc(sizeof(struct info_s));
 	memset(info, 0, sizeof(struct info_s));
 	fstatus status;
-	printf("\nListing directories in: C:/TEST\n");
+	printf("\nListing directories in: D:/\n");
 	do {
 		status = fat_dir_read(&dir, info);
-		
-		if (memcmp(info->name, "test.fake", info->name_length)) {
-			//fat_dir_rename(&dir, "dude", 4);
-		}
-		
+				
 		// Print the information
 		if (status == FSTATUS_OK) {
 			fat_print_info(info);
@@ -758,7 +754,7 @@ void fat32_debug() {
 /// 
 /// Note that this is the only functions referencing the `disk` parameter. All
 /// further interactions happend will via the volume letter e.g. D: drive.
-uint8_t disk_mount(disk_e disk) {
+uint8_t disk_mount(const char* disk) {
 	
 	// Verify that the storage device are present
 	if (!disk_get_status(disk)) return 0;
@@ -864,7 +860,7 @@ uint8_t disk_mount(disk_e disk) {
 				
 				vol->root_lba = fat_clust_to_sect(vol, load32(mount_buffer +
 					BPB_32_ROOT_CLUST));
-				vol->disk = disk;
+				memcpy(vol->disk, disk, strlen(disk));
 				
 				// Sector zero will not exist in any file system. This forces 
 				// the code to read the first block from the storage device
@@ -887,13 +883,13 @@ uint8_t disk_mount(disk_e disk) {
 /// Remove the volumes corresponding with a physical disk and delete the memory.
 /// This function must be called before a storage device is unplugged, if not,
 /// cached data may be lost. 
-uint8_t disk_eject(disk_e disk) {
+uint8_t disk_eject(const char* disk) {
 	struct volume_s* vol = volume_get_first();
 	
 	while (vol != NULL) {
 		
 		// Remove all volumes which matches the `disk` number
-		if (vol->disk == disk) {
+		if (!memcmp(vol->disk, disk, strlen(disk))) {
 			if (!fat_volume_remove(vol->letter)) {
 				return 0;
 			}
@@ -915,7 +911,6 @@ struct volume_s* volume_get(char letter) {
 	
 	struct volume_s* vol = volume_base;
 	while (vol != NULL) {
-		printf("Searching letter: %c vs %c\n", vol->letter, letter);
 		if (vol->letter == letter) {
 			return vol;
 		}

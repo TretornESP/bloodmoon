@@ -40,7 +40,7 @@ struct volume_s {
 	// current sector.
 	uint8_t buffer[512];
 	uint32_t buffer_lba;
-	disk_e disk;
+	char disk[32];
 	uint32_t buffer_dirty;
 	
 	char lfn[256];
@@ -212,11 +212,11 @@ struct fat_fmt_s {
 #define INFO_NEXT_FREE		492
 
 /// File system thread
-void fat32_debug();
+void fat32_debug(const char* disk);
 
 /// Disk functions
-uint8_t disk_mount(disk_e disk);
-uint8_t disk_eject(disk_e disk);
+uint8_t disk_mount(const char* disk);
+uint8_t disk_eject(const char* disk);
 
 /// Volume functions
 struct volume_s* volume_get_first(void);

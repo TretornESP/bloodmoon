@@ -20,6 +20,8 @@ ASMC := nasm
 QEMU := "/mnt/c/Program Files/qemu/qemu-system-x86_64.exe"
 GDB := "/mnt/c/Users/85562/crossgdb/gdb-12.1/gdb/gdb"
 CMDNEWSCREEN := cmd.exe /c start cmd /c wsl -e
+MNTDIR := /mnt/bloodmoon
+
 WSLHOSTIP := $(shell ipconfig.exe | grep 'vEthernet (WSL)' -a -A4 | tail -n1 | cut -d":" -f 2 | tail -n1 | sed -e 's/\s*//g')
 ########################################################################
 
@@ -43,7 +45,13 @@ BUILDDIR := build/bin
 OBJDIR := build/lib
 ISOBUILDDIR := build/iso_root
 ISODIR := build/image
-MNTDIR := /mnt/bloodmoon
+PROGSDIR := progs/sources
+PROGSBUILDDIR := progs/export
+
+PROGS := $(wildcard $(PROGSDIR)/*)
+
+SYSDIR := $(MNTDIR)/system
+DATDIR := $(MNTDIR)/data
 
 LMNREPO := https://github.com/limine-bootloader/limine.git
 LMNBRCH := v3.0-branch-binary
@@ -188,23 +196,34 @@ buildimggpt:
 	$(eval LOOP_DEV_PATH := $(shell losetup -a | grep $(IMG) | cut -d: -f1))
 	@echo Loop device path: $(LOOP_DEV_PATH)
 	
-	@sudo sgdisk --new 0::0 --typecode 0:ef00 $(LOOP_DEV_PATH)
+	@sudo sgdisk --new 1::+100M --typecode 0:ef00 $(LOOP_DEV_PATH)
+	@sudo sgdisk --new 2 $(LOOP_DEV_PATH)
 	@sudo partprobe $(LOOP_DEV_PATH)
 	@sudo mkfs.fat -n PATATA -F32 $(LOOP_DEV_PATH)p1
+	@sudo mkfs.fat -n PETETE -F32 $(LOOP_DEV_PATH)p2
 	@sudo mkdir $(MNTDIR)
-	@sudo mount $(LOOP_DEV_PATH)p1 $(MNTDIR)
+	@sudo mkdir $(SYSDIR)
+	@sudo mkdir $(DATDIR)
 
-	@echo Disk mounted, creating files
-	@sudo mkdir -p $(MNTDIR)/efi/boot
-	@sudo mkdir -p $(MNTDIR)/test
+	@sudo mount $(LOOP_DEV_PATH)p1 $(SYSDIR)
+	@sudo mount $(LOOP_DEV_PATH)p2 $(DATDIR)
 
-	@sudo cp $(BOOTEFI) $(MNTDIR)/efi/boot
-	@sudo cp ./startup.nsh $(MNTDIR)
-	@sudo cp $(BUILDDIR)/$(KERNEL) $(MNTDIR)
-	@sudo cp ./limine.cfg $(MNTDIR)
-	@sudo cp ./test/test.fake $(MNTDIR)/test
+	@echo Disk mounted, creating system files
+	@sudo mkdir -p $(SYSDIR)/efi/boot
+	@sudo mkdir -p $(SYSDIR)/test
+
+	@sudo cp $(BOOTEFI) $(SYSDIR)/efi/boot
+	@sudo cp ./startup.nsh $(SYSDIR)
+	@sudo cp $(BUILDDIR)/$(KERNEL) $(SYSDIR)
+	@sudo cp ./limine.cfg $(SYSDIR)
+	@sudo cp ./test/test.fake $(SYSDIR)/test
+
+	@echo System files created, creating data files
+	@sudo cp -r $(PROGSBUILDDIR) $(DATDIR)
+	
 	@echo Files created, finishing...
-	@sudo umount $(MNTDIR)
+	@sudo umount $(DATDIR)
+	@sudo umount $(SYSDIR)
 	@sudo rm -rf $(MNTDIR)
 	@sudo losetup -d $(LOOP_DEV_PATH)
 
@@ -233,6 +252,16 @@ exp:
 	@echo "Running experimental QEMU..."
 	@make run_exp
 	@echo "Done!"
+
+progs:
+	$(foreach prog,$(PROGS),$(MAKE) -C $(prog); rsync -a $(prog)/build/bin/ $(PROGSBUILDDIR);)
+
+
+cprogs:
+	$(foreach prog,$(PROGS),$(MAKE) -C $(prog) clean;)
+	@rm -rf $(PROGSBUILDDIR)/*
+
+.PHONY: progs
 
 debuge:
 	@make kernel

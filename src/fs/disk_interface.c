@@ -5,55 +5,20 @@
 
 #include "disk_interface.h"
 #include "../dev/devices.h"
+#include "../drivers/disk.h"
 
-uint8_t disk_get_status(disk_e disk) {
-	switch (disk) {
-		case DISK_SATA_DRIVE:
-			return 1;
-		case DISK_USB_DRIVE:
-			return 0;
-		case DISK_SD_CARD:
-			return 0;
-		break;
-	}
-	return 0;
+uint8_t disk_get_status(const char * disk) {
+	return (device_search(disk) != 0);
 }
 
-uint8_t disk_initialize(disk_e disk) {
-	switch (disk) {
-		case DISK_SATA_DRIVE:
-			return 1;
-		case DISK_USB_DRIVE:
-			return 0;
-		case DISK_SD_CARD:
-			return 0;
-		break;
-	}
-	return 0;
+uint8_t disk_initialize(const char * disk) {
+	return (device_ioctl(disk, IOCTL_INIT, 0) != 0);
 }
 
-uint8_t disk_read(disk_e disk, uint8_t* buffer, uint32_t lba, uint32_t count) {
-	switch (disk) {
-		case DISK_SATA_DRIVE:
-			return device_read("/dev/hda", count, lba, buffer);
-		case DISK_USB_DRIVE:
-			return 0;
-		case DISK_SD_CARD:
-			return 0;
-		break;
-	}
-	return 0;
+uint8_t disk_read(const char * disk, uint8_t* buffer, uint32_t lba, uint32_t count) {
+	return device_read(disk, count, lba, buffer);
 }
 
-uint8_t disk_write(disk_e disk, uint8_t* buffer, uint32_t lba, uint32_t count) {
-	switch (disk) {
-		case DISK_SATA_DRIVE:
-			return device_write("/dev/hda", count, lba, buffer);
-		case DISK_USB_DRIVE:
-			return 0;
-		case DISK_SD_CARD:
-			return 0;
-		break;
-	}
-	return 0;
+uint8_t disk_write(const char * disk, uint8_t* buffer, uint32_t lba, uint32_t count) {
+	return device_write(disk, count, lba, buffer);
 }

@@ -58,6 +58,9 @@ uint64_t dd_ioctl (uint8_t port, uint32_t op , void* data) {
         case IOCTL_ATAPI_IDENTIFY:
             identify(port);
             memcpy(data, hw_buffer, 512);
+            break;
+        case IOCTL_INIT:
+            return 1; //TODO: Modify
     }
     return 0;
 }

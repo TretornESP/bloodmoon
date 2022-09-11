@@ -22,7 +22,7 @@ void _start(void) {
     init_devices();
     init_drive();
 
-    fat32_debug();
+    fat32_debug("/dev/hda");
     printf("VIVO\n");
     while(1);
 

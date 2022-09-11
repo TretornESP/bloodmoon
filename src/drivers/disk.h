@@ -3,7 +3,8 @@
 #include <stdint.h>
 
 #define IOCTL_ATAPI_IDENTIFY 0x1
-
+#define IOCTL_GENERIC_STATUS 0x2
+#define IOCTL_INIT           0x3
 
 //https://forum.osdev.org/viewtopic.php?f=1&t=30118
 struct sata_ident_test

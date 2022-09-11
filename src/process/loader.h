@@ -3,6 +3,6 @@
 
 #include <stdint.h>
 
-void parse_elf_file(uint8_t *, uint64_t);
+void parse_elf_file(uint8_t *);
 
 #endif

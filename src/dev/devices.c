@@ -346,6 +346,18 @@ void device_list() {
     }
 }
 
+struct device* device_search(const char* device) {
+    struct device* dev = devices;
+    while (dev != 0 && dev->name != 0) {
+        if (memcmp((void*)dev->name, (void*)device, strlen(device)) == 0) {
+            return dev;
+        }
+        dev = dev->next;
+    }
+    
+    return (struct device*)0;
+}
+
 uint64_t device_read(const char * device, uint64_t size, uint64_t offset, uint8_t* buffer) {
     struct device* dev = devices;
     while (dev != 0 && dev->name != 0) {
