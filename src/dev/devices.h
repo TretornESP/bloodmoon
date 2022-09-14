@@ -74,6 +74,9 @@ void register_block(uint8_t, const char*, struct file_operations*);
 void unregister_char(uint8_t);
 void unregister_block(uint8_t);
 
+struct device* get_device_head();
+struct device* get_next_device(struct device*);
+
 void init_devices();
 
 struct device* device_search(const char*);

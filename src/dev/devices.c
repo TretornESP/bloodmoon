@@ -346,6 +346,14 @@ void device_list() {
     }
 }
 
+struct device* get_device_head() {
+    return devices;
+}
+
+struct device* get_next_device(struct device* dev) {
+    return dev->next;
+}
+
 struct device* device_search(const char* device) {
     struct device* dev = devices;
     while (dev != 0 && dev->name != 0) {

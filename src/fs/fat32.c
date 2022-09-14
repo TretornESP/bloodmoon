@@ -877,6 +877,8 @@ uint8_t disk_mount(const char* disk) {
 			}
 		}
 	}
+
+	alloc_super(disk, 512, FS_FAT, 0);
 	return fat_partitions;
 }
 
