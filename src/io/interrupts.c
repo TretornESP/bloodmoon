@@ -94,6 +94,12 @@ __attribute__((interrupt)) void MouseInt_Handler(struct interrupt_frame * frame)
     while(1);
 }
 
+__attribute__((interrupt)) void DivByZero_Handler(struct interrupt_frame * frame) {
+    dbg_print("DivByZero_Handler\n");
+    (void)frame;
+    while(1);
+}
+
 __attribute__((interrupt, save_all)) void PitInt_Handler(struct interrupt_frame * frame) {
     (void)frame;
     tick();
@@ -121,7 +127,7 @@ void init_interrupts(uint8_t pit_disable) {
     set_idt_gate((uint64_t)KeyboardInt_Handler, 0x21,   IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)MouseInt_Handler,    0x2C,   IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)PitInt_Handler,      0x20,   IDT_TA_InterruptGate, 0x28);
-    
+    set_idt_gate((uint64_t)DivByZero_Handler,   0x0,    IDT_TA_InterruptGate, 0x28);
     __asm__("lidt %0" : : "m"(idtr));
 
     remap_pic();

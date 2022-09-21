@@ -10,7 +10,7 @@
 #include "drivers/disk.h"
 #include "util/printf.h"
 #include "util/string.h"
-#include "fs/fat32.h"
+#include "fs/vfs.h"
 
 void _start(void) {
     init_memory();
@@ -21,8 +21,8 @@ void _start(void) {
     init_smbios_interface();
     init_devices();
     init_drive();
+    init_vfs();
 
-    fat32_debug("/dev/hda");
     printf("VIVO\n");
     while(1);
 

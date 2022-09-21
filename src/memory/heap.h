@@ -19,6 +19,7 @@ struct heap {
 void init_heap();
 
 void * malloc(uint64_t);
+void * calloc(uint64_t, uint64_t);
 void free(void*);
 
 void debug_heap();

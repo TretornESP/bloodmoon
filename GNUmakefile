@@ -263,6 +263,18 @@ cprogs:
 
 .PHONY: progs
 
+debugpt:
+	@make kernel
+	@echo "Building GPT..."
+#This is required to be before buildimggpt!
+	@cp $(ISODIR)/$(IMG_RAW) $(ISODIR)/$(IMG)
+	@sudo losetup -f $(ISODIR)/$(IMG)
+# Due to eval weird behaviour
+	@make buildimggpt
+	@echo "Running GPT QEMU..."
+	$(CMDNEWSCREEN) $(GDB) $(GDBFLAGS) &
+	$(QEMU) -S -s $(QFLAGSEXP)$(ISODIR)/$(IMG)
+
 debuge:
 	@make kernel
 	@echo "Building experimental ISO..."

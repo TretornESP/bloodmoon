@@ -6,6 +6,7 @@
 #define PAGE_COUNT 0x100
 
 #include "../util/printf.h"
+#include "../util/string.h"
 
 struct heap heap;
 
@@ -99,6 +100,12 @@ void* malloc(uint64_t size) {
 
     expand_heap(size);
     return malloc(size);
+}
+
+void * calloc(uint64_t value, uint64_t size) {
+    void* ptr = malloc(size);
+    memset(ptr, value, size);
+    return ptr;
 }
 
 void combine_forward(struct heap_seg_header* current_header) {

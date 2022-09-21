@@ -217,6 +217,7 @@ void fat32_debug(const char* disk);
 /// Disk functions
 uint8_t disk_mount(const char* disk);
 uint8_t disk_eject(const char* disk);
+uint8_t fat_search(const uint8_t* bpb);
 
 /// Volume functions
 struct volume_s* volume_get_first(void);
