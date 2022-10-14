@@ -16,14 +16,17 @@ BOOTEFI := ./limine/BOOTX64.EFI
 ASMC := nasm
 
 # This are specific to my setup, please modify them!!!!
-########################################################################
+#########################DESKTOP SETTINGS#################################
 QEMU := "/mnt/c/Program Files/qemu/qemu-system-x86_64.exe"
-GDB := "/mnt/c/Users/85562/crossgdb/gdb-12.1/gdb/gdb"
+#GDB := "/mnt/c/Users/85562/crossgdb/gdb-12.1/gdb/gdb"
+#########################LAPTOP SETTINGS###################################
+#QEMU := qemu-system-x86_64
+GDB := gdb
+###########################################################################
 CMDNEWSCREEN := cmd.exe /c start cmd /c wsl -e
 MNTDIR := /mnt/bloodmoon
 
 WSLHOSTIP := $(shell ipconfig.exe | grep 'vEthernet (WSL)' -a -A4 | tail -n1 | cut -d":" -f 2 | tail -n1 | sed -e 's/\s*//g')
-########################################################################
 
 KERNEL_ENTRY := _start
 
@@ -156,6 +159,7 @@ setup:
 	@mkdir -p $(BUILDDIR)
 	@mkdir -p $(OBJDIR)
 	@mkdir -p $(ISOBUILDDIR)
+	@mkdir -p $(PROGSBUILDDIR)
 	@mkdir -p $(ISODIR)
 	@dd if=/dev/zero of=$(ISODIR)/$(IMG_RAW) bs=4096 count=65527
 	@git clone $(LMNREPO) --branch=$(LMNBRCH) --depth=1
@@ -170,6 +174,7 @@ cleansetup:
 	@rm -rf $(BUILDHOME)
 	@rm -f debug.gdb
 	@rm -rf $(LMNDIR)
+	@rm -rf $(PROGSBUILDDIR)
 
 buildimg:
 	@cp -v limine.cfg $(BUILDDIR)/$(KERNEL) $(ISOBUILDDIR)

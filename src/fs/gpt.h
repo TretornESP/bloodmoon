@@ -1,6 +1,9 @@
 #ifndef _GPT_H
 #define _GPT_H
 
+#include <stdint.h>
+#include "fat32.h"
+
 #define GPT_SIGNATURE	0x5452415020494645
 #define GPT_EFI_ENTRY   "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
 #define GPT_NO_ENTRY    "00000000-0000-0000-0000-000000000000"
@@ -32,4 +35,6 @@ struct gpt_entry {
     uint16_t name[36];
 } __attribute__((packed));
 
+uint32_t read_gpt(const char*, struct partition_s*);
+//uint8_t test_disk(const char*, struct partition_s*);
 #endif

@@ -20,8 +20,9 @@ void _start(void) {
     init_interrupts(1);
     init_smbios_interface();
     init_devices();
-    init_drive();
-    init_vfs();
+    device_list();
+    //init_drive();
+    //init_vfs();
 
     printf("VIVO\n");
     while(1);

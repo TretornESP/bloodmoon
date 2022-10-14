@@ -64,7 +64,7 @@ void spawn(void * entry_addr) {
     new_task->status = TASK_EXECUTING;
     new_task->descriptors = (struct descriptors*)(0x0);
 
-    void (*entry)() =  (void*)entry_addr;
+    void (*entry)() = entry_addr;
     entry();
     panic("Process returned!");
 }

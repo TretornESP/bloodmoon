@@ -1,20 +1,12 @@
 override PROGRAM := crash.elf
-override GDBCFG := debug.gdb
 
 CC := /usr/bin/cc
 LD := /usr/bin/ld
-
-
-GDB := "/mnt/c/Users/85562/crossgdb/gdb-12.1/gdb/gdb"
-CMDNEWSCREEN := cmd.exe /c start cmd /c wsl -e
-WSLHOSTIP := $(shell ipconfig.exe | grep 'vEthernet (WSL)' -a -A4 | tail -n1 | cut -d":" -f 2 | tail -n1 | sed -e 's/\s*//g')
 
 PROGRAM_ENTRY := main
 
 CFLAGS ?= -O2 -g -Wall -Wextra -Wpedantic -pipe -std=c11
 LDFLAGS ?=
-GDBFLAGS ?=  --command=$(GDBCFG)
-GDBPORT ?= 1234
 
 ABSDIR := $(shell pwd)
 SRCDIR := src
@@ -81,13 +73,10 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 
 link: 
 #	@ echo !==== LINKING $^
+	@ mkdir -p $(BUILDDIR)
 	@$(LD) $(LDFLAGS) -o $(BUILDDIR)/$(PROGRAM) $(OBJS)
 
 clean:
 	@rm -rf $(OBJDIR)/*
 	@rm -rf $(OBJS)
 	@rm -rf $(BUILDDIR)/*
-
-debug:
-	@make CEXTRA=-O0 program
-	$(CMDNEWSCREEN) $(GDB) $(GDBFLAGS)

@@ -4,6 +4,7 @@
 #include "../memory/heap.h"
 #include "fat32.h"
 #include "../util/string.h"
+#include "../util/dbgprinter.h"
 
 struct filesystem * filesystem_list_head;
 struct file_system_type * file_system_type_list_head;
@@ -60,7 +61,7 @@ void init_vfs_fat(struct device* dev) {
 }
 
 uint8_t detect_fs(struct device* dev) {
-    uint8_t * buffer = malloc(512);
+    uint8_t buffer[512];
     device_read(dev->name, 1, 0, buffer);
 
     if (fat_search(buffer)) {
@@ -71,10 +72,10 @@ uint8_t detect_fs(struct device* dev) {
 
 void init_vfs() {
     struct device* dev = get_device_head();
+
     while (dev != 0) {
         printf("Device: %s\n", dev->name);
         uint8_t type = detect_fs(dev);
-
         if (type != UNKNOWN_FS) {
             printf("Registering filesystem on %s\n", dev->name);
             register_filesystem_type(type);

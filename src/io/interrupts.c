@@ -100,7 +100,8 @@ __attribute__((interrupt)) void DivByZero_Handler(struct interrupt_frame * frame
     while(1);
 }
 
-__attribute__((interrupt, save_all)) void PitInt_Handler(struct interrupt_frame * frame) {
+//you may need save_all here
+__attribute__((interrupt)) void PitInt_Handler(struct interrupt_frame * frame) {
     (void)frame;
     tick();
     pic_end_master();
