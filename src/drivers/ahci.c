@@ -92,7 +92,7 @@ uint8_t write_atapi_port(uint8_t port_no, uint64_t sector, uint32_t sector_count
 }
 
 uint8_t read_atapi_port(uint8_t port_no, uint64_t sector, uint32_t sector_count) {
-    printf("Atapi read issued (port %d, sector %d, sector_count %d)\n", port_no, sector, sector_count);
+    //printf("Atapi read issued (port %d, sector %d, sector_count %d)\n", port_no, sector, sector_count);
 
     struct ahci_port* port = &ahci_ports[port_no];
     void* buffer = port->buffer;

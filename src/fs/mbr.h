@@ -1,0 +1,16 @@
+#ifndef _MBR_H
+#define _MBR_H
+#include <stdint.h>
+#include "vfs.h"
+
+struct mbr_partition {
+    uint8_t attributes;
+    uint8_t chs_address_partition_start[3];
+    uint8_t partition_type;
+    uint8_t chs_address_partition_final[3];
+    uint32_t lba_partition_start;
+    uint32_t number_of_sectors;
+} __attribute__((packed));
+
+uint32_t read_mbr(const char*, struct partition*);
+#endif

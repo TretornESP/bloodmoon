@@ -764,8 +764,8 @@ uint8_t disk_mount(const char* disk) {
 
 	// Retrieve the partition info from all four partitions, thus avoiding 
 	// multiple accesses to the MBR sector
-	struct partition_s * partitions;	
-	uint32_t valid_partitions = read_gpt(disk, partitions);
+	struct partition_s * partitions = 0x0;	
+	uint32_t valid_partitions = read_gpt(disk, (struct partition*)partitions);
 	uint8_t mount_buffer[512];
 	
 	// Search for a valid FAT32 file systems on all valid paritions

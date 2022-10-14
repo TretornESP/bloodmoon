@@ -1,5 +1,5 @@
 #include "devices.h"
-#include "ahci.h"
+#include "../drivers/ahci.h"
 #include "../memory/memory.h"
 #include "../util/dbgprinter.h"
 #include "../util/string.h"

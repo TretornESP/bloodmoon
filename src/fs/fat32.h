@@ -7,6 +7,7 @@
 #define FAT32_H
 
 #include <stdint.h>
+#include "vfs.h"
 #include "disk_interface.h"
 
 /// Most of the FAT32 file system functions returns one of these status codes
@@ -123,19 +124,6 @@ struct fat_fmt_s {
 // use LFN instead of SFN. It will not have SFN support since it is not meant
 // for smaller systems.
 //------------------------------------------------------------------------------
-
-/// MBR and boot sector
-#define MBR_BOOTSTRAP		0
-#define MBR_BOOTSTRAP_SIZE	446
-#define MBR_PARTITION		446
-#define MBR_PARTITION_SIZE	16
-#define MBR_BOOT_SIG		510
-#define MBR_BOOT_SIG_VALUE	0xAA55
-
-#define PAR_STATUS			0
-#define PAR_TYPE			4
-#define PAR_LBA				8
-#define PAR_SIZE			12
 
 /// Old BPB and BS
 #define BPB_JUMP_BOOT		0

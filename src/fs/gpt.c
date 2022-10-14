@@ -1,9 +1,10 @@
 #include "gpt.h"
+#include "disk_interface.h"
 #include "../util/string.h"
 #include "../memory/heap.h"
 #include "../util/printf.h"
 
-uint32_t read_gpt(const char* disk, struct partition_s* partitions) {
+uint32_t read_gpt(const char* disk, struct partition* partitions) {
 	uint8_t mount_buffer[512];
 	memset(mount_buffer, 0, 512);
 	
@@ -61,8 +62,8 @@ uint32_t read_gpt(const char* disk, struct partition_s* partitions) {
 
 	// Retrieve the partition info from all four partitions, thus avoiding 
 	// multiple accesses to the MBR sector
-	partitions = malloc(sizeof(struct partition_s) * valid_partitions);
-    memset(partitions, 0, sizeof(struct partition_s) * valid_partitions);
+	partitions = malloc(sizeof(struct partition) * valid_partitions);
+    memset(partitions, 0, sizeof(struct partition) * valid_partitions);
 
 	for (uint8_t i = 0; i < valid_partitions; i++) {
 		

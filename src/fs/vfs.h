@@ -8,6 +8,19 @@
 #define NTFS_FS     0x3
 #define UNKNOWN_FS  0x4
 
+/// MBR and boot sector
+#define MBR_BOOTSTRAP		0
+#define MBR_BOOTSTRAP_SIZE	446
+#define MBR_PARTITION		446
+#define MBR_PARTITION_SIZE	16
+#define MBR_BOOT_SIG		510
+#define MBR_BOOT_SIG_VALUE	0xAA55
+
+#define PAR_STATUS			0
+#define PAR_TYPE			4
+#define PAR_LBA				8
+#define PAR_SIZE			12
+
 struct super_operations {
     void *nonempty;
         /*struct inode *(*alloc_inode) (struct super_block *sb);
@@ -102,6 +115,12 @@ struct dentry_operations {
         void (*d_iput) (struct dentry *, struct inode *);*/
 };
 
+struct partition {
+	uint32_t lba;
+	uint32_t size;
+	uint8_t status;
+	uint8_t type;
+};
 
 struct dentry {
     uint16_t open_count;

@@ -9,6 +9,7 @@
 #include "dev/devices.h"
 #include "drivers/disk.h"
 #include "util/printf.h"
+#include "drivers/ahci.h"
 #include "util/string.h"
 #include "fs/vfs.h"
 
@@ -21,8 +22,8 @@ void _start(void) {
     init_smbios_interface();
     init_devices();
     device_list();
-    //init_drive();
-    //init_vfs();
+    init_drive();
+    init_vfs();
 
     printf("VIVO\n");
     while(1);

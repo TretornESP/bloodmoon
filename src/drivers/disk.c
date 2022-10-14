@@ -1,6 +1,6 @@
 #include "disk.h"
 #include "../util/string.h"
-#include "../dev/ahci.h"
+#include "ahci.h"
 #include "../util/printf.h"
 #include "../util/dbgprinter.h"
 #include "../dev/devices.h"
@@ -30,7 +30,8 @@ uint64_t dd_disk_write(uint8_t port, uint64_t size, uint64_t offset, uint8_t* bu
 }
 
 uint64_t dd_disk_atapi_read(uint8_t port, uint64_t size, uint64_t offset, uint8_t* buffer) {
-    printf("WARNING: ATAPI READS ARE NOT WORKING WELL, AN OFFSET != 0 YIELDS ZEROS\n");
+    if (offset != 0)
+        printf("WARNING: ATAPI READS ARE NOT WORKING WELL, AN OFFSET != 0 YIELDS ZEROS\n");
     uint8_t * hw_buffer = get_buffer(port);
     if (!read_atapi_port(port, offset, size))
         return 0;

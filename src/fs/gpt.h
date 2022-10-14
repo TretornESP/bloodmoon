@@ -2,7 +2,7 @@
 #define _GPT_H
 
 #include <stdint.h>
-#include "fat32.h"
+#include "vfs.h"
 
 #define GPT_SIGNATURE	0x5452415020494645
 #define GPT_EFI_ENTRY   "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
@@ -35,6 +35,6 @@ struct gpt_entry {
     uint16_t name[36];
 } __attribute__((packed));
 
-uint32_t read_gpt(const char*, struct partition_s*);
-//uint8_t test_disk(const char*, struct partition_s*);
+uint32_t read_gpt(const char*, struct partition*);
+//uint8_t test_disk(const char*, struct partition*);
 #endif

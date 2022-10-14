@@ -278,7 +278,7 @@ debugpt:
 	@make buildimggpt
 	@echo "Running GPT QEMU..."
 	$(CMDNEWSCREEN) $(GDB) $(GDBFLAGS) &
-	$(QEMU) -S -s $(QFLAGSEXP)$(ISODIR)/$(IMG)
+	$(QEMU) -S -s $(QFLAGSEXP)$(ISODIR)/$(IMG) -cdrom ./test/cuak.iso
 
 debuge:
 	@make kernel

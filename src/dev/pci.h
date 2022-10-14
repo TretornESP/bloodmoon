@@ -215,7 +215,6 @@
 #define PCI_CLASS_UNASSIGNED    0xFF
 
 //Prog if
-#define PCI_
 
 struct pci_device_header {
     uint16_t vendor_id;
@@ -255,4 +254,5 @@ struct pci_device_header_0 {
 } __attribute__ ((packed));
 
 void enumerate_pci(struct mcfg_header *);
+struct pci_device_header* get_device_header();
 #endif

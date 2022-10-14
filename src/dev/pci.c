@@ -1,8 +1,9 @@
 #include "pci.h"
 #include "devices.h"
-#include "ahci.h"
 #include "../memory/paging.h"
 #include "../util/printf.h"
+
+struct pci_device_header* global_device_header = {0};
 
 void enumerate_function(uint64_t device_address, uint64_t function) {
 
@@ -12,6 +13,7 @@ void enumerate_function(uint64_t device_address, uint64_t function) {
     map_memory((void*)function_address, (void*)function_address);
 
     struct pci_device_header* pci_device_header = (struct pci_device_header*)function_address;
+    global_device_header = pci_device_header;
 
     if (pci_device_header->device_id == 0x0) return;
     if (pci_device_header->device_id == 0xFFFF) return;
@@ -25,6 +27,10 @@ void enumerate_function(uint64_t device_address, uint64_t function) {
     );
 
     register_device(pci_device_header);
+}
+
+struct pci_device_header* get_device_header() {
+    return global_device_header;
 }
 
 void enumerate_device(uint64_t bus_address, uint64_t device) {
