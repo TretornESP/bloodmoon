@@ -73,6 +73,7 @@ uint8_t detect_fs(struct device* dev, uint32_t partition) {
 }
 
 uint32_t detect_partitions(struct device* dev) {
+    printf("Calling print part\n");
     struct partition* part = {0};
     uint32_t partition_number = read_gpt(dev->name, part);
     if (partition_number == 0) {

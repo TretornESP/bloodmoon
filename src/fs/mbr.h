@@ -12,5 +12,13 @@ struct mbr_partition {
     uint32_t number_of_sectors;
 } __attribute__((packed));
 
+struct mbr_header {
+    uint8_t boot_code[440];
+    uint32_t disk_signature;
+    uint16_t unused;
+    struct mbr_partition partitions[4];
+    uint16_t signature;
+} __attribute__((packed));
+
 uint32_t read_mbr(const char*, struct partition*);
 #endif

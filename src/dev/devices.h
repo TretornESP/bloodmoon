@@ -6,6 +6,7 @@
 
 #define BLOCK_SCSI 0x8
 #define CHAR_SCSI 0x88
+#define ABS_TO_PAGE(addr, page_size) (addr / page_size)
 
 struct file_operations {
     //struct module *owner;
@@ -53,6 +54,7 @@ struct device_driver {
 
 struct device {
     uint8_t bc: 1; // 0 = block, 1 = char
+    uint8_t valid: 1;
     uint8_t major;
     uint8_t minor;
     char name[32];

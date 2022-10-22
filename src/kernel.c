@@ -21,7 +21,7 @@ void _start(void) {
     init_interrupts(1);
     init_smbios_interface();
     init_devices();
-    device_list();
+    //device_list();
     init_drive();
     init_vfs();
 
