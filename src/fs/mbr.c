@@ -26,20 +26,20 @@ uint32_t read_mbr(const char* disk, struct partition* partitions) {
     uint32_t valid_partitions = 0;
 
     for (int i = 0; i < 4; i++) {
-        printf("Checking partition %d, RAW: ", i);
-        for (int j = 0; j < 16; j++)
-            printf("%x ", *((uint8_t*)(&mbr_header->partitions[i]+j)));
-        printf("\nAttributes: %x\n", mbr_header->partitions[i].attributes);
-        if (mbr_header->partitions[i].attributes == 0x80) {
+
+        //For some reason, fdisk initialices attributes as 0, so we have to check 
+        //Validity by sector size. I'm guessing a zero size partition must be bogus.
+        if (mbr_header->partitions[i].number_of_sectors != 0x0) {
             partitions[i].status = 1;
             partitions[i].type = mbr_header->partitions[i].partition_type;
             partitions[i].lba = mbr_header->partitions[i].lba_partition_start;
             partitions[i].size = mbr_header->partitions[i].number_of_sectors;
-            printf("Partition %d find \n", i);
             valid_partitions++;
-        } else if (mbr_header->partitions[i].attributes == 0x00) {
-            printf("Discarding partition %d as inactive, attributes were: %x\n", i, mbr_header->partitions[i].attributes);
         }
+    }
+
+    if (valid_partitions) {
+        printf("Found %d valid partitions on %s\n", valid_partitions, disk);
     }
 
     return valid_partitions;

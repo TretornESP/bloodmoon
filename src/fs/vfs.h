@@ -7,6 +7,7 @@
 #define EXT2_FS     0x2
 #define NTFS_FS     0x3
 #define UNKNOWN_FS  0x4
+#define INVALID_FS  0x5
 
 /// MBR and boot sector
 #define MBR_BOOTSTRAP		0
@@ -120,6 +121,7 @@ struct partition {
 	uint32_t size;
 	uint8_t status;
 	uint8_t type;
+    struct partition* next;
 };
 
 struct dentry {

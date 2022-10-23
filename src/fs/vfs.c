@@ -26,6 +26,8 @@ void alloc_fs() {
     //TODO
 }
 
+//This is not the best way, perhaps we could register fs on demand from
+//kernel.c
 void register_filesystem_type(uint8_t type) {
 
     struct file_system_type * fst = file_system_type_list_head;
@@ -59,12 +61,12 @@ void register_filesystem_type(uint8_t type) {
 
 //TODO: GENERALIZE THIS
 void init_vfs_fat(struct device* dev) {
-
+    panic("Trying to init fat32\n");
 }
 
-uint8_t detect_fs(struct device* dev, uint32_t partition) {
+uint8_t detect_fs(struct device* dev, struct partition* partition) {
     uint8_t buffer[512];
-    if (!disk_read(dev->name, buffer, 0, 1)) return UNKNOWN_FS;
+    if (!disk_read(dev->name, buffer, partition->lba, 1)) return INVALID_FS;
 
     if (fat_search(buffer)) {
         return FAT32_FS;
@@ -72,9 +74,8 @@ uint8_t detect_fs(struct device* dev, uint32_t partition) {
     return UNKNOWN_FS;
 }
 
-uint32_t detect_partitions(struct device* dev) {
+uint32_t detect_partitions(struct device* dev, struct partition* part) {
     printf("Calling print part\n");
-    struct partition* part = {0};
     uint32_t partition_number = read_gpt(dev->name, part);
     if (partition_number == 0) {
         printf("No gpt partitions found, trying mbr\n");
@@ -88,12 +89,17 @@ void init_vfs() {
 
     while (dev != 0) {
         printf("Device: %s\n", dev->name);
-        uint32_t partitions = detect_partitions(dev);
+        struct partition* part;
+        memset(part, 0, sizeof(struct partition) * 4);
+        uint32_t partitions = detect_partitions(dev, part);
         for (uint32_t i = 0; i < partitions; i++) {
-            printf("Partition %d\n", i);
-            /*uint8_t type = detect_fs(dev);
+            uint8_t type = detect_fs(dev, &part[i]);
+            if (type == INVALID_FS) {
+                printf("Invalid filesystem in %s part: %d. SKIPPING!\n", dev->name, i);
+                continue;
+            }
             if (type != UNKNOWN_FS) {
-                printf("Registering filesystem on %s\n", dev->name);
+                printf("Registering new filesystem of type: %d, on %s part: %i\n", type, dev->name, i);
                 register_filesystem_type(type);
             }
             switch(type) {
@@ -110,7 +116,7 @@ void init_vfs() {
                 default:
                     printf("Unknown filesystem on %s\n", dev->name);
                     break;
-            }*/
+            }
         }
         dev = get_next_device(dev);
     }
