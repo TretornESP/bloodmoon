@@ -17,13 +17,22 @@ void _start(void) {
     init_memory();
     init_paging();
     init_heap();
-    init_pit();
+    //init_pit();
     init_interrupts(1);
-    init_smbios_interface();
-    init_devices();
+    //init_smbios_interface();
+    //init_devices();
     //device_list();
-    init_drive();
-    init_vfs();
+    //init_drive();
+    //init_vfs();
+    
+    void * target = request_page();
+    memset(target, 0, 4096);
+    map_memory((void*)0xffffffffdeadb000, target);
+
+    uint64_t* ptr1 = (uint64_t*)0xffffffffdeadb000;	
+    PAGE_RESTRICT_WRITE((void*)ptr1);
+
+    *ptr1 = 0xdeadbeef;
 
     printf("VIVO\n");
     while(1);

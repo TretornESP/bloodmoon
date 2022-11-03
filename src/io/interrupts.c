@@ -3,6 +3,8 @@
 
 #include "../util/dbgprinter.h"
 #include "../memory/memory.h"
+#include "../memory/paging.h"
+#include "../util/string.h"
 #include "../drivers/keyboard.h"
 #include "../scheduling/pit.h"
 
@@ -16,8 +18,6 @@
 #define ICW4_8086 0x01
 
 #define PIC_EOI 0x20
-
-struct idtr idtr;
 
 void pic_end_master() {
     outb(PIC1_COMMAND, PIC_EOI);
@@ -100,15 +100,21 @@ __attribute__((interrupt)) void DivByZero_Handler(struct interrupt_frame * frame
     while(1);
 }
 
+__attribute__((interrupt)) void UncaughtInt_Handler(struct interrupt_frame* frame) {
+    dbg_print("UncaughtInt_Handler\n");
+    (void)frame;
+    while(1);
+}
+
 //you may need save_all here
 __attribute__((interrupt)) void PitInt_Handler(struct interrupt_frame * frame) {
     (void)frame;
     tick();
     pic_end_master();
 }
-
+struct idtr idtr;
 void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uint8_t selector) {
-    struct idtdescentry* interrupt = (struct idtdescentry*)(idtr.offset + entry_offset * sizeof(struct idtdescentry));
+    struct idtdescentry* interrupt = (struct idtdescentry*)(idtr.offset + (entry_offset * sizeof(struct idtdescentry)));
     set_offset(interrupt, handler);
     interrupt->type_attr = type_attr;
     interrupt->selector = selector;
@@ -116,11 +122,14 @@ void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uin
 
 
 void init_interrupts(uint8_t pit_disable) {
-
     __asm__("cli");
+    idtr.limit = 256 * sizeof(struct idtdescentry) - 1;
+    idtr.offset = (uint64_t)request_page_identity();
+    memset((void*)idtr.offset, 0, 256 * sizeof(struct idtdescentry));
 
-    idtr.limit = 0x0FFF;
-    idtr.offset = (uint64_t)request_page();
+    for (int i = 0; i < 256; i++) {
+        set_idt_gate((uint64_t)UncaughtInt_Handler, i, IDT_TA_InterruptGate, 0x28);
+    }
 
     set_idt_gate((uint64_t)PageFault_Handler,   0xE,    IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)DoubleFault_Handler, 0x8,    IDT_TA_InterruptGate, 0x28);
@@ -129,7 +138,8 @@ void init_interrupts(uint8_t pit_disable) {
     set_idt_gate((uint64_t)MouseInt_Handler,    0x2C,   IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)PitInt_Handler,      0x20,   IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)DivByZero_Handler,   0x0,    IDT_TA_InterruptGate, 0x28);
-    __asm__("lidt %0" : : "m"(idtr));
+    
+    __asm__ volatile("lidt %0" : : "m"(idtr));
 
     remap_pic();
 
@@ -137,7 +147,7 @@ void init_interrupts(uint8_t pit_disable) {
 
     outb(PIC1_DATA, 0xf8 + pit_disable); //PIT IS DISABLED
     outb(PIC2_DATA, 0xef);
-
+    dbg_print("Interrupts initialized\n");
     __asm__("sti");
 
 }

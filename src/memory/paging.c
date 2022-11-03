@@ -222,3 +222,14 @@ void * request_page_identity() {
     map_memory(result, result);
     return result;
 }
+
+void mprotect(void* address, uint64_t size, uint8_t permissions) {
+    uint64_t start = (uint64_t)address;
+    uint64_t end = start + size;
+    start = start & ~0xfff;
+    end = (end + 0xfff) & ~0xfff;
+
+    for (uint64_t i = start; i < end; i += 0x1000) {
+        set_page_perms((void*)i, permissions);
+    }
+}

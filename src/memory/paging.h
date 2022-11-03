@@ -74,5 +74,5 @@ uint64_t virtual_to_physical(void*);
 void * request_page_identity();
 void page_set(void*, uint8_t);
 void page_clear(void*, uint8_t);
-
+void mprotect(void*, uint64_t, uint8_t);
 #endif
