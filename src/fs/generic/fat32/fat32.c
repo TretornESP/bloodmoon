@@ -10,6 +10,8 @@
 #include "../../../memory/heap.h"
 #include "../../../util/printf.h"
 #include "../../../util/string.h"
+
+#include "../../../drivers/disk/disk_interface.h"
 #include <stdint.h>
 
 
@@ -41,7 +43,6 @@ struct clust_size_s {
 /// Private prototypes
 uint8_t fat_volume_add(struct volume_s* vol);
 uint8_t fat_volume_remove(char letter);
-uint8_t fat_search(const uint8_t* bpb);
 void fat_print_sector(const uint8_t* sector);
 uint8_t fat_dir_lfn_cmp(const uint8_t* lfn, const char* name, uint32_t size);
 uint8_t fat_dir_sfn_cmp(const char* sfn, const char* name, uint8_t size);
@@ -154,7 +155,10 @@ uint8_t fat_volume_remove(char letter) {
 
 /// Checks for a valid FAT32 file system on the given partition. The `bpb`
 /// should point to a buffer containing the first sector in this parition. 
-uint8_t fat_search(const uint8_t* bpb) {
+uint8_t fat_search(const char* name, uint32_t lba) {
+	uint8_t bpb[512];
+    if (!disk_read(name, bpb, lba, 1)) return 0;
+	
 	// Check the BPB boot signature
 	if (load16(bpb + 510) != 0xAA55) return 0;
 	

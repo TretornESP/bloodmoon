@@ -148,6 +148,17 @@ Now you are ready to call generic functions like:
 
 As long as **/dev/sda** is a valid device with major=8, the function will call your driver.
 
+## Some debug help
+
+### I cancelled the gpt build:
+
+Now you probably have spurious mounted drives in your system, you will have to:
+
+- Unmount everything under **/mnt/bloodmoon**
+- Delete the **/mnt/bloodmoon** folder
+- delete every loop device used by the build **(losetup -a)** and delete them **(losetup -d /dev/loopX)**
+- delete everything with **sudo cleansetup**
+- rebuild
 
 ## Acknoledgements and credits
 

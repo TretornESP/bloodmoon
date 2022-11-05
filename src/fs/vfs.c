@@ -6,7 +6,6 @@
 #include "../util/string.h"
 #include "../util/dbgprinter.h"
 
-#include "../drivers/disk/disk_interface.h"
 #include "partition/gpt.h"
 #include "partition/mbr.h"
 
@@ -43,7 +42,7 @@ void add_partition(struct partition * head, uint32_t lba, uint32_t size, uint8_t
     }
 }
 
-void register_filesystem_type(struct vfs_compatible * registrar) {
+void register_filesystem(struct vfs_compatible * registrar) {
 
     if (file_system_type_list_head == 0) file_system_type_list_head = init_file_system_type_header();
     
@@ -71,8 +70,6 @@ void register_filesystem_type(struct vfs_compatible * registrar) {
 }
 
 uint8_t mount_fs(struct device* dev, struct partition* partition) {
-    uint8_t buffer[512];
-    if (!disk_read(dev->name, buffer, partition->lba, 1)) return 0;
 
     struct file_system_type * fst = file_system_type_list_head;
     if (fst == 0) {
@@ -82,10 +79,11 @@ uint8_t mount_fs(struct device* dev, struct partition* partition) {
 
     while (fst->next != 0) {
         printf("Searching for %s fs in partion\n", fst->name);
-        if (fst->detect(buffer)) {
+        if (fst->detect(dev->name, partition->lba)) {
             printf("Its a match for %s\n", fst->name);
             return 1;
         }
+        fst = fst->next;
     }
     
     printf("Unknown fs, mount is impossible!!!!\n");

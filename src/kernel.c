@@ -20,6 +20,7 @@
 #include "util/printf.h"
 
 #include "fs/generic/fat32/generic_f32.h"
+#include "fs/generic/ext2/generic_ext2.h"
 
 void _start(void) {
     init_memory();
@@ -29,11 +30,11 @@ void _start(void) {
     init_interrupts(1);
     init_smbios_interface();
     init_devices();
-    device_list();
     init_drive();
 
-    register_filesystem_type(&fat32_register);
-
+    device_list();
+    register_filesystem(fat32_registrar);
+    register_filesystem(ext2_registrar);
     init_vfs();
     
     printf("VIVO\n");

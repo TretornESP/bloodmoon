@@ -52,7 +52,7 @@ struct file_system_type {
 	char name[32];
     char (*register_partition)(const char*, uint32_t);
     uint8_t (*unregister_partition)(char);
-    uint8_t (*detect)(const uint8_t *);
+    uint8_t (*detect)(const char *, uint32_t);
     struct file_system_type * next;
 };
 
@@ -136,7 +136,7 @@ struct dentry {
     char  d_name[32];
 } __attribute__((packed));
 
-void register_filesystem_type(struct vfs_compatible *);
+void register_filesystem(struct vfs_compatible *);
 void init_vfs();
 
 #endif

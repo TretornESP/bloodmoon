@@ -7,7 +7,6 @@
 #define FAT32_H
 
 #include <stdint.h>
-#include "../../../drivers/disk/disk_interface.h"
 
 /// Most of the FAT32 file system functions returns one of these status codes
 typedef enum {
@@ -205,7 +204,7 @@ void fat32_debug(const char* disk);
 char 	register_fat32_partition(const char* disk, uint32_t lba);
 uint8_t unregstr_fat32_partition(char letter);
 uint8_t disk_eject(const char* disk);
-uint8_t fat_search(const uint8_t* bpb);
+uint8_t fat_search(const char*, uint32_t);
 
 /// Volume functions
 struct volume_s* volume_get_first(void);
