@@ -35,6 +35,6 @@ struct gpt_entry {
     uint16_t name[36];
 } __attribute__((packed));
 
-uint32_t read_gpt(const char*, struct partition*);
+uint32_t read_gpt(const char* disk, struct partition* partitions, void (*add_part)(struct partition*, uint32_t, uint32_t, uint8_t, uint8_t));
 //uint8_t test_disk(const char*, struct partition*);
 #endif

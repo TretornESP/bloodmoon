@@ -690,6 +690,7 @@ void fat_print_info(struct info_s* info) {
 //------------------------------------------------------------------------------
 
 /// This is the `main` functions that is used to tast the file system
+/*
 void fat32_debug(const char* disk) {
 		
 	// Try to mount the disk. If this is not working the disk initialize 
@@ -747,13 +748,44 @@ void fat32_debug(const char* disk) {
 		
 	}
 }
-
+*/
 /// Mounts a physical disk. It checks for a valid FAT32 file system in all
 /// available disk partitions. All valid file system is dynamically allocated
 /// and added to the system volumes
 /// 
 /// Note that this is the only functions referencing the `disk` parameter. All
 /// further interactions happend will via the volume letter e.g. D: drive.
+
+char register_fat32_partition(const char* disk, uint32_t lba) {
+	uint8_t mount_buffer[512];
+
+	if (!disk_read(disk, mount_buffer, lba, 1)) {
+		return 0;
+	}
+
+	struct volume_s* vol = (struct volume_s *)malloc(sizeof(struct volume_s));
+	memset(vol, 0, sizeof(struct volume_s));
+
+	vol->sector_size = load16(mount_buffer + BPB_SECTOR_SIZE);
+	vol->cluster_size = mount_buffer[BPB_CLUSTER_SIZE];
+	vol->total_size = load32(mount_buffer + BPB_TOT_SECT_32);
+
+	vol->fsinfo_lba = lba + load16(mount_buffer + BPB_32_FSINFO);
+	vol->fat_lba = lba + load16(mount_buffer + BPB_RSVD_CNT);
+	vol->data_lba = vol->fat_lba + (load32(mount_buffer + BPB_32_FAT_SIZE) * mount_buffer[BPB_NUM_FATS]);
+
+	vol->root_lba = fat_clust_to_sect(vol, load32(mount_buffer + BPB_32_ROOT_CLUST));
+	memcpy(vol->disk, disk, strlen(disk));
+
+	vol->buffer_lba = 0;
+	fat_get_vol_label(vol, vol->label);
+
+	fat_volume_add(vol);
+
+	return vol->letter;
+}
+
+/*
 uint8_t disk_mount(const char* disk) {
 	
 	// Verify that the storage device are present
@@ -818,11 +850,23 @@ uint8_t disk_mount(const char* disk) {
 
 	//Salloc_super(disk, 512, FAT32_FS, 0);
 	return fat_partitions;
-}
+}*/
 
 /// Remove the volumes corresponding with a physical disk and delete the memory.
 /// This function must be called before a storage device is unplugged, if not,
 /// cached data may be lost. 
+
+uint8_t unregstr_fat32_partition(char letter) {
+	struct volume_s* vol = volume_get(letter);
+	if (vol) {
+		if (!fat_volume_remove(letter)) {
+			return 0;
+		}
+		free(vol);
+	}
+	return 1;
+}
+
 uint8_t disk_eject(const char* disk) {
 	struct volume_s* vol = volume_get_first();
 	

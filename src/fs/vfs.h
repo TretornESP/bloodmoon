@@ -2,6 +2,7 @@
 #define _VFS_H
 
 #include <stdint.h>
+#include "../dev/devices.h"
 
 #define FAT32_FS    0x1
 #define EXT2_FS     0x2
@@ -122,6 +123,11 @@ struct partition {
 	uint8_t status;
 	uint8_t type;
     struct partition* next;
+};
+
+struct devmap {
+    struct device * dev;
+    struct partition * partitions;
 };
 
 struct dentry {

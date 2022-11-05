@@ -4,7 +4,7 @@
 #include "../memory/heap.h"
 #include "../util/printf.h"
 
-uint32_t read_gpt(const char* disk, struct partition* partitions) {
+uint32_t read_gpt(const char* disk, struct partition* partitions, void (*add_part)(struct partition*, uint32_t, uint32_t, uint8_t, uint8_t)) {
 	uint8_t mount_buffer[512];
 	memset(mount_buffer, 0, 512);
 	
@@ -53,25 +53,20 @@ uint32_t read_gpt(const char* disk, struct partition* partitions) {
 			break;
 		}
 
-		valid_partitions++;
-		
 		if (!memcmp(buffer, GPT_EFI_ENTRY, strlen(GPT_EFI_ENTRY))) {
 			printf("EFI partition found at LBA 0x%llx\n", gpt_entries[i].first_lba);
+		} else {
+			printf("Non EFI partition found at LBA 0x%llx\n", gpt_entries[i].first_lba);
 		}
+		valid_partitions++;
 	}
 
 	// Retrieve the partition info from all four partitions, thus avoiding 
 	// multiple accesses to the MBR sector
-	partitions = malloc(sizeof(struct partition) * valid_partitions);
-    memset(partitions, 0, sizeof(struct partition) * valid_partitions);
 
 	for (uint8_t i = 0; i < valid_partitions; i++) {
-		
-		partitions[i].lba = gpt_entries[i].first_lba;
-		partitions[i].size = gpt_entries[i].last_lba - gpt_entries[i].first_lba;
-		partitions[i].type = 0;
-		partitions[i].status = 0;
-		printf("Partition %d: LBA %d, size %d\n", i, partitions[i].lba, partitions[i].size);
+		add_part(partitions, gpt_entries[i].first_lba, (gpt_entries[i].last_lba - gpt_entries[i].first_lba), 0, 0);
+		printf("Partition %d: LBA %d, size %d\n", i, gpt_entries[i].first_lba, (gpt_entries[i].last_lba - gpt_entries[i].first_lba));
 	}
 
 	return valid_partitions;

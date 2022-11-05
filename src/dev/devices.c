@@ -352,6 +352,16 @@ struct device* get_device_head() {
     return (struct device*)0;
 }
 
+uint32_t get_device_count() {
+    uint32_t count = 0;
+    struct device* dev = devices;
+    while (dev->valid) {
+        count++;
+        dev = dev->next;
+    }
+    return count;
+}
+
 struct device* get_next_device(struct device* dev) {
     if (dev->next->valid)
         return dev->next;

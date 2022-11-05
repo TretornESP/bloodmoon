@@ -78,6 +78,7 @@ void unregister_block(uint8_t);
 
 struct device* get_device_head();
 struct device* get_next_device(struct device*);
+uint32_t get_device_count();
 
 void init_devices();
 

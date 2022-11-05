@@ -37,7 +37,7 @@ CFLAGS ?= -O2 -g -Wall -Wextra -Wpedantic -pipe -std=c11
 NASMFLAGS ?= -F dwarf -g
 LDFLAGS ?=
 CPPFLAGS ?=
-GDBFLAGS ?=  --command=$(GDBCFG)
+GDBFLAGS ?=  --nx --command=$(GDBCFG)
 GDBPORT ?= 1234
 
 ABSDIR := $(shell pwd)
