@@ -2,7 +2,7 @@
 #define _GPT_H
 
 #include <stdint.h>
-#include "vfs.h"
+#include "../vfs.h"
 
 #define GPT_SIGNATURE	0x5452415020494645
 #define GPT_EFI_ENTRY   "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"

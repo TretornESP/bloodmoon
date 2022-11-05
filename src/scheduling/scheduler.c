@@ -87,6 +87,7 @@ void kyield() {
 }
 
 void init_scheduler() {
+    printf("### SCHEDULER STARTUP ###\n");
     kernel_tasks[0].pid = 0;
     kernel_tasks[0].ppid = 0;
     kernel_tasks[0].priority = 0;

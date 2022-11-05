@@ -75,6 +75,7 @@ uint8_t get_page_bit(void* address) {
 }
 
 int init_memory() {
+    dbg_print("### MEMORY STARTUP ###\n");
     static struct chunk_data biggest_avail_chunk;
     if (biggest_avail_chunk.size > 0) return 0;
 

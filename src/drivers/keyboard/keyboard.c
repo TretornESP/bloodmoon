@@ -1,7 +1,7 @@
 #include "keyboard.h"
-#include "../util/string.h"
-#include "../util/printf.h"
-#include "../memory/heap.h"
+#include "../../util/string.h"
+#include "../../util/printf.h"
+#include "../../memory/heap.h"
 
 struct keyboard *keyboard;
 char asciitable[] = {

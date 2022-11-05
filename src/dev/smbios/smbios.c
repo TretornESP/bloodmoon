@@ -1,10 +1,10 @@
 #include "smbios.h"
 #include "smbios_interface.h"
 
-#include "../util/printf.h"               //Required for: printf
-#include "../util/string.h"               //Required for: memcmp, strlen
-#include "../bootservices/bootservices.h" //Required for: get_smbios32_address, get_smbios64_address
-#include "../util/dbgprinter.h"           //Required for: panic
+#include "../../util/printf.h"               //Required for: printf
+#include "../../util/string.h"               //Required for: memcmp, strlen
+#include "../../bootservices/bootservices.h" //Required for: get_smbios32_address, get_smbios64_address
+#include "../../util/dbgprinter.h"           //Required for: panic
 
 char * get_smbios_string(void * first_addr, uint8_t index) {
     char * addr = first_addr;

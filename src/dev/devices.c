@@ -1,5 +1,5 @@
 #include "devices.h"
-#include "../drivers/ahci.h"
+#include "../drivers/ahci/ahci.h"
 #include "../memory/memory.h"
 #include "../util/dbgprinter.h"
 #include "../util/string.h"
@@ -332,6 +332,7 @@ void unregister_char(uint8_t major) {
 }
 
 void init_devices() {
+    printf("### DEVICES STARTUP ###\n");
     devices = (struct device*)request_page();
     memset(devices, 0, sizeof(struct device));
 
@@ -357,6 +358,17 @@ uint32_t get_device_count() {
     struct device* dev = devices;
     while (dev->valid) {
         count++;
+        dev = dev->next;
+    }
+    return count;
+}
+
+uint32_t get_device_count_by_major(uint8_t major) {
+    uint32_t count = 0;
+    struct device* dev = devices;
+    while (dev->valid) {
+        if (dev->major == major)
+            count++;
         dev = dev->next;
     }
     return count;

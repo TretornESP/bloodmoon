@@ -4,8 +4,8 @@
 //------------------------------------------------------------------------------
 
 #include "disk_interface.h"
-#include "../dev/devices.h"
-#include "../drivers/disk.h"
+#include "disk.h"
+#include "../../dev/devices.h"
 
 uint8_t disk_get_status(const char * disk) {
 	return (device_search(disk) != 0);

@@ -1,10 +1,9 @@
 #include "acpi.h"
-#include "pci.h"
-
-#include "../bootservices/bootservices.h"
-#include "../util/string.h"
-#include "../util/printf.h"
-#include "../util/dbgprinter.h"
+#include "../pci/pci.h"
+#include "../../bootservices/bootservices.h"
+#include "../../util/string.h"
+#include "../../util/printf.h"
+#include "../../util/dbgprinter.h"
 
 uint8_t acpi_sdt_checksum(struct acpi_sdt_header* table_header)
 {

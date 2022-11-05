@@ -5,7 +5,7 @@
 #include "../memory/memory.h"
 #include "../memory/paging.h"
 #include "../util/string.h"
-#include "../drivers/keyboard.h"
+#include "../drivers/keyboard/keyboard.h"
 #include "../scheduling/pit.h"
 
 #define PIC1_COMMAND 0x20
@@ -122,6 +122,7 @@ void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uin
 
 
 void init_interrupts(uint8_t pit_disable) {
+    dbg_print("### INTERRUPTS STARTUP ###\n");
     __asm__("cli");
     idtr.limit = 256 * sizeof(struct idtdescentry) - 1;
     idtr.offset = (uint64_t)request_page_identity();

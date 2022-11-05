@@ -1,8 +1,8 @@
 #include "gpt.h"
-#include "disk_interface.h"
-#include "../util/string.h"
-#include "../memory/heap.h"
-#include "../util/printf.h"
+#include "../../drivers/disk/disk_interface.h"
+#include "../../util/string.h"
+#include "../../memory/heap.h"
+#include "../../util/printf.h"
 
 uint32_t read_gpt(const char* disk, struct partition* partitions, void (*add_part)(struct partition*, uint32_t, uint32_t, uint8_t, uint8_t)) {
 	uint8_t mount_buffer[512];
@@ -22,7 +22,7 @@ uint32_t read_gpt(const char* disk, struct partition* partitions, void (*add_par
 
 	if (gpt_header->signature != GPT_SIGNATURE)
 		return 0;
-
+	printf("[GPT] Compatible disk found on %s [sig: %llx]\n", disk, gpt_header->signature);
 	struct gpt_entry gpt_entries[gpt_header->partition_count];
 	for (uint32_t i = 0; i < gpt_header->partition_count; i+=4) {
 		uint32_t lba = gpt_header->partition_table_lba + ((i * gpt_header->partition_entry_size) >> 9);
@@ -54,9 +54,9 @@ uint32_t read_gpt(const char* disk, struct partition* partitions, void (*add_par
 		}
 
 		if (!memcmp(buffer, GPT_EFI_ENTRY, strlen(GPT_EFI_ENTRY))) {
-			printf("EFI partition found at LBA 0x%llx\n", gpt_entries[i].first_lba);
+			printf("[GPT] EFI partition found at LBA 0x%llx\n", gpt_entries[i].first_lba);
 		} else {
-			printf("Non EFI partition found at LBA 0x%llx\n", gpt_entries[i].first_lba);
+			printf("[GPT] Non EFI partition found at LBA 0x%llx\n", gpt_entries[i].first_lba);
 		}
 		valid_partitions++;
 	}
@@ -66,7 +66,7 @@ uint32_t read_gpt(const char* disk, struct partition* partitions, void (*add_par
 
 	for (uint8_t i = 0; i < valid_partitions; i++) {
 		add_part(partitions, gpt_entries[i].first_lba, (gpt_entries[i].last_lba - gpt_entries[i].first_lba), 0, 0);
-		printf("Partition %d: LBA %d, size %d\n", i, gpt_entries[i].first_lba, (gpt_entries[i].last_lba - gpt_entries[i].first_lba));
+		printf("[GPT] Partition %d: LBA %d, size %d\n", i, gpt_entries[i].first_lba, (gpt_entries[i].last_lba - gpt_entries[i].first_lba));
 	}
 
 	return valid_partitions;

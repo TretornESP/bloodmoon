@@ -1,9 +1,9 @@
 #include "disk.h"
-#include "../util/string.h"
-#include "ahci.h"
-#include "../util/printf.h"
-#include "../util/dbgprinter.h"
-#include "../dev/devices.h"
+#include "../ahci/ahci.h"
+#include "../../util/string.h"
+#include "../../util/printf.h"
+#include "../../util/dbgprinter.h"
+#include "../../dev/devices.h"
 
 uint64_t dd_disk_read(uint8_t port, uint64_t size, uint64_t offset, uint8_t* buffer) {
     uint8_t * hw_buffer = get_buffer(port);
@@ -79,6 +79,7 @@ struct file_operations atapi_fops = {
 };
 
 void init_drive(void) {
+    printf("### DRIVE STARTUP ###\n");
     register_block(8, "ATA DRIVER", &ata_fops);
     register_block(9, "ATAPI DRIVER", &atapi_fops);
 }

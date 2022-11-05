@@ -1,7 +1,7 @@
 #include "smbios_interface.h"
 #include "smbios.h"
 
-#include "../util/printf.h" // Required for printf
+#include "../../util/printf.h" // Required for printf
 
 #define EXTRACT(x) ((uint8_t)((1 << (x.length)) - 1) & ((*(uint64_t*)x.pointer) >> (x.bit)))
 
@@ -112,6 +112,7 @@ void dump_smbios() {
 }
 
 void init_smbios_interface() {
+    printf("### SMBIOS STARTUP###\n");
     set_smbios_bios_loaded(0);
     set_smbios_system_loaded(0);
     set_smbios_cpu_loaded(0);

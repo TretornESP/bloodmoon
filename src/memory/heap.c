@@ -50,6 +50,7 @@ void debug_heap() {
 }
 
 void init_heap() {
+    printf("### HEAP STARTUP ###\n");
     void* pos = (void*)(uint64_t)HEAP_START;
 
     for (uint64_t i = 0; i < PAGE_COUNT; i++) {

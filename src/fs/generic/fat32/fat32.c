@@ -4,13 +4,12 @@
 //------------------------------------------------------------------------------
 
 #include "fat32.h"
-#include "gpt.h"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-function"
 
-#include "../memory/heap.h"
-#include "../util/printf.h"
-#include "../util/string.h"
+#include "../../../memory/heap.h"
+#include "../../../util/printf.h"
+#include "../../../util/string.h"
 #include <stdint.h>
 
 

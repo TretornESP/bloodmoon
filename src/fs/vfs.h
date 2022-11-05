@@ -2,13 +2,8 @@
 #define _VFS_H
 
 #include <stdint.h>
+#include "generic/vfs_compat.h"
 #include "../dev/devices.h"
-
-#define FAT32_FS    0x1
-#define EXT2_FS     0x2
-#define NTFS_FS     0x3
-#define UNKNOWN_FS  0x4
-#define INVALID_FS  0x5
 
 /// MBR and boot sector
 #define MBR_BOOTSTRAP		0
@@ -55,10 +50,10 @@ struct super_block {
 
 struct file_system_type {
 	char name[32];
-    struct dentry *(*mount) (struct file_system_type *, int, const char *, void *);
-    void (*kill_sb) (struct super_block *);
+    char (*register_partition)(const char*, uint32_t);
+    uint8_t (*unregister_partition)(char);
+    uint8_t (*detect)(const uint8_t *);
     struct file_system_type * next;
-    uint8_t type;
 };
 
 struct filesystem {
@@ -141,6 +136,7 @@ struct dentry {
     char  d_name[32];
 } __attribute__((packed));
 
+void register_filesystem_type(struct vfs_compatible *);
 void init_vfs();
 
 #endif

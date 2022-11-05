@@ -1,7 +1,7 @@
 #include "pci.h"
-#include "devices.h"
-#include "../memory/paging.h"
-#include "../util/printf.h"
+#include "../devices.h"
+#include "../../memory/paging.h"
+#include "../../util/printf.h"
 
 struct pci_device_header* global_device_header = {0};
 

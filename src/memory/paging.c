@@ -86,6 +86,7 @@ void debug_memory_map(void* virtual_memory, void* physical_memory) {
 }
 
 void init_paging() {
+    printf("### PAGING STARTUP ###\n");
      __asm__("movq %%cr3, %0" : "=r"(pml4));
      __asm__("movq %0, %%cr3" : : "r" (pml4)); //This should invalidate TLB    
 

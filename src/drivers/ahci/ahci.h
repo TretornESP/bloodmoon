@@ -1,6 +1,6 @@
 #ifndef _AHCI_H
 #define _AHCI_H
-#include "../dev/pci.h"
+#include "../../dev/pci/pci.h" //TODO: This dependency will die
 #include <stdint.h>
 
 #define SATA_SIG_ATAPI 0xEB140101

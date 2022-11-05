@@ -7,8 +7,7 @@
 #define FAT32_H
 
 #include <stdint.h>
-#include "vfs.h"
-#include "disk_interface.h"
+#include "../../../drivers/disk/disk_interface.h"
 
 /// Most of the FAT32 file system functions returns one of these status codes
 typedef enum {

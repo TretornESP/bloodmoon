@@ -1,6 +1,6 @@
 #ifndef _PCI_H
 #define _PCI_H
-#include "acpi.h"
+#include "../acpi/acpi.h"
 
 //Unknown
 //Class
@@ -12,12 +12,33 @@
 //Subclass
 #define PCI_STORAGE_SCSI_BUS    0x0
 #define PCI_STORAGE_IDE         0x1
+//Programming Interface>
+#define PCI_STORAGE_IDE_ISA_COMPATIBLE          0x0
+#define PCI_STORAGE_IDE_PCI_NATIVE              0x5
+#define PCI_STORAGE_IDE_PCI_NATIVE_2            0xA
+#define PCI_STORAGE_IDE_COMPATIBLE_2            0xF
+#define PCI_STORAGE_IDE_COMPATIBLE_BUS_MASTER   0x80
+#define PCI_STORAGE_IDE_NATIVE_BUS_MASTER       0x85
+#define PCI_STORAGE_IDE_NATIVE_BUS_MASTER_2     0x8A
+#define PCI_STORAGE_IDE_COMPATIBLE_BUS_MASTER_2 0x8F
+//<Programming Interface
 #define PCI_STORAGE_FLOPPY      0x2
 #define PCI_STORAGE_IPI         0x3
 #define PCI_STORAGE_RAID        0x4
 #define PCI_STORAGE_ATA         0x5
+//Programming Interface>
+#define PCI_STORAGE_ATA_SINGLE_DMA              0x20
+#define PCI_STORAGE_ATA_CHAINED_DMA             0x30
+//<Programming Interface
 #define PCI_STORAGE_SATA        0x6
+//Programming Interface>
+#define PCI_STORAGE_SATA_VENDOR_SPECIFIC        0x0
+#define PCI_STORAGE_SATA_AHCI_1_0               0x1
+#define PCI_STORAGE_SATA_SERIAL_STORAGE_BUS     0x2
+//<Programming Interface
 #define PCI_STORAGE_SAS         0x7
+//Programming Interface>
+#define PCI_STORAGE_SAS_SATA                    0x0
 #define PCI_STORAGE_NVME        0x8
 #define PCI_STORAGE_OTHER       0x80
 
@@ -215,6 +236,7 @@
 #define PCI_CLASS_UNASSIGNED    0xFF
 
 //Prog if
+#define PCI_
 
 struct pci_device_header {
     uint16_t vendor_id;
@@ -254,5 +276,4 @@ struct pci_device_header_0 {
 } __attribute__ ((packed));
 
 void enumerate_pci(struct mcfg_header *);
-struct pci_device_header* get_device_header();
 #endif

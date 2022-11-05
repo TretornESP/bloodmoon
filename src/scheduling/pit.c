@@ -5,6 +5,7 @@
 struct pit pit;
 
 void init_pit() {
+    printf("### PIT STARTUP ###\n");
     printf("WARNING: PIT TIMER CALIBRATION IS NOT IMPLEMENTED\n");
     printf("!!!DONT RELY ON PRECISE TIMING!!!\n");
     pit.divisor = 20; //1 KHz measured by trial-and-error

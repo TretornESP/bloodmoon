@@ -1,8 +1,8 @@
 #ifndef _DEVICES_H
 #define _DEVICES_H
 #include <stdint.h>
-#include "pci.h"
-#include "acpi.h"
+#include "pci/pci.h"
+#include "acpi/acpi.h"
 
 #define BLOCK_SCSI 0x8
 #define CHAR_SCSI 0x88
@@ -79,7 +79,7 @@ void unregister_block(uint8_t);
 struct device* get_device_head();
 struct device* get_next_device(struct device*);
 uint32_t get_device_count();
-
+uint32_t get_device_count_by_major(uint8_t);
 void init_devices();
 
 struct device* device_search(const char*);

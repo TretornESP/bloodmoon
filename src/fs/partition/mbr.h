@@ -1,7 +1,7 @@
 #ifndef _MBR_H
 #define _MBR_H
 #include <stdint.h>
-#include "vfs.h"
+#include "../vfs.h"
 
 struct mbr_partition {
     uint8_t attributes;

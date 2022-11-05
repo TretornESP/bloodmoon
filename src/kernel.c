@@ -3,15 +3,23 @@
 #include "memory/memory.h"
 #include "memory/paging.h"
 #include "memory/heap.h"
+
 #include "scheduling/pit.h"
-#include "io/interrupts.h"
-#include "dev/smbios_interface.h"
-#include "dev/devices.h"
-#include "drivers/disk.h"
-#include "util/printf.h"
-#include "drivers/ahci.h"
-#include "util/string.h"
+
 #include "fs/vfs.h"
+
+#include "io/interrupts.h"
+
+#include "dev/smbios/smbios_interface.h"
+#include "dev/devices.h"
+
+#include "drivers/disk/disk.h"
+#include "drivers/ahci/ahci.h"
+
+#include "util/string.h"
+#include "util/printf.h"
+
+#include "fs/generic/fat32/generic_f32.h"
 
 void _start(void) {
     init_memory();
@@ -23,6 +31,9 @@ void _start(void) {
     init_devices();
     device_list();
     init_drive();
+
+    register_filesystem_type(&fat32_register);
+
     init_vfs();
     
     printf("VIVO\n");
