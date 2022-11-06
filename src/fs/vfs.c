@@ -78,9 +78,8 @@ uint8_t mount_fs(struct device* dev, struct partition* partition) {
     }
 
     while (fst->next != 0) {
-        printf("Searching for %s fs in partion\n", fst->name);
         if (fst->detect(dev->name, partition->lba)) {
-            printf("Its a match for %s\n", fst->name);
+            fst->register_partition(dev->name, partition->lba);
             return 1;
         }
         fst = fst->next;

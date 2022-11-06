@@ -278,7 +278,7 @@ debugpt:
 	@make buildimggpt
 	@echo "Running GPT QEMU..."
 	$(CMDNEWSCREEN) $(GDB) $(GDBFLAGS) &
-	$(QEMU) -S -s $(QFLAGSEXP)$(ISODIR)/$(IMG) -drive file=./test/test.img
+	$(QEMU) -S -s $(QFLAGSEXP)$(ISODIR)/$(IMG) -drive file=./test/test.img -drive file=./test/extest.img
 
 debuge:
 	@make kernel

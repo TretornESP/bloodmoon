@@ -36,7 +36,7 @@ void _start(void) {
     register_filesystem(fat32_registrar);
     register_filesystem(ext2_registrar);
     init_vfs();
-    
+    fat32_debug("/dev/hda");
     printf("VIVO\n");
     while(1);
 

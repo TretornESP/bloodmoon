@@ -4,6 +4,8 @@
 //------------------------------------------------------------------------------
 
 #include "fat32.h"
+#include <stdint.h>
+
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-function"
 
@@ -12,7 +14,6 @@
 #include "../../../util/string.h"
 
 #include "../../../drivers/disk/disk_interface.h"
-#include <stdint.h>
 
 
 /// Buffer and bitmask used for volume mounting. When a partition on the MSD 
@@ -693,18 +694,9 @@ void fat_print_info(struct info_s* info) {
 //------------------------------------------------------------------------------
 
 /// This is the `main` functions that is used to tast the file system
-/*
-void fat32_debug(const char* disk) {
-		
-	// Try to mount the disk. If this is not working the disk initialize 
-	// functions may be ehh...
-	uint8_t partitions = disk_mount(disk);
 
-	if (!partitions) {
-		printf("No FAT32 partitions found\n");
-		return;
-	}
-		
+void fat32_debug(const char* disk) {
+				
 	struct volume_s* tmp = volume_get('D');
 	printf("Volume: %c:\n", tmp->letter);
 
@@ -747,11 +739,8 @@ void fat32_debug(const char* disk) {
 	} while (status != FSTATUS_EOF);
 	printf("- EOD -\n");
 
-	while (1) {
-		
-	}
 }
-*/
+
 /// Mounts a physical disk. It checks for a valid FAT32 file system in all
 /// available disk partitions. All valid file system is dynamically allocated
 /// and added to the system volumes
