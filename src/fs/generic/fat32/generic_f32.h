@@ -34,7 +34,7 @@ int f32_compat_dir_read(int dindex) {
 
 }
 
-int f32_compat_dir_creat(const char* dname, int mode) {
+int f32_compat_dir_create(const char* dname, int mode) {
     
 }
 

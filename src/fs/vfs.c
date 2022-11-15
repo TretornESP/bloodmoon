@@ -27,14 +27,14 @@ struct file_system_type * init_file_system_type_header() {
 
 void add_partition(struct partition * head, uint32_t lba, uint32_t size, uint8_t status, uint8_t type) {
     if (head == 0) {
-        panic("Invalid partition header");
+        panic("[VFS] Invalid partition header");
     } else {
         struct partition * current = head;
         while (current->next != 0) {
             current = current->next;
         }
         current->next = init_partition_header();
-        if (current->next == 0) panic("Partition allocation failed!\n");
+        if (current->next == 0) panic("[VFS] Partition allocation failed!\n");
         current->lba = lba;
         current->size = size;
         current->status = status;
@@ -50,7 +50,7 @@ void register_filesystem(struct vfs_compatible * registrar) {
 
     while(fst->next != 0) {
         if (!strcmp(fst->name, registrar->name))
-            panic("File system type with same name already registered\n");
+            panic("[VFS] File system type with same name already registered\n");
         fst = fst->next;
     }
 
@@ -58,14 +58,14 @@ void register_filesystem(struct vfs_compatible * registrar) {
     fst->unregister_partition = registrar->unregister_partition;
     fst->detect = registrar->detect;
     if (strlen(registrar->name) > VFS_COMPAT_FS_NAME_MAX_LEN) {
-        printf("Either FS name is too long or you are tryna hack us\n");
-        printf("anyway, im restricting it to %d chars\n", VFS_COMPAT_FS_NAME_MAX_LEN);
+        printf("[VFS] Either FS name is too long or you are tryna hack us\n");
+        printf("[VFS] anyway, im restricting it to %d chars\n", VFS_COMPAT_FS_NAME_MAX_LEN);
         strncpy(fst->name, registrar->name, VFS_COMPAT_FS_NAME_MAX_LEN);
     } else {
         strncpy(fst->name, registrar->name, strlen(registrar->name));
     }
     fst->next = init_file_system_type_header();
-    if (fst->next == 0) panic("File system type allocation failed!\n");
+    if (fst->next == 0) panic("[VFS] File system type allocation failed!\n");
     printf("[VFS] Registered file system type %s\n", fst->name);
 }
 
@@ -73,19 +73,24 @@ uint8_t mount_fs(struct device* dev, struct partition* partition) {
 
     struct file_system_type * fst = file_system_type_list_head;
     if (fst == 0) {
-        printf("There are no registerd fs -\\_(-.-)_/-\n");
+        printf("[VFS] There are no registerd fs -\\_(-.-)_/-\n");
         return 0;
     }
 
     while (fst->next != 0) {
         if (fst->detect(dev->name, partition->lba)) {
-            fst->register_partition(dev->name, partition->lba);
-            return 1;
+            if (fst->register_partition(dev->name, partition->lba) != 0) {
+                printf("[VFS] Mounted %s on %s\n", fst->name, dev->name);
+                return 1;
+            } else {
+                printf("[VFS] Failed to mount %s on %s\n", fst->name, dev->name);
+                return 0;
+            }
         }
         fst = fst->next;
     }
     
-    printf("Unknown fs, mount is impossible!!!!\n");
+    printf("[VFS] Unknown fs, mount is impossible!!!!\n");
     return 0;
 }
 
@@ -112,7 +117,7 @@ void detect_devices() {
 
         uint32_t partitions = detect_partitions(dev, devmap->partitions);
         if (partitions != 0 && devmap->partitions == 0)
-            panic("partitions detected but no partition struct found\n");
+            panic("[VFS] partitions detected but no partition struct found\n");
 
         struct partition* part = devmap->partitions;
         while (part->next != 0) {

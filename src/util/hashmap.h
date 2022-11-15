@@ -1,11 +1,12 @@
 #ifndef _HASHMAP_H
 #define _HASHMAP_H
+#include <stdint.h>
 #define HASHMAP_MAX_ITEMS 256
 
 struct hmap_item {
     void * pointer;
     uint64_t size;
-}
+};
 
 struct hashmap {
     void ** map;

@@ -31,13 +31,10 @@ void _start(void) {
     init_smbios_interface();
     init_devices();
     init_drive();
-
-    device_list();
     register_filesystem(fat32_registrar);
     register_filesystem(ext2_registrar);
     init_vfs();
-    fat32_debug("/dev/hda");
-    printf("VIVO\n");
+    printf("KERNEL LOOPING\n");
     while(1);
 
 }

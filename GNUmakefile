@@ -18,10 +18,10 @@ ASMC := nasm
 # This are specific to my setup, please modify them!!!!
 #########################DESKTOP SETTINGS#################################
 QEMU := "/mnt/c/Program Files/qemu/qemu-system-x86_64.exe"
-GDB := "/mnt/c/Users/85562/crossgdb/gdb-12.1/gdb/gdb"
+#GDB := "/mnt/c/Users/85562/crossgdb/gdb-12.1/gdb/gdb"
 #########################LAPTOP SETTINGS###################################
 #QEMU := qemu-system-x86_64
-#GDB := gdb
+GDB := gdb
 ###########################################################################
 CMDNEWSCREEN := cmd.exe /c start cmd /c wsl -e
 MNTDIR := /mnt/bloodmoon

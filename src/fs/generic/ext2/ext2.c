@@ -8,7 +8,7 @@ char register_ext2_partition(const char* disk, uint32_t lba) {
     (void)disk;
     (void)lba;
     printf("register_ext2_partition Not implemented\n");
-    return 'c';
+    return 0;
 }
 
 uint8_t unregstr_ext2_partition(char letter) {
