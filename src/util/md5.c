@@ -89,7 +89,25 @@
 #define GET(n) \
 	(ctx->block[(n)])
 #endif
+
+unsigned char UNSAFE_BUFFER[16];
+
+unsigned char * MD5_UNSAFE_Buffered_digest(void* data, unsigned long size) {
+	struct md5_ctx ctx;
+	MD5_Init(&ctx);
+	MD5_Update(&ctx, data, size);
+	MD5_Final(UNSAFE_BUFFER, &ctx);
+	return UNSAFE_BUFFER;
+}
+
+void MD5_Digest(unsigned char * result, void* data, unsigned long size) {
+	struct md5_ctx ctx;
+	MD5_Init(&ctx);
+	MD5_Update(&ctx, data, size);
+	MD5_Final(result, &ctx);
+}
  
+
 /*
  * This processes one or more 64-byte data blocks, but does NOT update the bit
  * counters.  There are no alignment requirements.

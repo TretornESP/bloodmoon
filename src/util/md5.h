@@ -32,7 +32,9 @@ struct md5_ctx {
 	unsigned char buffer[64];
 	unsigned int block[16];
 };
- 
+
+unsigned char * MD5_UNSAFE_Buffered_digest(void* data, unsigned long size);
+void MD5_Digest(unsigned char * result, void* data, unsigned long size);
 void MD5_Init(struct md5_ctx *ctx);
 void MD5_Update(struct md5_ctx *ctx, const void *data, unsigned long size);
 void MD5_Final(unsigned char *result, struct md5_ctx *ctx);

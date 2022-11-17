@@ -1,5 +1,5 @@
 #include "string.h"
-
+#include "printf.h"
 uint64_t strlen(const char *str) {
     uint64_t len = 0;
     while (*str++ && len < STR_MAX_SIZE) {
@@ -9,6 +9,7 @@ uint64_t strlen(const char *str) {
 }
 
 void memset(void *dest, int val, uint64_t size) {
+    printf("MEMSET: %p, %d, %d\n", dest, val, size);
     uint8_t *d = (uint8_t *)dest;
     for (uint64_t i = 0; i < size; i++) {
         d[i] = val;
@@ -17,6 +18,9 @@ void memset(void *dest, int val, uint64_t size) {
 
 void strncpy(char *dest, const char *src, uint64_t n) {
     uint64_t i = 0;
+    if (strlen(src) < n) {
+        n = strlen(src);
+    }
     while (i < n && src[i] != '\0') {
         dest[i] = src[i];
         i++;

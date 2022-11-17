@@ -22,6 +22,8 @@
 #include "fs/generic/fat32/generic_f32.h"
 #include "fs/generic/ext2/generic_ext2.h"
 
+#include "test/tests.h"
+
 void _start(void) {
     init_memory();
     init_paging();
@@ -34,6 +36,9 @@ void _start(void) {
     register_filesystem(fat32_registrar);
     register_filesystem(ext2_registrar);
     init_vfs();
+
+    hashmaptest();
+
     printf("KERNEL LOOPING\n");
     while(1);
 

@@ -23,14 +23,18 @@ struct file_system_type {
     char (*register_partition)(const char*, uint32_t);
     uint8_t (*unregister_partition)(char);
     uint8_t (*detect)(const char *, uint32_t);
+    //TODO: Ampliar hasta cubrir generic/compat_vfs
     struct file_system_type * next;
 };
 
 struct inode {
     const char device_name[32];
+    uint32_t inumber;
     uint8_t user;
     uint8_t group;
     uint64_t size;
+    uint8_t mode;
+    uint16_t opens;
     uint8_t permissions;
     uint64_t lba;
     uint64_t ctime;
