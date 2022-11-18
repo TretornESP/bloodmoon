@@ -9,7 +9,6 @@ uint64_t strlen(const char *str) {
 }
 
 void memset(void *dest, int val, uint64_t size) {
-    printf("MEMSET: %p, %d, %d\n", dest, val, size);
     uint8_t *d = (uint8_t *)dest;
     for (uint64_t i = 0; i < size; i++) {
         d[i] = val;
@@ -34,6 +33,16 @@ void memcpy(void *dest, const void *src, uint64_t size) {
     for (uint64_t i = 0; i < size; i++) {
         d[i] = s[i];
     }
+}
+
+int zerocheck(const void *dest, uint64_t size) {
+    uint8_t *d = (uint8_t *)dest;
+    for (uint64_t i = 0; i < size; i++) {
+        if (d[i] != 0) {
+            return i;
+        }
+    }
+    return -1;
 }
 
  uint64_t memcmp(const void *dest, const void *src, uint64_t size) {

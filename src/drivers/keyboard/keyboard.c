@@ -3,7 +3,7 @@
 #include "../../util/printf.h"
 #include "../../memory/heap.h"
 
-struct keyboard *keyboard;
+volatile struct keyboard *keyboard;
 char asciitable[] = {
     0,   0, '1', '2',
     '3', '4', '5', '6',
@@ -33,7 +33,7 @@ void init_keyboard() {
 
     keyboard = (struct keyboard *)malloc(sizeof(struct keyboard));
 
-    memset(keyboard, 0, sizeof(struct keyboard));
+    memset((void*)keyboard, 0, sizeof(struct keyboard));
 
     keyboard->ASCII_table = (char*)malloc(ASCII_SIZE);
 
@@ -42,6 +42,7 @@ void init_keyboard() {
 
     keyboard->left_shift_pressed = 0;
     keyboard->right_shift_pressed = 0;
+    keyboard->intro_buffered = 0;
 }
 
 void handle_keyboard(uint8_t scancode) {
@@ -63,6 +64,7 @@ void handle_keyboard(uint8_t scancode) {
             keyboard->right_shift_pressed = 0;
             return;
         case Enter:
+            keyboard->intro_buffered = 1;
             printf("\n");
             return;
         case Backspace:
@@ -72,4 +74,15 @@ void handle_keyboard(uint8_t scancode) {
 
     char ascii = translate(scancode, keyboard->left_shift_pressed || keyboard->right_shift_pressed);
     if (ascii != 0) printf("%c", ascii);
+}
+
+void halt_until_enter() {
+    keyboard->intro_buffered = 0;
+    printf("Press enter to continue...");
+    while (1) {
+        if (keyboard->intro_buffered) {
+            keyboard->intro_buffered = 0;
+            return;
+        }
+    }
 }

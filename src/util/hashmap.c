@@ -3,47 +3,29 @@
 #include "printf.h"
 #include "string.h"
 #include "md5.h"
+#include "../drivers/keyboard/keyboard.h"
 
 struct hashmap * create_hashmap(uint64_t items) {
     if (items > HASHMAP_MAX_ITEMS)
         return 0;
 
-    uint8_t failed = 0;
-
     struct hashmap * hmap = (struct hashmap*)malloc(sizeof(struct hashmap));
     hmap->items = items;
-    hmap->map = (struct hmap_item*)malloc(sizeof(struct hmap_item) * items);
-    for (uint64_t i = 0; i < sizeof(struct hmap_item) * items; i++) {
-        uint8_t * ptr = (uint8_t*)(hmap->map+i);
-        if (ptr != 0) {
-            printf("Test ready\n");
-            break;
-        }
-    }
+    uint64_t size = sizeof(struct hashmap_item) * items;
+    hmap->pointer = (uint64_t)malloc(size);
 
-    memset(hmap->map, 0, sizeof(struct hmap_item) * items);
-
-    for (uint64_t i = 0; i < sizeof(struct hmap_item) * items; i++) {
-        uint8_t * ptr = (uint8_t*)(hmap->map+i);
-        if (ptr != 0)
-            failed = 1;
+    memset((void*)hmap->pointer, 0, size);
+    if (hmap->pointer == 0 || (zerocheck((void*)hmap->pointer, size) >= 0)) {
+        printf("HASHMAP: Failed to allocate memory for hashmap\n");
+        return 0;
     }
-
-    if (failed) {
-        printf("Test failed\n");
-    } else {
-        printf("Test passed\n");
-    }
-    while(1);
-    
     return hmap;
 }
 
 void delete_hashmap(struct hashmap * hmap) {
     for (uint64_t i = 0; i < hmap->items; i++) {
-        struct hmap_item * item = (struct hmap_item*)(hmap->map + (i * sizeof(struct hmap_item)));
-        if (item->hash) {
-            item->hash = 0;
+        struct hashmap_item * item = (struct hashmap_item*)(hmap->pointer + (i * sizeof(struct hashmap_item)));
+        if (item->key) {
             free(item);
         }
     }
@@ -64,49 +46,61 @@ uint64_t calculate_hash(void * address, uint64_t size) {
     return hash_value;
 }
 
-uint64_t insert(struct hashmap * hmap, struct hashmap_data * data) {
-    uint64_t hash = calculate_hash(data->pointer, data->size);
+uint64_t debug_get_hash(struct hashmap_item * data) {
+    return calculate_hash((void*)data->pointer, data->size);
+}
+
+uint64_t insert(struct hashmap * hmap, struct hashmap_item * data) {
+    if (data->key == 0 || data->pointer == 0 || data->size == 0) {
+        printf("HASHMAP: Invalid data\n");
+        printf("HASHMAP: Key: %llx, Pointer: %llx, Size: %llx\n", data->key, data->pointer, data->size);
+        return 0;
+    }
+
+    uint64_t hash = calculate_hash((void*)data->pointer, data->size);
 
     uint64_t index = hash % hmap->items;
     uint64_t original_index = index;
     
-    struct hmap_item * item = (struct hmap_item*)(hmap->map + (index * sizeof(struct hmap_item)));
-    printf("Item: %p, Index: %d, Hash: %d\n", item, index, hash);
-    while (item->hash != 0) {
+    struct hashmap_item * item = (struct hashmap_item*)(hmap->pointer + (index * sizeof(struct hashmap_item)));
+    while (item->key) {
         index++;
-        if (index >= hmap->items)
+        if (index >= hmap->items) {
             index = 0;
-        if (index == original_index)
+        }
+        if (index == original_index) {
+            printf("HASHMAP: No free space in hashmap\n");
             return 0;
-        item = (struct hmap_item*)(hmap->map + (index * sizeof(struct hmap_item)));
-        printf("Item: %p, Index: %d, Hash: %d\n", item, index, hash);
+        }
+        item = (struct hashmap_item*)(hmap->pointer + (index * sizeof(struct hashmap_item)));
     }
 
-    item->data.pointer = data->pointer;
-    item->data.size = data->size;
-    item->hash = hash;
-    printf("Inserted stuff\n");
+    item->key = data->key;
+    item->pointer = (uint64_t)data->pointer;
+    item->size = data->size;
+
     return hash;
 }
 
-int retrieve(struct hashmap * hmap, struct hashmap_data * data, uint64_t key) {
+int retrieve(struct hashmap * hmap, struct hashmap_item * data, uint64_t key) {
     uint64_t index = key % hmap->items;
     uint64_t original_index = index;
     
-    struct hmap_item * item = (struct hmap_item*)(hmap->map + (index * sizeof(struct hmap_item)));
-    while (item != 0) {
-        if (item->hash == key) {
-            data->pointer = item->data.pointer;
-            data->size = item->data.size;
-            return 1;
-        }
+    struct hashmap_item * item = (struct hashmap_item*)(hmap->pointer + (index * sizeof(struct hashmap_item)));
+    while (item->key != key) {
         index++;
-        if (index >= hmap->items)
+        if (index >= hmap->items) {
             index = 0;
-        if (index == original_index)
+        }
+        if (index == original_index) {
+            printf("HASHMAP: No item with key %x\n", key);
             return 0;
-        item = (struct hmap_item*)(hmap->map + (index * sizeof(struct hmap_item)));
+        }
+        item = (struct hashmap_item*)(hmap->pointer + (index * sizeof(struct hashmap_item)));
     }
-    
-    return 0;
+
+    data->pointer = item->pointer;
+    data->size = item->size;
+
+    return 1;
 }

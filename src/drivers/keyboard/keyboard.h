@@ -13,10 +13,11 @@ struct keyboard {
     char * ASCII_table;
     uint8_t left_shift_pressed;
     uint8_t right_shift_pressed;
+    uint8_t intro_buffered;
 };
 
 void init_keyboard();
 char translate(uint8_t, uint8_t);
 void handle_keyboard(uint8_t);
-
+void halt_until_enter();
 #endif
