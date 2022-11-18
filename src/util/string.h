@@ -1,7 +1,38 @@
 #ifndef _STRING_H
 #define _STRING_H
 #define STR_MAX_SIZE 65536
+#define TRUE 1
+#define FALSE 0
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wreturn-type"
 #include <stdint.h>
+typedef uint64_t size_t;
+
+#ifndef __FUNCTION_NAME__
+    #ifdef WIN32   //WINDOWS
+        #define __FUNCTION_NAME__   __FUNCTION__  
+    #else          //*NIX
+        #define __FUNCTION_NAME__   __func__ 
+    #endif
+#endif
+
+#define __UNDEFINED() (printf("[STRING.H ERROR] Undefined function: %s\n", __FUNCTION_NAME__))
+
+void *memchr(const void *s, int c, size_t n);
+void *memmove(void *dest, const void *src, size_t n);
+void *strcat(char *dest, const char *src);
+void *strncat(char *dest, const char *src, size_t n);
+void *strchr(const char *s, int c);
+int strcoll(const char *s1, const char *s2);
+char *strcpy(char *dest, const char *src);
+size_t strcspn(const char *s, const char *reject);
+char *strerror(int errnum);
+char *strpbrk(const char *s, const char *accept);
+char *strrchr(const char *s, int c);
+size_t strspn(const char *s, const char *accept);
+char *strstr(const char *haystack, const char *needle);
+char *strtok(char *s, const char *delim);
+size_t strxfrm(char *dest, const char *src, size_t n);
 
 uint64_t strlen(const char *str);
 void memset(void *dest, int c, uint64_t n);

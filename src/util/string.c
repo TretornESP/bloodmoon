@@ -1,5 +1,22 @@
 #include "string.h"
 #include "printf.h"
+
+void *memchr(const void *s, int c, size_t n) {__UNDEFINED();}
+void *memmove(void *dest, const void *src, size_t n) {__UNDEFINED();}
+void *strcat(char *dest, const char *src) {__UNDEFINED();}
+void *strncat(char *dest, const char *src, size_t n) {__UNDEFINED();}
+void *strchr(const char *s, int c) {__UNDEFINED();}
+int strcoll(const char *s1, const char *s2) {__UNDEFINED();}
+char *strcpy(char *dest, const char *src) {__UNDEFINED();}
+size_t strcspn(const char *s, const char *reject) {__UNDEFINED();}
+char *strerror(int errnum) {__UNDEFINED();}
+char *strpbrk(const char *s, const char *accept) {__UNDEFINED();}
+char *strrchr(const char *s, int c) {__UNDEFINED();}
+size_t strspn(const char *s, const char *accept) {__UNDEFINED();}
+char *strstr(const char *haystack, const char *needle) {__UNDEFINED();}
+char *strtok(char *s, const char *delim) {__UNDEFINED();}
+size_t strxfrm(char *dest, const char *src, size_t n) {__UNDEFINED();}
+
 uint64_t strlen(const char *str) {
     uint64_t len = 0;
     while (*str++ && len < STR_MAX_SIZE) {

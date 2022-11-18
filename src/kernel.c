@@ -37,8 +37,6 @@ void _start(void) {
     register_filesystem(ext2_registrar);
     init_vfs();
 
-    hashmaptest();
-
     printf("KERNEL LOOPING\n");
     while(1);
 
