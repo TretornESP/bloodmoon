@@ -2734,7 +2734,7 @@ static void get_fileinfo (
 	while (si < 11) {		/* Copy name body and extension */
 		c = (TCHAR)dp->dir[si++];
 		if (c == ' ') continue;		/* Skip padding spaces */
-		if (c == RDDEM) c = DDEM;	/* Restore replaced DDEM character */
+		if (c == RDDEM) c = (TCHAR)DDEM;	/* Restore replaced DDEM character */
 		if (si == 9) fno->fname[di++] = '.';/* Insert a . if extension is exist */
 		fno->fname[di++] = c;
 	}
@@ -4023,7 +4023,7 @@ FRESULT f_write (
 	DWORD clst;
 	LBA_t sect;
 	UINT wcnt, cc, csect;
-	const BYTE *wbuff = (const BYTE*)buff;
+	BYTE *wbuff = (BYTE*)buff;
 
 
 	*bw = 0;	/* Clear write byte counter */

@@ -2,9 +2,14 @@
 #define _DISK_DRIVER_H
 #include <stdint.h>
 
-#define IOCTL_ATAPI_IDENTIFY 0x1
-#define IOCTL_GENERIC_STATUS 0x2
-#define IOCTL_INIT           0x3
+#define IOCTL_ATAPI_IDENTIFY   0x1
+#define IOCTL_GENERIC_STATUS   0x2
+#define IOCTL_INIT             0x3
+#define IOCTL_CTRL_SYNC        0x4
+#define IOCTL_CTRL_TRIM        0x5
+#define IOCTL_GET_SECTOR_SIZE  0x6
+#define IOCTL_GET_SECTOR_COUNT 0x7
+#define IOCTL_GET_BLOCK_SIZE   0x8
 
 //https://forum.osdev.org/viewtopic.php?f=1&t=30118
 struct sata_ident_test

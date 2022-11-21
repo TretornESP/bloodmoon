@@ -29,9 +29,8 @@ typedef enum {
 DSTATUS ff_disk_initialize (BYTE pdrv);
 DSTATUS ff_disk_status (BYTE pdrv);
 DRESULT ff_disk_read (BYTE pdrv, BYTE* buff, LBA_t sector, UINT count);
-DRESULT ff_disk_write (BYTE pdrv, const BYTE* buff, LBA_t sector, UINT count);
+DRESULT ff_disk_write (BYTE pdrv, BYTE* buff, LBA_t sector, UINT count);
 DRESULT ff_disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
-
 
 /* Disk Status Bits (DSTATUS) */
 
@@ -43,11 +42,11 @@ DRESULT ff_disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 /* Command code for disk_ioctrl fucntion */
 
 /* Generic command (Used by FatFs) */
-#define CTRL_SYNC			0	/* Complete pending write process (needed at FF_FS_READONLY == 0) */
-#define GET_SECTOR_COUNT	1	/* Get media size (needed at FF_USE_MKFS == 1) */
-#define GET_SECTOR_SIZE		2	/* Get sector size (needed at FF_MAX_SS != FF_MIN_SS) */
-#define GET_BLOCK_SIZE		3	/* Get erase block size (needed at FF_USE_MKFS == 1) */
-#define CTRL_TRIM			4	/* Inform device that the data on the block of sectors is no longer used (needed at FF_USE_TRIM == 1) */
+#define CTRL_SYNC			4	/* Complete pending write process (needed at FF_FS_READONLY == 0) */
+#define GET_SECTOR_COUNT	7	/* Get media size (needed at FF_USE_MKFS == 1) */
+#define GET_SECTOR_SIZE		6	/* Get sector size (needed at FF_MAX_SS != FF_MIN_SS) */
+#define GET_BLOCK_SIZE		8	/* Get erase block size (needed at FF_USE_MKFS == 1) */
+#define CTRL_TRIM			5	/* Inform device that the data on the block of sectors is no longer used (needed at FF_USE_TRIM == 1) */
 
 /* Generic command (Not used by FatFs) */
 #define CTRL_POWER			5	/* Get/Set power status */

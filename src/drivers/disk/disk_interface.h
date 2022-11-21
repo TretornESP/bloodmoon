@@ -20,4 +20,5 @@ uint8_t disk_read(const char * disk, uint8_t* buffer, uint32_t lba, uint32_t cou
 /// Write a number of sectors to the MSD
 uint8_t disk_write(const char * disk, uint8_t* buffer, uint32_t lba, uint32_t count);
 
+uint64_t disk_ioctl (const char * device, uint32_t op, void* buffer);
 #endif

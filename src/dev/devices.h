@@ -4,6 +4,8 @@
 #include "pci/pci.h"
 #include "acpi/acpi.h"
 
+#define DEVICE_NAME_SIZE 32
+
 #define BLOCK_SCSI 0x8
 #define CHAR_SCSI 0x88
 #define ABS_TO_PAGE(addr, page_size) (addr / page_size)
@@ -49,7 +51,7 @@ struct file_operations {
 struct device_driver {
     struct file_operations *fops;
     uint8_t registered;
-    char name[32];
+    char name[DEVICE_NAME_SIZE];
 };
 
 struct device {
@@ -57,7 +59,7 @@ struct device {
     uint8_t valid: 1;
     uint8_t major;
     uint8_t minor;
-    char name[32];
+    char name[DEVICE_NAME_SIZE];
     uint8_t internal_id;
     struct pci_device_header *pci;
     struct device *next;

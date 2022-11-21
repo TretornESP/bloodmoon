@@ -9,8 +9,8 @@
 
 #include "ff.h"			/* Obtains integer types */
 #include "diskio.h"		/* Declarations of disk functions */
+#include "generic_f32_exp.h"
 #include "../../../drivers/disk/disk_interface.h"
-
 /* Definitions of physical drive number for each drive */
 #define DEV_RAM		0	/* Example: Map Ramdisk to physical drive 0 */
 #define DEV_MMC		1	/* Example: Map MMC/SD card to physical drive 1 */
@@ -25,31 +25,11 @@ DSTATUS ff_disk_status (
 	BYTE pdrv		/* Physical drive nmuber to identify the drive */
 )
 {
-	DSTATUS stat;
-	int result;
-
-	switch (pdrv) {
-	case DEV_RAM :
-		result = RAM_disk_status();
-
-		// translate the reslut code here
-
-		return stat;
-
-	case DEV_MMC :
-		result = MMC_disk_status();
-
-		// translate the reslut code here
-
-		return stat;
-
-	case DEV_USB :
-		result = USB_disk_status();
-
-		// translate the reslut code here
-
-		return stat;
+	struct fat32_compat_device *device = get_device_at_index(pdrv);
+	if (device->name[0] != 0) {
+		return !disk_get_status(device->name);
 	}
+
 	return STA_NOINIT;
 }
 
@@ -63,35 +43,13 @@ DSTATUS ff_disk_initialize (
 	BYTE pdrv				/* Physical drive nmuber to identify the drive */
 )
 {
-	DSTATUS stat;
-	int result;
-
-	switch (pdrv) {
-	case DEV_RAM :
-		result = RAM_disk_initialize();
-
-		// translate the reslut code here
-
-		return stat;
-
-	case DEV_MMC :
-		result = MMC_disk_initialize();
-
-		// translate the reslut code here
-
-		return stat;
-
-	case DEV_USB :
-		result = USB_disk_initialize();
-
-		// translate the reslut code here
-
-		return stat;
+	struct fat32_compat_device *device = get_device_at_index(pdrv);
+	if (device->name[0] != 0) {
+		return !disk_initialize(device->name);
 	}
+
 	return STA_NOINIT;
 }
-
-
 
 /*-----------------------------------------------------------------------*/
 /* Read Sector(s)                                                        */
@@ -104,36 +62,9 @@ DRESULT ff_disk_read (
 	UINT count		/* Number of sectors to read */
 )
 {
-	DRESULT res;
-	int result;
-
-	switch (pdrv) {
-	case DEV_RAM :
-		// translate the arguments here
-
-		result = RAM_disk_read(buff, sector, count);
-
-		// translate the reslut code here
-
-		return res;
-
-	case DEV_MMC :
-		// translate the arguments here
-
-		result = MMC_disk_read(buff, sector, count);
-
-		// translate the reslut code here
-
-		return res;
-
-	case DEV_USB :
-		// translate the arguments here
-
-		result = USB_disk_read(buff, sector, count);
-
-		// translate the reslut code here
-
-		return res;
+	struct fat32_compat_device *device = get_device_at_index(pdrv);
+	if (device->name[0] != 0) {
+		return (disk_read(device->name, buff, sector, count) != 0) ? RES_OK : RES_ERROR;
 	}
 
 	return RES_PARERR;
@@ -149,41 +80,14 @@ DRESULT ff_disk_read (
 
 DRESULT ff_disk_write (
 	BYTE pdrv,			/* Physical drive nmuber to identify the drive */
-	const BYTE *buff,	/* Data to be written */
+	BYTE *buff,	/* Data to be written */
 	LBA_t sector,		/* Start sector in LBA */
 	UINT count			/* Number of sectors to write */
 )
 {
-	DRESULT res;
-	int result;
-
-	switch (pdrv) {
-	case DEV_RAM :
-		// translate the arguments here
-
-		result = RAM_disk_write(buff, sector, count);
-
-		// translate the reslut code here
-
-		return res;
-
-	case DEV_MMC :
-		// translate the arguments here
-
-		result = MMC_disk_write(buff, sector, count);
-
-		// translate the reslut code here
-
-		return res;
-
-	case DEV_USB :
-		// translate the arguments here
-
-		result = USB_disk_write(buff, sector, count);
-
-		// translate the reslut code here
-
-		return res;
+	struct fat32_compat_device *device = get_device_at_index(pdrv);
+	if (device->name[0] != 0) {
+		return (disk_write(device->name, buff, sector, count) != 0) ? RES_OK : RES_ERROR;
 	}
 
 	return RES_PARERR;
@@ -202,29 +106,10 @@ DRESULT ff_disk_ioctl (
 	void *buff		/* Buffer to send/receive control data */
 )
 {
-	DRESULT res;
-	int result;
-
-	switch (pdrv) {
-	case DEV_RAM :
-
-		// Process of the command for the RAM drive
-
-		return res;
-
-	case DEV_MMC :
-
-		// Process of the command for the MMC/SD card
-
-		return res;
-
-	case DEV_USB :
-
-		// Process of the command the USB drive
-
-		return res;
+	struct fat32_compat_device * device = get_device_at_index(pdrv);
+	if (device->name[0] != 0) {
+		return (disk_ioctl(device->name, cmd, buff) != 0) ? RES_OK : RES_ERROR;
 	}
 
 	return RES_PARERR;
 }
-

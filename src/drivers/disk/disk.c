@@ -62,6 +62,20 @@ uint64_t dd_ioctl (uint8_t port, uint32_t op , void* data) {
             break;
         case IOCTL_INIT:
             return 1; //TODO: Modify
+        case IOCTL_CTRL_SYNC:
+            return 1; //TODO: Modify if the buffer cache is implemented or async reads
+        case IOCTL_CTRL_TRIM:
+            return 1; //TODO: Modify if the buffer cache is implemented or async reads
+        case IOCTL_GET_SECTOR_SIZE: {
+            return 512;
+        }
+        case IOCTL_GET_SECTOR_COUNT: {
+            identify(port);
+            struct sata_ident * sident = (struct sata_ident*) hw_buffer;
+            return sident->CurrentSectorCapacity;
+        }
+        case IOCTL_GET_BLOCK_SIZE:
+            return 512;
     }
     return 0;
 }

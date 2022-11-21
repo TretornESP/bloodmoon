@@ -22,3 +22,7 @@ uint8_t disk_read(const char * disk, uint8_t* buffer, uint32_t lba, uint32_t cou
 uint8_t disk_write(const char * disk, uint8_t* buffer, uint32_t lba, uint32_t count) {
 	return device_write(disk, count, lba, buffer);
 }
+
+uint64_t disk_ioctl (const char * device, uint32_t op, void* buffer) {
+	return (device_ioctl(device, op, buffer) != 0);
+}

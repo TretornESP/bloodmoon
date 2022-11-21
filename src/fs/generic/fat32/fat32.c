@@ -723,12 +723,12 @@ void fat32_debug(const char* disk) {
 	
 	// List all directories
 	struct dir_s dir;
-	fat_dir_open(&dir, "D:/export", 0);
+	fat_dir_open(&dir, "C:/test/", 0);
 	
 	struct info_s* info = (struct info_s *)malloc(sizeof(struct info_s));
 	memset(info, 0, sizeof(struct info_s));
 	fstatus status;
-	printf("\nListing directories in: D:/\n");
+	printf("\nListing directories in: C:/test/\n");
 	do {
 		status = fat_dir_read(&dir, info);
 				
