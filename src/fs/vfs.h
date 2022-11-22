@@ -54,6 +54,7 @@ struct dentry_operations {
 };
 
 struct partition {
+    char name[48];
 	uint32_t lba;
 	uint32_t size;
 	uint8_t status;
@@ -64,6 +65,7 @@ struct partition {
 struct devmap {
     struct device * dev;
     struct partition * partitions;
+    uint32_t partition_no;
 };
 
 struct dentry {

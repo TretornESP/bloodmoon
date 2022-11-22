@@ -99,7 +99,8 @@ struct ext2_block_group_descriptor {
     uint16_t bg_free_blocks_count;  /* Free blocks count */
     uint16_t bg_free_inodes_count;  /* Free inodes count */
     uint16_t bg_used_dirs_count;    /* Directories count */
-    uint8_t  bg_pad[14];            /* Padding to the end of the block */
+    uint16_t bg_pad;            /* Padding to the end of the block */
+    uint32_t bg_reserved[3];
 } __attribute__((packed));
 
 //Inode type and permissions
@@ -197,6 +198,14 @@ struct ext2_directory_entry {
     char     name[EXT2_NAME_LEN];   /* File name */
 } __attribute__((packed));
 
+struct ext2_partition {
+    char name[32];
+    struct ext2_superblock_extended *sb;
+    struct ext2_group_descriptor *gd;
+    uint32_t group_number;
+    struct ext2_partition *next;
+};
+
 //Directory entry types
 #define EXT2_DIR_TYPE_UNKNOWN   0
 #define EXT2_DIR_TYPE_REGULAR   1
@@ -207,7 +216,7 @@ struct ext2_directory_entry {
 #define EXT2_DIR_TYPE_SOCKET    6
 #define EXT2_DIR_TYPE_SYMLINK   7
 
-char 	register_ext2_partition(const char* disk, uint32_t lba);
+char register_ext2_partition(const char* disk, uint32_t lba);
 uint8_t unregstr_ext2_partition(char letter);
 uint8_t ext2_search(const char*, uint32_t);
 

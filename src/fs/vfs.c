@@ -69,7 +69,7 @@ void register_filesystem(struct vfs_compatible * registrar) {
     printf("[VFS] Registered file system type %s\n", fst->name);
 }
 
-uint8_t mount_fs(struct device* dev, struct partition* partition) {
+uint8_t mount_fs(struct device* dev, struct partition* partition, uint32_t partition_index) {
 
     struct file_system_type * fst = file_system_type_list_head;
     if (fst == 0) {
@@ -77,13 +77,16 @@ uint8_t mount_fs(struct device* dev, struct partition* partition) {
         return 0;
     }
 
+    char part_name[48];
+    sprintf(part_name, "%sp%d", dev->name, partition_index);
+
     while (fst->next != 0) {
         if (fst->detect(dev->name, partition->lba)) {
             if (fst->register_partition(dev->name, partition->lba) != 0) {
-                printf("[VFS] Mounted %s on %s\n", fst->name, dev->name);
+                printf("[VFS] Mounted %s on %s\n", fst->name, part_name);
                 return 1;
             } else {
-                printf("[VFS] Failed to mount %s on %s\n", fst->name, dev->name);
+                printf("[VFS] Failed to mount %s on %s\n", fst->name, part_name);
                 return 0;
             }
         }
@@ -116,9 +119,11 @@ void detect_devices() {
         printf("[VFS] Scanning device: %s\n", dev->name);
 
         uint32_t partitions = detect_partitions(dev, devmap->partitions);
+        devmap->partition_no = partitions;
         if (partitions != 0 && devmap->partitions == 0)
             panic("[VFS] partitions detected but no partition struct found\n");
-
+        if (partitions == 0)
+            printf("[VFS] Skipping device %s, no partitions found\n", dev->name);
         struct partition* part = devmap->partitions;
         while (part->next != 0) {
             printf("[VFS] Partitions: %d, %d, %d, %d\n", part->lba, part->size, part->status, part->type);
@@ -133,11 +138,13 @@ void detect_partition_fs() {
     
     for (uint32_t i = 0; i < vfs_root_size; i++) {
         struct partition * current_partition = vfs_root[i].partitions;
+        uint32_t partition_index = 0;
         while(current_partition->next != 0) {
             
-            mount_fs(vfs_root[i].dev, current_partition);
+            mount_fs(vfs_root[i].dev, current_partition, partition_index);
 
             current_partition = current_partition->next;
+            partition_index++;
         }
     }
 }

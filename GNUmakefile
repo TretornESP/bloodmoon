@@ -236,7 +236,7 @@ run:
 	$(QEMU) $(QFLAGS) $(ISODIR)/$(ISO)
 
 run_exp:
-	$(QEMU) $(QFLAGSEXP)$(ISODIR)/$(IMG) -drive file=./test/test.img -drive file=./test/test.img
+	$(QEMU) $(QFLAGSEXP)$(ISODIR)/$(IMG) -drive file=./test/test.img -drive file=./test/extest.img
 
 gpt:
 	@make kernel
