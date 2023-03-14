@@ -55,16 +55,38 @@ struct partition_usage {
     char name[32];
 };
 
-struct partition_usage partitions[26];
+struct dir_usage {
+    int in_use;
+    char partition;
+    struct dir_s dir;
+};
 
-char* partition_name_from_char(char c) {
+struct partition_usage partitions[26];
+struct dir_usage f32_compat_open_dirs[MAX_OPEN_DIRS];
+
+char get_partition_from_path(const char* path) {
+    if (strlen(path) > 2) {
+        if (path[1] == ':') {
+            for (int i = 0; i < 26; i++) {
+                if (partitions[i].in_use == 1) {
+                    if (partitions[i].name[0] == path[0]) {
+                        return 'a' + i;
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+char* ext2_compat_partition_name_from_char(char c) {
     if (c < 'a' || c > 'z') {
         return 0;
     }
     return partitions[c - 'a'].name;
 }
 
-char register_partition(const char* disk, uint32_t lba) {
+char ext2_compat_register_partition(const char* disk, uint32_t lba) {
     uint32_t i;
     for (i = 0; i < 26; i++) {
         if (partitions[i].in_use == 0) {
@@ -76,7 +98,7 @@ char register_partition(const char* disk, uint32_t lba) {
     return 0;
 }
 
-uint8_t unregister_partition(char letter) {
+uint8_t ext2_compat_unregister_partition(char letter) {
     if (letter < 'a' || letter > 'z') {
         return 0;
     }
@@ -84,11 +106,11 @@ uint8_t unregister_partition(char letter) {
     return 1;
 }
 
-uint8_t detect (const char* disk, uint32_t lba) {
+uint8_t ext2_compat_detect (const char* disk, uint32_t lba) {
     return ext2_search(disk, lba);
 }
 
-int file_open(const char* path, int flags, int mode) {
+int ext2_compat_file_open(const char* path, int flags, int mode) {
     return 0;
 }
 
@@ -116,8 +138,31 @@ uint64_t (*file_seek)(int, uint64_t, int);
 
 int (*file_sync)(int);
 uint8_t ext2_sync(struct ext2_partition * partition);
+*/
+dir_t dir_open(const char* path) {
+    dir_t directory = {
+        .fd = -1,
+        .index = 0,
+        .entries = 0
+    };
 
-DIR (*dir_open)(const char*);
+    int index = 0;
+    for (index = 0; index < MAX_OPEN_DIRS; index++) {
+        if (f32_compat_open_dirs[index].in_use == 0) {
+            f32_compat_open_dirs[index].in_use = 1;
+            break;
+        }
+    }
+
+    char partition = get_partition_from_path(path);
+    if (partition == 0) {
+        return directory;
+    }
+
+    f32_compat_open_dirs[index].partition = partition;
+    f32_compat_open_dirs[index].dir = ext2_dir_open(ext2_compat_partition_name_from_char(partition), path);  
+}
+/*
 //Virtual function
 
 int (*dir_close)(DIR);
@@ -145,14 +190,14 @@ int (*stat)(int, stat_t*);
 
 struct vfs_compatible ext2_register = {
     .name = "EXT2",
-    .register_partition = ext2_register_partition,
-    .unregister_partition = ext2_unregister_partition,
-    .detect = ext2_search,
+    .register_partition = ext2_compat_register_partition,
+    .unregister_partition = ext2_compat_unregister_partition,
+    .detect = ext2_compat_detect,
 
-    .dir_open = f32_compat_dir_open,
-    .dir_close = f32_compat_dir_close,
-    .dir_creat = f32_compat_dir_create,
-    .dir_read = f32_compat_dir_read
+    .dir_open = ext2_compat_dir_open,
+    .dir_close = ext2_compat_dir_close,
+    .dir_creat = ext2_compat_dir_create,
+    .dir_read = ext2_compat_dir_read
 };
 
 struct vfs_compatible * ext2_registrar = &ext2_register;

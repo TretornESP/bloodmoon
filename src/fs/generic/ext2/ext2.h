@@ -30,24 +30,6 @@
 #define EXT2_FILE_TYPE_SOCKET   6
 #define EXT2_FILE_TYPE_SYMLINK  7
 
-#define S_IRWXU 00700
-#define S_IRUSR 00400
-#define S_IWUSR 00200
-#define S_IXUSR 00100
-#define S_IRWXG 00070
-#define S_IRGRP 00040
-#define S_IWGRP 00020
-#define S_IXGRP 00010
-#define S_IRWXO 00007
-#define S_IROTH 00004
-#define S_IWOTH 00002
-#define S_IXOTH 00001
-#define S_ISUID 04000
-#define S_ISGID 02000
-#define S_ISVTX 01000
-
-
-
 struct ext2_partition * ext2_register_partition(const char* disk, uint32_t lba);
 uint8_t ext2_sync(struct ext2_partition * partition);
 const char * ext2_get_partition_name(struct ext2_partition * partition);

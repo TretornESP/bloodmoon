@@ -48,18 +48,6 @@
 #define S_ISFIFO(m) (((m)&S_IFMT) == S_IFIFO)
 #define S_ISSOCK(m) (((m)&S_IFMT) == S_IFSOCK)
 
-#define S_IRWXUGO (S_IRWXU | S_IRWXG | S_IRWXO)
-#define S_IALLUGO (S_ISUID | S_ISGID | S_ISVTX | S_IRWXUGO)
-#define S_IRUGO (S_IRUSR | S_IRGRP | S_IROTH)
-#define S_IWUGO (S_IWUSR | S_IWGRP | S_IWOTH)
-#define S_IXUGO (S_IXUSR | S_IXGRP | S_IXOTH)
-
-#define S_IRWXU (S_IRUSR | S_IWUSR | S_IXUSR)
-#define S_IRWXG (S_IRGRP | S_IWGRP | S_IXGRP)
-#define S_IRWXO (S_IROTH | S_IWOTH | S_IXOTH)
-
-
-
 struct stat {
     uint64_t st_dev;
     uint64_t st_ino;
@@ -83,7 +71,7 @@ struct dir {
     uint32_t index;
 };
 
-typedef struct dir DIR;
+typedef struct dir dir_t;
 
 struct vfs_compatible {
     char name[VFS_COMPAT_FS_NAME_MAX_LEN];
@@ -100,10 +88,10 @@ struct vfs_compatible {
     uint64_t (*file_seek)(int, uint64_t, int);
     int (*stat)(int, stat_t*);
 
-    DIR (*dir_open)(const char*);
-    int (*dir_close)(DIR);
-    int (*dir_read)(DIR);
-    DIR (*dir_creat)(const char*);
+    dir_t (*dir_open)(const char*);
+    int (*dir_close)(dir_t);
+    int (*dir_read)(dir_t);
+    dir_t (*dir_creat)(const char*);
 
     int (*rename)(const char*, const char*);
     int (*remove)(const char*);
