@@ -33,7 +33,7 @@ KERNEL_ENTRY := _start
 QFLAGS ?= -cpu qemu64 -d cpu_reset -machine q35 -m 512 -boot d -cdrom 
 QFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 -m 512 -boot d -cdrom ./test/useless.iso -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -net none -drive file=
 
-CFLAGS ?= -O2 -g -Wall -Wextra -Wpedantic -pipe -std=c11
+CFLAGS ?= -O2 -g -Wall -Wextra -pipe -std=c11
 NASMFLAGS ?= -F dwarf -g
 LDFLAGS ?=
 CPPFLAGS ?=

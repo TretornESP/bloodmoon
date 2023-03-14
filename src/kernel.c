@@ -21,6 +21,9 @@
 
 #include "fs/generic/fat32/generic_f32.h"
 #include "fs/generic/ext2/generic_ext2.h"
+#include "drivers/disk/disk_interface.h"
+
+#include "util/time.h"
 
 #include "test/tests.h"
 
@@ -28,7 +31,7 @@ void _start(void) {
     init_memory();
     init_paging();
     init_heap();
-    init_pit();
+    init_pit(1678779503);
     init_interrupts(1);
     init_smbios_interface();
     init_devices();
@@ -36,7 +39,14 @@ void _start(void) {
     register_filesystem(fat32_registrar);
     register_filesystem(ext2_registrar);
     init_vfs();
-
+    uint8_t * buffer = malloc(512);
+    disk_ioctl("/dev/hda", IOCTL_ATAPI_IDENTIFY, buffer);
+    printf("ATAPI IDENTIFY: %s\n", buffer+ATA_IDENT_MODEL);
+    time_t t = time(0);
+    struct tm * tm = localtime(&t);
+    char date[32];
+    strftime(date, 32, "%Y-%m-%d %H:%M:%S", tm);
+    printf("EPOCH: %ld TIME: %s\n", time(0), date);
     printf("KERNEL LOOPING\n");
     while(1);
 
