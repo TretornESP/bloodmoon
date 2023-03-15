@@ -62,6 +62,7 @@ struct vm_area_struct {
                                        within vm_mm. */
     struct vm_area_struct *vm_next; /* linked list of VM areas per task */
     unsigned long vm_flags;         /* Flags, listed below. */
+    unsigned long vm_page_prot;     //This is arch specific protection bits, unused by now
     int file;
 };
 
@@ -101,20 +102,14 @@ struct task {
     int pdeath_signal;
 
     int16_t pid;
-    int16_t pgrp;
+    int16_t ppid;
 
-    struct task_struct *parent;
+    struct task *parent;
 
     int16_t uid;
-    int16_t euid;
-    int16_t suid;
     int16_t gid;
-    int16_t egid;
-    int16_t sgid;
-    int16_t fsuid;
-    int16_t fsgid;
-    
-    struct tty_struct *tty;
+
+    //struct tty_struct *tty; TODO: Add tty support
     unsigned int locks;
 
     int * open_files;
@@ -122,7 +117,7 @@ struct task {
     void * entry;
     CPU_CONTEXT* context;
     struct descriptors* descriptors;
-    struct task *next_task, *prev_task;
+    struct task *next, *prev;
 
 };
 

@@ -5,11 +5,11 @@
 #define MAX_OPEN_DIRS 256
 #define MAX_REQUESTED_FILES 256
 #define MAX_FILES_PER_DIR 4096
-struct dir_usage {
+struct f32_dir_usage {
     int in_use;
     struct dir_s dir;
 };
-struct dir_usage f32_compat_open_dirs[MAX_OPEN_DIRS];
+struct f32_dir_usage f32_compat_open_dirs[MAX_OPEN_DIRS];
 
 struct info_s requested_files[MAX_REQUESTED_FILES];
 int last_open_file = 0;

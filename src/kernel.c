@@ -5,6 +5,7 @@
 #include "memory/heap.h"
 
 #include "scheduling/pit.h"
+#include "scheduling/scheduler.h"
 
 #include "fs/vfs.h"
 
@@ -33,12 +34,15 @@ void _start(void) {
     init_heap();
     init_pit(1678779503);
     init_interrupts(1);
+    init_scheduler();
     init_smbios_interface();
     init_devices();
     init_drive();
     register_filesystem(fat32_registrar);
     register_filesystem(ext2_registrar);
     init_vfs();
+    pseudo_ps();
+
     uint8_t * buffer = malloc(512);
     disk_ioctl("/dev/hda", IOCTL_ATAPI_IDENTIFY, buffer);
     printf("ATAPI IDENTIFY: %s\n", buffer+ATA_IDENT_MODEL);

@@ -7,7 +7,6 @@ void *strcat(char *dest, const char *src) {__UNDEFINED();}
 void *strncat(char *dest, const char *src, size_t n) {__UNDEFINED();}
 void *strchr(const char *s, int c) {__UNDEFINED();}
 int strcoll(const char *s1, const char *s2) {__UNDEFINED();}
-char *strcpy(char *dest, const char *src) {__UNDEFINED();}
 size_t strcspn(const char *s, const char *reject) {__UNDEFINED();}
 char *strerror(int errnum) {__UNDEFINED();}
 char *strpbrk(const char *s, const char *accept) {__UNDEFINED();}
@@ -16,6 +15,26 @@ size_t strspn(const char *s, const char *accept) {__UNDEFINED();}
 char *strstr(const char *haystack, const char *needle) {__UNDEFINED();}
 char *strtok(char *s, const char *delim) {__UNDEFINED();}
 size_t strxfrm(char *dest, const char *src, size_t n) {__UNDEFINED();}
+
+//Implement function strtok_r
+char *strtok_r(char *s, const char *delim, char **save_ptr) {
+    char *end;
+    if (s == NULL)
+        s = *save_ptr;
+    s += strspn(s, delim);
+    if (*s == '\0') {
+        *save_ptr = s;
+        return NULL;
+    }
+    end = s + strcspn(s, delim);
+    if (*end == '\0') {
+        *save_ptr = end;
+        return s;
+    }
+    *end = '\0';
+    *save_ptr = end + 1;
+    return s;
+}
 
 uint64_t strlen(const char *str) {
     uint64_t len = 0;
@@ -30,6 +49,16 @@ void *memset(void *dest, int val, uint64_t size) {
     for (uint64_t i = 0; i < size; i++) {
         d[i] = val;
     }
+    return dest;
+}
+
+char *strcpy(char *dest, const char *src) {
+    uint64_t i = 0;
+    while (src[i] != '\0') {
+        dest[i] = src[i];
+        i++;
+    }
+    dest[i] = '\0';
     return dest;
 }
 

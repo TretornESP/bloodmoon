@@ -13,7 +13,9 @@
 
 void dump_processes();
 void kwrite(const char*);
-void spawn(void*);
+struct task* get_current_task();
+void spawn(uint16_t, long, unsigned long, void*, long, long);
 void kyield();
 void init_scheduler();
+void pseudo_ps();
 #endif

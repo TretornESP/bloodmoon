@@ -55,14 +55,14 @@ struct partition_usage {
     char name[32];
 };
 
-struct dir_usage {
+struct ext2_dir_usage {
     int in_use;
     char partition;
     struct dir_s dir;
 };
 
 struct partition_usage partitions[26];
-struct dir_usage f32_compat_open_dirs[MAX_OPEN_DIRS];
+struct ext2_dir_usage ext2_compat_open_dirs[MAX_OPEN_DIRS];
 
 char get_partition_from_path(const char* path) {
     if (strlen(path) > 2) {
@@ -139,7 +139,7 @@ uint64_t (*file_seek)(int, uint64_t, int);
 int (*file_sync)(int);
 uint8_t ext2_sync(struct ext2_partition * partition);
 */
-dir_t dir_open(const char* path) {
+dir_t ext2_compat_dir_open(const char* path) {
     dir_t directory = {
         .fd = -1,
         .index = 0,
@@ -148,8 +148,8 @@ dir_t dir_open(const char* path) {
 
     int index = 0;
     for (index = 0; index < MAX_OPEN_DIRS; index++) {
-        if (f32_compat_open_dirs[index].in_use == 0) {
-            f32_compat_open_dirs[index].in_use = 1;
+        if (ext2_compat_open_dirs[index].in_use == 0) {
+            ext2_compat_open_dirs[index].in_use = 1;
             break;
         }
     }
@@ -159,8 +159,8 @@ dir_t dir_open(const char* path) {
         return directory;
     }
 
-    f32_compat_open_dirs[index].partition = partition;
-    f32_compat_open_dirs[index].dir = ext2_dir_open(ext2_compat_partition_name_from_char(partition), path);  
+    ext2_compat_open_dirs[index].partition = partition;
+    //ext2_compat_open_dirs[index].dir = ext2_compat_dir_open(ext2_compat_partition_name_from_char(partition), path);  
 }
 /*
 //Virtual function
@@ -195,9 +195,9 @@ struct vfs_compatible ext2_register = {
     .detect = ext2_compat_detect,
 
     .dir_open = ext2_compat_dir_open,
-    .dir_close = ext2_compat_dir_close,
-    .dir_creat = ext2_compat_dir_create,
-    .dir_read = ext2_compat_dir_read
+    //.dir_close = ext2_compat_dir_close,
+    //.dir_creat = ext2_compat_dir_create,
+    //.dir_read = ext2_compat_dir_read
 };
 
 struct vfs_compatible * ext2_registrar = &ext2_register;

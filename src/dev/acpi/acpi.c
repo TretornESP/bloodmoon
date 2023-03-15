@@ -23,7 +23,7 @@ struct acpi_sdt_header* find_rsdt(struct rsdt* rsdt, char* signature, uint64_t s
 
     for (uint32_t i = 0; i < entries; i++) {
         uint32_t pto = rsdt->pointer_other_sdt[i];
-        struct acpi_sdt_header* header = (struct acpi_sdt_header*)(uint64_t)pto; //delete this inmediately
+        struct acpi_sdt_header* header = (struct acpi_sdt_header*)(uint64_t)pto; //TODO: delete this inmediately
         printf("Entry %d => %x HEADER AT: %p SIG: %s\n", i, pto, header, header->signature);
 
         if (!memcmp(header->signature, signature, sig_len))
@@ -40,7 +40,7 @@ struct acpi_sdt_header* find_xsdt(struct xsdt* xsdt, char* signature, uint64_t s
 
     for (uint32_t i = 0; i < entries; i++) {
         uint32_t pto = xsdt->pointer_other_sdt[i];
-        struct acpi_sdt_header* header = (struct acpi_sdt_header*)(uint64_t)pto; //delete this inmediately
+        struct acpi_sdt_header* header = (struct acpi_sdt_header*)(uint64_t)pto; //TODO: delete this inmediately
         printf("Entry %d => %x HEADER AT: %p SIG: %s\n", i, pto, header, header->signature);
 
         if (!memcmp(header->signature, signature, sig_len))

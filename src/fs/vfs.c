@@ -57,6 +57,7 @@ void register_filesystem(struct vfs_compatible * registrar) {
     fst->register_partition = registrar->register_partition;
     fst->unregister_partition = registrar->unregister_partition;
     fst->detect = registrar->detect;
+    //TODO: Expand to vfs_compat
     if (strlen(registrar->name) > VFS_COMPAT_FS_NAME_MAX_LEN) {
         printf("[VFS] Either FS name is too long or you are tryna hack us\n");
         printf("[VFS] anyway, im restricting it to %d chars\n", VFS_COMPAT_FS_NAME_MAX_LEN);
