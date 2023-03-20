@@ -3,16 +3,15 @@
 #include "../vfs_compat.h"
 #include "fat32.h"
 #define MAX_OPEN_DIRS 256
-#define MAX_REQUESTED_FILES 256
 #define MAX_FILES_PER_DIR 4096
+#define MAX_FAT32_PARTITIONS 32
 struct f32_dir_usage {
     int in_use;
     struct dir_s dir;
 };
 struct f32_dir_usage f32_compat_open_dirs[MAX_OPEN_DIRS];
 
-struct info_s requested_files[MAX_REQUESTED_FILES];
-int last_open_file = 0;
+char f32_compat_partitions[MAX_FAT32_PARTITIONS] = {0};
 
 dir_t f32_compat_dir_open(const char* dname) {
   
@@ -70,25 +69,48 @@ int f32_compat_dir_close(dir_t dir) {
     return 0;
 }
 
-int f32_compat_dir_read(dir_t dir) {
+int f32_compat_register_partition(const char* path, uint32_t lba) {
+    for (int index = 0; index < MAX_FAT32_PARTITIONS; index++) {
+        if (f32_compat_partitions[index] == 0) {
+            f32_compat_partitions[index] = register_fat32_partition(path, lba);
+            return index;
+        }
+    }
 
+    return -1;
 }
 
-dir_t f32_compat_dir_create(const char* dname) {
+uint8_t f32_compat_unregister_partition(int partition) {
+    if (partition < 0 || partition >= MAX_FAT32_PARTITIONS)
+        return 1;
     
+    if (f32_compat_partitions[partition] == 0)
+        return 1;
+
+    unregstr_fat32_partition(f32_compat_partitions[partition]);
+    f32_compat_partitions[partition] = 0;
+    return 0;
+}
+
+uint8_t f32_compat_detect(const char* path, uint32_t lba) {
+    return fat_search(path, lba);
+}
+
+int f32_compat_flush(int partition) {
+    (void)partition;
+    return 0;
 }
 
 struct vfs_compatible fat32_register = {
     .name = "FAT32",
 
-    .register_partition = register_fat32_partition,
-    .unregister_partition = unregstr_fat32_partition,
-    .detect = fat_search,
+    .register_partition = f32_compat_register_partition,
+    .unregister_partition = f32_compat_unregister_partition,
+    .detect = f32_compat_detect,
+    .flush = f32_compat_flush,
 
     .dir_open = f32_compat_dir_open,
-    .dir_close = f32_compat_dir_close,
-    .dir_creat = f32_compat_dir_create,
-    .dir_read = f32_compat_dir_read
+    .dir_close = f32_compat_dir_close
 };
 
 struct vfs_compatible * fat32_registrar = &fat32_register;

@@ -36,7 +36,7 @@ const char * ext2_get_partition_name(struct ext2_partition * partition);
 uint32_t ext2_count_partitions();
 struct ext2_partition * ext2_get_partition_by_index(uint32_t index);
 uint8_t ext2_search(const char* name, uint32_t lba);
-uint8_t ext2_unregister_partition(char letter);
+uint8_t ext2_unregister_partition(struct ext2_partition* partition);
 
 uint64_t ext2_get_file_size(struct ext2_partition* partition, const char* path);
 uint8_t ext2_list_directory(struct ext2_partition* partition, const char * path);

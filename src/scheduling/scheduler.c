@@ -139,7 +139,8 @@ void spawn(
     memset(context, 0, sizeof(CPU_CONTEXT));
     task->context = context;
     task->descriptors = 0;//TODO: struct descriptors
-
+    task->next = 0;
+    task->prev = 0;
     add_task(task); 
 }
 

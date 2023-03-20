@@ -75,10 +75,10 @@ typedef struct dir dir_t;
 
 struct vfs_compatible {
     char name[VFS_COMPAT_FS_NAME_MAX_LEN];
-    char (*register_partition)(const char*, uint32_t);
-    uint8_t (*unregister_partition)(char);
+    int (*register_partition)(const char*, uint32_t);
+    uint8_t (*unregister_partition)(int);
     uint8_t (*detect)(const char*, uint32_t);
-    int (*flush)(void);
+    int (*flush)(int);
 
     int (*file_open)(const char*, int, int);
     int (*file_close)(int);

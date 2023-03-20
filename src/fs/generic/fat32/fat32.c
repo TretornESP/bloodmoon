@@ -63,6 +63,10 @@ void fat_print_info(struct info_s* info);
 uint8_t fat_file_addr_resolve(struct file_s* file);
 fstatus fat_make_entry_chain(struct dir_s* dir, uint8_t entry_cnt);
 
+/// Convert an absolute LBA address to the relative cluster number
+inline uint32_t fat_clust_to_sect(struct volume_s* vol, uint32_t clust) {
+	return ((clust - 2) * vol->cluster_size) + vol->data_lba;
+}
 
 /// Remove
 void fat_print_table(struct volume_s* vol, uint32_t sector) {
@@ -409,11 +413,6 @@ uint8_t fat_flush(struct volume_s* vol) {
 /// Convert a relative cluster number to the absolute LBA address
 inline uint32_t fat_sect_to_clust(struct volume_s* vol, uint32_t sect) {
 	return ((sect - vol->data_lba) / vol->cluster_size) + 2;
-}
-
-/// Convert an absolute LBA address to the relative cluster number
-inline uint32_t fat_clust_to_sect(struct volume_s* vol, uint32_t clust) {
-	return ((clust - 2) * vol->cluster_size) + vol->data_lba;
 }
 
 /// Compares `size` characters from two strings without case sensitivity

@@ -5,19 +5,18 @@
 
 struct fat32_compat_device f32_device_list[MAX_F32_DEVICES] = {0};
 
-char fat32_register_partition(const char* device, uint32_t lba) {
-    uint8_t i;
-    for (i = 0; i < MAX_F32_DEVICES; i++) {
+int fat32exp_compat_register_partition(const char* device, uint32_t lba) {
+    for (int i = 0; i < MAX_F32_DEVICES; i++) {
         if (f32_device_list[i].name[0] == 0) {
             strncpy(f32_device_list[i].name, device, 32);
             f32_device_list[i].lba = lba;
             f32_device_list[i].partition = i;
-            break;
+            return i;
         }
     }
 
     //TODO: Call mount
-    return i;
+    return -1;
 }
 
 uint8_t get_enabled_f32_devices() {
@@ -35,12 +34,12 @@ struct fat32_compat_device *get_device_at_index(uint8_t index) {
     return (struct fat32_compat_device*)(f32_device_list + (index * sizeof(struct fat32_compat_device)));
 }
 
-uint8_t fat32_unregister_partition(char partition) {
-    memset(&f32_device_list[(uint8_t)partition], 0, sizeof(struct fat32_compat_device));
-    return 1;
+uint8_t fat32exp_compat_unregister_partition(int partition) {
+    memset(&f32_device_list[partition], 0, sizeof(struct fat32_compat_device));
+    return 0;
 }
 
-uint8_t fat32_detect_partition(const char* name, uint32_t lba) {
+uint8_t fat32exp_compat_detect_partition(const char* name, uint32_t lba) {
 	uint8_t bpb[512];
     if (!disk_read(name, bpb, lba, 1)) return 0;
 	
@@ -92,12 +91,19 @@ uint64_t file_open(const char* path, int mode, int flags) {
     return (uint64_t)file;
 }
 
-struct vfs_compatible fat32_exp_register = {
-    .name = "FAT32",
+int f32exp_compat_flush(int index) {
+    (void)index;
+    return 0;
+}
 
-    .register_partition = fat32_register_partition,
-    .unregister_partition = fat32_unregister_partition,
-    .detect = fat32_detect_partition,
+
+struct vfs_compatible fat32_exp_register = {
+    .name = "FAT32EXP",
+
+    .register_partition = fat32exp_compat_register_partition,
+    .unregister_partition = fat32exp_compat_unregister_partition,
+    .detect = fat32exp_compat_detect_partition,
+    .flush = f32exp_compat_flush
 };
 
 struct vfs_compatible * get_f32_exp_driver() {

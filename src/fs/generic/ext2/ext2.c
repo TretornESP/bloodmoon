@@ -205,9 +205,9 @@ uint8_t ext2_search(const char* name, uint32_t lba) {
     return (sb->s_magic == EXT2_SUPER_MAGIC) ? EXT2_RESULT_OK : EXT2_RESULT_ERROR;
 }
 
-uint8_t ext2_unregister_partition(char letter) {
-    EXT2_INFO("Unregistering partition %c", letter);
-    (void)letter;
+uint8_t ext2_unregister_partition(struct ext2_partition* partition) {
+    EXT2_INFO("Unregistering partition %s\n", partition->name);
+    (void)partition;
     EXT2_WARN("unregstr_ext2_partition Not implemented");
     return EXT2_RESULT_ERROR;
 }

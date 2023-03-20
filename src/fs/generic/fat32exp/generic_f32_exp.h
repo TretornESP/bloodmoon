@@ -23,13 +23,7 @@ struct fat32_compat_device {
     uint32_t lba;
 };
 
-char fat32_register_partition(const char* device, uint32_t lba);
 struct fat32_compat_device *get_device_at_index(uint8_t index);
-uint8_t fat32_unregister_partition(char partition);
-uint8_t fat32_detect_partition(const char* name, uint32_t lba);
-uint64_t file_open(const char* path, int mode, int flags);
-uint8_t get_enabled_f32_devices();
-
 
 struct vfs_compatible * get_f32_exp_driver();
 #endif
