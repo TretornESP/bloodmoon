@@ -58,12 +58,20 @@ struct ext2_partition * ext2_register_partition(const char* disk, uint32_t lba) 
     }
 
     uint32_t sector_size;
-    ioctl_disk(disk, IOCTL_GET_SECTOR_SIZE, &sector_size);
+    if (!ioctl_disk(disk, IOCTL_GET_SECTOR_SIZE, &sector_size)) {
+        EXT2_ERROR("Failed to get sector size");
+        return EXT2_RESULT_ERROR;
+    }
+    
+    if (sector_size == 0 || sector_size > 4096) {
+        EXT2_ERROR("Invalid sector size");
+        return EXT2_RESULT_ERROR;
+    }
 
     EXT2_DEBUG("Disk %s is ready, sector size is %d", disk, sector_size);
 
     uint8_t superblock_buffer[1024];
-    if (read_disk(disk, superblock_buffer, lba+SB_OFFSET_LBA, 2)) {
+    if (!read_disk(disk, superblock_buffer, lba+SB_OFFSET_LBA, 2)) {
         EXT2_ERROR("Failed to read superblock");
         return EXT2_RESULT_ERROR;
     }
@@ -100,18 +108,19 @@ struct ext2_partition * ext2_register_partition(const char* disk, uint32_t lba) 
     uint32_t blocks_per_group = superblock->s_blocks_per_group;
     uint32_t sectors_per_group = blocks_per_group * sectors_per_block;
     uint8_t dummy_sb_buffer[1024];
+    int32_t backup_bgs[64] = {-1};
+    uint32_t backup_bgs_count = 0;
     for (uint32_t i = 0; i < block_groups_first; i++) {
-        if (read_disk(disk, dummy_sb_buffer, lba+(i*sectors_per_group)+SB_OFFSET_LBA, 2)) {
+        if (!read_disk(disk, dummy_sb_buffer, lba+(i*sectors_per_group)+SB_OFFSET_LBA, 2)) {
             EXT2_ERROR("Failed to read dummy superblock");
             return EXT2_RESULT_ERROR;
         }
         struct ext2_superblock * dummy_sb = (struct ext2_superblock*)dummy_sb_buffer;
-        if (dummy_sb->s_magic != EXT2_SUPER_MAGIC) {
-            EXT2_ERROR("Invalid dummy superblock magic");
-            return EXT2_RESULT_ERROR;
+        if (dummy_sb->s_magic == EXT2_SUPER_MAGIC) {
+            backup_bgs[backup_bgs_count++] = i;
         }
     }
-    EXT2_DEBUG("All %d superblocks are valid", block_groups_first);
+    EXT2_DEBUG("Found %d valid superblocks", backup_bgs_count);
     //TODO: Delete this sanity check
     uint32_t block_group_descriptors_size = DIVIDE_ROUNDED_UP(block_groups_first * sizeof(struct ext2_block_group_descriptor), sector_size);
     EXT2_DEBUG("Block group descriptors size: %d", block_group_descriptors_size);
@@ -119,7 +128,7 @@ struct ext2_partition * ext2_register_partition(const char* disk, uint32_t lba) 
 
     void * block_group_descriptor_buffer = malloc(block_group_descriptors_size * sector_size);
     
-    if (read_disk(disk, (uint8_t*)block_group_descriptor_buffer, lba+(sectors_per_block*bgdt_block), block_group_descriptors_size)) {
+    if (!read_disk(disk, (uint8_t*)block_group_descriptor_buffer, lba+(sectors_per_block*bgdt_block), block_group_descriptors_size)) {
         EXT2_ERROR("Failed to read block group descriptor table");
         return EXT2_RESULT_ERROR;
     }
@@ -147,10 +156,13 @@ struct ext2_partition * ext2_register_partition(const char* disk, uint32_t lba) 
     partition->group_number = block_groups_first;
     partition->lba = lba;
     partition->sector_size = sector_size;
+    memcpy(partition->backup_bgs, backup_bgs, 64*sizeof(int32_t));
+    partition->backup_bgs_count = backup_bgs_count;
     partition->sb = malloc(1024);
     partition->flush_required = 0;
     partition->sb_block = SB_OFFSET_LBA;
     partition->bgdt_block = bgdt_block; 
+    partition->next = 0;
     memcpy(partition->sb, superblock, 1024);
     partition->gd = malloc(block_group_descriptors_size * sector_size);
     memcpy(partition->gd, block_group_descriptor, block_group_descriptors_size * sector_size);
@@ -199,10 +211,16 @@ struct ext2_partition * ext2_get_partition_by_index(uint32_t index) {
 uint8_t ext2_search(const char* name, uint32_t lba) {
     EXT2_INFO("Searching for ext2 partition %s:%d", name, lba);
     uint8_t bpb[1024];
-    if (read_disk(name, bpb, lba+2, 2)) return EXT2_RESULT_ERROR;
+    if (!read_disk(name, bpb, lba+2, 2)) return EXT2_RESULT_ERROR;
 
     struct ext2_superblock *sb = (struct ext2_superblock *)bpb;
-    return (sb->s_magic == EXT2_SUPER_MAGIC) ? EXT2_RESULT_OK : EXT2_RESULT_ERROR;
+    if (sb->s_magic == EXT2_SUPER_MAGIC) {
+        EXT2_INFO("Found ext2 partition %s:%d", name, lba);
+        return EXT2_RESULT_OK;
+    } else {
+        EXT2_INFO("No ext2 partition found %s:%d", name, lba);
+        return EXT2_RESULT_ERROR;
+    }
 }
 
 uint8_t ext2_unregister_partition(struct ext2_partition* partition) {
@@ -506,9 +524,9 @@ uint8_t ext2_debug(struct ext2_partition* partition) {
 
 uint8_t ext2_stacktrace() {
     EXT2_INFO("Printing stacktrace");
-    if (ext2_has_errors(EXT2_ERROR_DEBUG)) {
+    if (ext2_has_errors(EXT2_ERROR_INFO)) {
         printf("[EXT2] Stacktrace requested\n");
-        ext2_print_errors(EXT2_ERROR_DEBUG);
+        ext2_print_errors(EXT2_ERROR_INFO);
         ext2_clear_errors();
     } else {
         printf("[EXT2] No errors\n");

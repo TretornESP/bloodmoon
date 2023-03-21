@@ -32,6 +32,14 @@ struct file_system_type * init_file_system_type_header() {
     return fst;
 }
 
+void dump_mounts() {
+    struct mount * mount = mount_list_head;
+    while (mount != 0 && mount->device != 0 && mount->fst != 0 && mount->partition != 0) {
+        printf("[%s] Dev: %s FS: %s II: %d\n", mount->partition->name, mount->device->name, mount->fst->name, mount->internal_index);
+        mount = mount->next;
+    }
+}
+
 void add_partition(struct partition * head, uint32_t lba, uint32_t size, uint8_t status, uint8_t type) {
     if (head == 0) {
         panic("[VFS] Invalid partition header");
@@ -64,6 +72,9 @@ void register_filesystem(struct vfs_compatible * registrar) {
     fst->register_partition = registrar->register_partition;
     fst->unregister_partition = registrar->unregister_partition;
     fst->detect = registrar->detect;
+    fst->flush = registrar->flush;
+    fst->debug = registrar->debug;
+    fst->file_open = registrar->file_open;
     //TODO: Expand to vfs_compat
     if (strlen(registrar->name) > VFS_COMPAT_FS_NAME_MAX_LEN) {
         printf("[VFS] Either FS name is too long or you are tryna hack us\n");
@@ -78,6 +89,9 @@ void register_filesystem(struct vfs_compatible * registrar) {
 }
 
 void add_mount(struct mount * head, struct device* device, struct partition * part, struct file_system_type* fst, int internal_index) {
+    if (device == 0) panic("[VFS] Invalid device\n");
+    if (part == 0) panic("[VFS] Invalid partition\n");
+    if (fst == 0) panic("[VFS] Invalid fs\n");
     if (head == 0) {
         panic("[VFS] Invalid mount header");
     } else {
@@ -104,9 +118,7 @@ uint8_t mount_fs(struct device* dev, struct partition* partition, const char* mo
         return 0;
     }
 
-    printf("[VFS] Detecting fs on %s\n", dev->name);
     while (fst->next != 0) {
-        printf("[VFS] Trying %s\n", fst->name);
         if (fst->detect(dev->name, partition->lba)) {
             printf("[VFS] Detected %s on %s, trying to mount on %s\n", fst->name, dev->name, mountpoint);
             int ret = fst->register_partition(dev->name, partition->lba);
@@ -163,6 +175,20 @@ void detect_devices() {
     }
 }
 
+struct mount* get_mount_from_path(const char* path, char* native_path) {
+    struct mount * mount = mount_list_head;
+    while (mount != 0 && mount->device != 0 && mount->fst != 0 && mount->partition != 0) {
+        uint32_t mountpoint_len = strlen(mount->partition->name);
+        if (strncmp(mount->partition->name, path, mountpoint_len) == 0) {
+            memcpy(native_path, path + mountpoint_len, strlen(path) - mountpoint_len);
+            native_path[strlen(path) - mountpoint_len] = 0;
+            return mount;
+        }
+        mount = mount->next;
+    }
+    return 0;
+}
+
 void detect_partition_fs() {
     
     for (uint32_t i = 0; i < vfs_root_size; i++) {
@@ -185,4 +211,6 @@ void init_vfs() {
     printf("### VFS STARTUP ###\n");
     detect_devices();
     detect_partition_fs();
+    dump_mounts();
+    printf("### VFS STARTUP END ###\n");
 }

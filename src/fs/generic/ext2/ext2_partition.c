@@ -39,7 +39,7 @@ uint8_t ext2_check_status(const char* disk) {
     int status = get_disk_status(disk);
     EXT2_DEBUG("Checking disk %s status", disk);
     if (status != STATUS_READY) {
-        if (init_disk(disk) != OP_SUCCESS) {
+        if (init_disk(disk)) {
             EXT2_WARN("Failed to initialize disk");
             return 0;
         }

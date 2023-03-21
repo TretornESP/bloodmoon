@@ -176,7 +176,7 @@ void ext2_print_errors(uint8_t min_level) {
     struct error_message * message = error_messages;
     while (message != 0) {
         if (message->type >= min_level) {
-            printf("[EXT2] [%s] %-128s [%s@%u:%s]\n", error_type_names[message->type], message->message, message->file, message->line, message->function);
+            printf("[EXT2] [%s] %-128s [%s]\n", error_type_names[message->type], message->message, message->function);
         }
         message = message->next;
     }

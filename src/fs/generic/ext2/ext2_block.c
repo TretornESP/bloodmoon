@@ -21,7 +21,7 @@ int64_t ext2_read_block(struct ext2_partition* partition, uint32_t block, uint8_
     uint32_t block_lba = (block * block_size) / partition->sector_size;
 
     if (block > 0) {
-        if (read_disk(partition->disk, destination_buffer, partition->lba + block_lba, block_sectors)) {
+        if (!read_disk(partition->disk, destination_buffer, partition->lba + block_lba, block_sectors)) {
             EXT2_ERROR("Failed to read block %d", block);
             return EXT2_READ_FAILED;
         }
@@ -160,7 +160,7 @@ int64_t ext2_write_block(struct ext2_partition* partition, uint32_t block, uint8
     uint32_t block_lba = (block * block_size) / partition->sector_size;
 
     if (block) {
-        if (write_disk(partition->disk, source_buffer, partition->lba + block_lba, block_sectors)) {
+        if (!write_disk(partition->disk, source_buffer, partition->lba + block_lba, block_sectors)) {
             EXT2_ERROR("Failed to write block %d", block);
             return EXT2_WRITE_FAILED;
         }

@@ -8,6 +8,7 @@
 #include "scheduling/scheduler.h"
 
 #include "fs/vfs.h"
+#include "fs/vfs_adapters.h"
 
 #include "io/interrupts.h"
 
@@ -43,13 +44,14 @@ void _start(void) {
     init_vfs();
     pseudo_ps();
 
-    uint8_t * buffer = malloc(512);
-
     time_t t = time(0);
     struct tm * tm = localtime(&t);
     char date[32];
     strftime(date, 32, "%Y-%m-%d %H:%M:%S", tm);
     printf("EPOCH: %ld TIME: %s\n", time(0), date);
+    vfs_file_open("/dev/hdap2/cuak.txt", 0x69, 0x13);
+    vfs_file_open("/dev/hdap1/cuak.txt", 0x69, 0x13);
+
     printf("KERNEL LOOPING\n");
     while(1);
 

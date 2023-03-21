@@ -25,7 +25,7 @@ uint8_t ext2_flush_bg(struct ext2_partition* partition, struct ext2_block_group_
 
     uint32_t block_group_descriptors_size = DIVIDE_ROUNDED_UP(partition->group_number * sizeof(struct ext2_block_group_descriptor), partition->sector_size);
     uint32_t sectors_per_group = ((struct ext2_superblock*)(partition->sb))->s_blocks_per_group * (block_size / partition->sector_size);
-    if (write_disk(partition->disk, (uint8_t*)bg, partition->lba+(sectors_per_group*bgid)+partition->bgdt_block, block_group_descriptors_size) == OP_FAILURE) {
+    if (!write_disk(partition->disk, (uint8_t*)bg, partition->lba+(sectors_per_group*bgid)+partition->bgdt_block, block_group_descriptors_size)) {
         EXT2_ERROR("Failed to write block group descriptor table");
         return 1;
     }

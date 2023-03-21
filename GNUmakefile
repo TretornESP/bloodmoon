@@ -30,6 +30,7 @@ WSLHOSTIP := $(shell ipconfig.exe | grep 'vEthernet (WSL)' -a -A4 | tail -n1 | c
 
 KERNEL_ENTRY := _start
 
+BLOCKSIZE := 1024
 QFLAGS ?= -cpu qemu64 -d cpu_reset -machine q35 -m 512 -boot d -cdrom 
 QFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 -m 512 -boot d -cdrom ./test/useless.iso -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -net none -drive file=
 
@@ -201,15 +202,16 @@ buildimggpt:
 	$(eval LOOP_DEV_PATH := $(shell losetup -a | grep $(IMG) | cut -d: -f1))
 	@echo Loop device path: $(LOOP_DEV_PATH)
 	
-	@sudo sgdisk --new 0:0:+50M --typecode 0:ef00 $(LOOP_DEV_PATH)
-	@sudo sgdisk --new 0:0:+100M $(LOOP_DEV_PATH)
-	@sudo sgdisk --new 0:0:0  $(LOOP_DEV_PATH)
+	@sudo sgdisk --new 1:0:+50M --typecode 1:ef00 $(LOOP_DEV_PATH)
+	@sudo sgdisk --new 2:0:+100M -t 2:8300 $(LOOP_DEV_PATH)
+	@sudo sgdisk --new 3:0:0  -t 3:8300 $(LOOP_DEV_PATH)
 	@sudo sgdisk -p $(LOOP_DEV_PATH)
 	@sudo partprobe $(LOOP_DEV_PATH)
 	@sudo fdisk -l $(LOOP_DEV_PATH)
 	@sudo mkfs.fat -n PATATA -F32 $(LOOP_DEV_PATH)p1
 	@sudo mkfs.fat -n FDATA -F32 $(LOOP_DEV_PATH)p2
-	@sudo mkfs.fat -n E2DATA -F32 $(LOOP_DEV_PATH)p3
+	@sudo mkfs.ext2 -L FDATA2 $(LOOP_DEV_PATH)p3 -b $(BLOCKSIZE)
+	@sudo dumpe2fs $(LOOP_DEV_PATH)p3 | grep -i superblock
 	@sudo mkdir $(MNTDIR)
 	@sudo mkdir $(SYSDIR)
 	@sudo mkdir $(DATDIR)

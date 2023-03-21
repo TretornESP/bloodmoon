@@ -24,6 +24,8 @@ struct file_system_type {
     uint8_t (*unregister_partition)(int);
     uint8_t (*detect)(const char *, uint32_t);
     int (*flush)(int);
+    void (*debug)(void);
+    int (*file_open)(int, const char*, int, int);
     //TODO: Ampliar hasta cubrir generic/compat_vfs
     struct file_system_type * next;
 };
@@ -125,6 +127,7 @@ struct dentry {
     char  d_name[32];
 };
 
+struct mount* get_mount_from_path(const char* ext2_inode_from_path_and_parent, char* native_path);
 void register_filesystem(struct vfs_compatible *);
 void init_vfs();
 

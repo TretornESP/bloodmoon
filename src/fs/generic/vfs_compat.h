@@ -96,6 +96,8 @@ struct vfs_compatible {
     int (*rename)(int, const char*, const char*);
     int (*remove)(int, const char*);
     int (*chmod)(int, const char*, int);
+    
+    void (*debug)(void);
 
     //TODO: Link operations!!!
 

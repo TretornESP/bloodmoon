@@ -45,7 +45,10 @@ int f32_compat_flush(int partition) {
     return 0;
 }
 
-int f32_compat_file_open(int partno, const char* path, int flags, int mode) {return -1;}
+int f32_compat_file_open(int partno, const char* path, int flags, int mode) {
+    printf("VFS REQUESTED FAT32 FILE OPEN [partno: %d path: %s flags: %d mode: %d]\n", partno, path, flags, mode);
+    return -1;
+}
 int f32_compat_file_close(int partno, int fd) {return -1;}
 int f32_compat_file_creat(int partno, const char* path, int mode) {return -1;}
 uint64_t f32_compat_file_read(int partno, int fd, void* buffer, uint64_t size) {return 1;}
@@ -67,7 +70,7 @@ struct vfs_compatible fat32_register = {
     .unregister_partition = f32_compat_unregister_partition,
     .detect = f32_compat_detect,
     .flush = f32_compat_flush,
-
+    .file_open = f32_compat_file_open,
     .dir_open = f32_compat_dir_open,
     .dir_close = f32_compat_dir_close
 };

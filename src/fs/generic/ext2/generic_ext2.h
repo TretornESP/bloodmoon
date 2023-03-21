@@ -2,6 +2,7 @@
 #define _GENERIC_EXT2_H
 #include "../vfs_compat.h"
 #include "ext2.h"
+#include "../../../util/printf.h"
 
 #define MAX_EXT2_PARTITIONS 32
 
@@ -15,6 +16,10 @@ int ext2_compat_register_partition(const char* drive, uint32_t lba) {
     for (int i = 0; i < MAX_EXT2_PARTITIONS; i++) {
         if (ext2_partitions[i] == 0) {
             ext2_partitions[i] = ext2_register_partition(drive, lba);
+            if (ext2_partitions[i] == 0) {
+                ext2_stacktrace();
+                while(1);
+            }
             return i;
         }
     }
@@ -42,7 +47,14 @@ int ext2_compat_flush(int index) {
     return (int)ext2_sync(partition);
 }
 
-int ext2_compat_file_open(int partno, const char* path, int flags, int mode) {return -1;}
+void ext2_compat_debug() {
+    ext2_stacktrace();
+}
+
+int ext2_compat_file_open(int partno, const char* path, int flags, int mode) {
+    printf("VFS REQUESTED EXT2 FILE OPEN [partno: %d path: %s flags: %d mode: %d]\n", partno, path, flags, mode);
+    return -1;
+}
 int ext2_compat_file_close(int partno, int fd) {return -1;}
 int ext2_compat_file_creat(int partno, const char* path, int mode) {return -1;}
 uint64_t ext2_compat_file_read(int partno, int fd, void* buffer, uint64_t size) {return 1;}
@@ -62,7 +74,9 @@ struct vfs_compatible ext2_register = {
     .register_partition = ext2_compat_register_partition,
     .unregister_partition = ext2_compat_unregister_partition,
     .detect = ext2_compat_detect,
-    .flush = ext2_compat_flush
+    .flush = ext2_compat_flush,
+    .debug = ext2_compat_debug,
+    .file_open = ext2_compat_file_open
     //.dir_open = ext2_compat_dir_open,
     //.dir_close = ext2_compat_dir_close,
     //.dir_creat = ext2_compat_dir_create,

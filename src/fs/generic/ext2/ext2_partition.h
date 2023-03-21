@@ -7,6 +7,8 @@
 struct ext2_partition {
     char name[32];
     char disk[32];
+    int32_t backup_bgs[64];
+    uint32_t backup_bgs_count;
     uint32_t lba;
     uint32_t group_number;
     uint32_t sector_size;
