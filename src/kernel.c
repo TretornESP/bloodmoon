@@ -44,8 +44,7 @@ void _start(void) {
     pseudo_ps();
 
     uint8_t * buffer = malloc(512);
-    disk_ioctl("/dev/hda", IOCTL_ATAPI_IDENTIFY, buffer);
-    printf("ATAPI IDENTIFY: %s\n", buffer+ATA_IDENT_MODEL);
+
     time_t t = time(0);
     struct tm * tm = localtime(&t);
     char date[32];

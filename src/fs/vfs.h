@@ -107,6 +107,14 @@ struct devmap {
     uint32_t partition_no;
 };
 
+struct mount {
+    struct device* device;
+    struct partition* partition;
+    struct file_system_type* fst;
+    int internal_index;
+    struct mount * next;
+};
+
 struct dentry {
     uint16_t open_count;
     struct inode *inode;

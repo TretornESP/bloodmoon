@@ -80,22 +80,22 @@ struct vfs_compatible {
     uint8_t (*detect)(const char*, uint32_t);
     int (*flush)(int);
 
-    int (*file_open)(const char*, int, int);
-    int (*file_close)(int);
-    int (*file_creat)(const char*, int);
-    uint64_t (*file_read)(int, void*, uint64_t);
-    uint64_t (*file_write)(int, void*, uint64_t);
-    uint64_t (*file_seek)(int, uint64_t, int);
-    int (*stat)(int, stat_t*);
+    int (*file_open)(int, const char*, int, int);
+    int (*file_close)(int, int);
+    int (*file_creat)(int, const char*, int);
+    uint64_t (*file_read)(int, int, void*, uint64_t);
+    uint64_t (*file_write)(int, int, void*, uint64_t);
+    uint64_t (*file_seek)(int, int, uint64_t, int);
+    int (*stat)(int, int, stat_t*);
 
-    dir_t (*dir_open)(const char*);
-    int (*dir_close)(dir_t);
-    int (*dir_read)(dir_t);
-    dir_t (*dir_creat)(const char*);
+    dir_t (*dir_open)(int, const char*);
+    int (*dir_close)(int, dir_t);
+    int (*dir_read)(int, dir_t);
+    dir_t (*dir_creat)(int, const char*);
 
-    int (*rename)(const char*, const char*);
-    int (*remove)(const char*);
-    int (*chmod)(const char*, int);
+    int (*rename)(int, const char*, const char*);
+    int (*remove)(int, const char*);
+    int (*chmod)(int, const char*, int);
 
     //TODO: Link operations!!!
 

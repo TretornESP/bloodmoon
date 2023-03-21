@@ -161,7 +161,7 @@ setup:
 	@mkdir -p $(ISOBUILDDIR)
 	@mkdir -p $(PROGSBUILDDIR)
 	@mkdir -p $(ISODIR)
-	@dd if=/dev/zero of=$(ISODIR)/$(IMG_RAW) bs=4096 count=65527
+	@dd if=/dev/zero of=$(ISODIR)/$(IMG_RAW) bs=4096 count=102400
 	@git clone $(LMNREPO) --branch=$(LMNBRCH) --depth=1
 	@cp -v $(LMNDIR)/limine.sys $(LMNDIR)/limine-cd.bin $(LMNDIR)/limine-cd-efi.bin $(ISOBUILDDIR)
 	@echo file $(ABSDIR)/$(BUILDDIR)/$(KERNEL) > debug.gdb
@@ -201,17 +201,20 @@ buildimggpt:
 	$(eval LOOP_DEV_PATH := $(shell losetup -a | grep $(IMG) | cut -d: -f1))
 	@echo Loop device path: $(LOOP_DEV_PATH)
 	
-	@sudo sgdisk --new 1::+100M --typecode 0:ef00 $(LOOP_DEV_PATH)
-	@sudo sgdisk --new 2 $(LOOP_DEV_PATH)
+	@sudo sgdisk --new 0:0:+50M --typecode 0:ef00 $(LOOP_DEV_PATH)
+	@sudo sgdisk --new 0:0:+100M $(LOOP_DEV_PATH)
+	@sudo sgdisk --new 0:0:0  $(LOOP_DEV_PATH)
+	@sudo sgdisk -p $(LOOP_DEV_PATH)
 	@sudo partprobe $(LOOP_DEV_PATH)
+	@sudo fdisk -l $(LOOP_DEV_PATH)
 	@sudo mkfs.fat -n PATATA -F32 $(LOOP_DEV_PATH)p1
-	@sudo mkfs.fat -n PETETE -F32 $(LOOP_DEV_PATH)p2
+	@sudo mkfs.fat -n FDATA -F32 $(LOOP_DEV_PATH)p2
+	@sudo mkfs.fat -n E2DATA -F32 $(LOOP_DEV_PATH)p3
 	@sudo mkdir $(MNTDIR)
 	@sudo mkdir $(SYSDIR)
 	@sudo mkdir $(DATDIR)
 
 	@sudo mount $(LOOP_DEV_PATH)p1 $(SYSDIR)
-	@sudo mount $(LOOP_DEV_PATH)p2 $(DATDIR)
 
 	@echo Disk mounted, creating system files
 	@sudo mkdir -p $(SYSDIR)/efi/boot
@@ -222,13 +225,18 @@ buildimggpt:
 	@sudo cp $(BUILDDIR)/$(KERNEL) $(SYSDIR)
 	@sudo cp ./limine.cfg $(SYSDIR)
 	@sudo cp ./test/test.fake $(SYSDIR)/test
-
-	@echo System files created, creating data files
-	@sudo cp -r $(PROGSBUILDDIR) $(DATDIR)
-	
-	@echo Files created, finishing...
-	@sudo umount $(DATDIR)
 	@sudo umount $(SYSDIR)
+
+	@echo System files created, creating f32 data files
+	@sudo mount $(LOOP_DEV_PATH)p2 $(DATDIR)
+	@sudo cp -r $(PROGSBUILDDIR) $(DATDIR)
+	@sudo umount $(DATDIR)
+
+	@echo F32 data files created, creating ext2 data files
+	@sudo mount $(LOOP_DEV_PATH)p3 $(DATDIR)
+	@sudo cp -r $(PROGSBUILDDIR) $(DATDIR)
+	@sudo umount $(DATDIR)
+
 	@sudo rm -rf $(MNTDIR)
 	@sudo losetup -d $(LOOP_DEV_PATH)
 

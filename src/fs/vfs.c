@@ -12,6 +12,13 @@
 uint16_t vfs_root_size = 0;
 struct devmap * vfs_root;
 struct file_system_type * file_system_type_list_head;
+struct mount * mount_list_head;
+
+struct mount * init_mount_header() {
+    struct mount * mount = malloc(sizeof(struct mount));
+    memset((void*)mount, 0, sizeof(struct mount));
+    return mount;
+}
 
 struct partition * init_partition_header() {
     struct partition * part = malloc(sizeof(struct partition));
@@ -70,26 +77,47 @@ void register_filesystem(struct vfs_compatible * registrar) {
     printf("[VFS] Registered file system type %s\n", fst->name);
 }
 
-uint8_t mount_fs(struct device* dev, struct partition* partition, uint32_t partition_index) {
+void add_mount(struct mount * head, struct device* device, struct partition * part, struct file_system_type* fst, int internal_index) {
+    if (head == 0) {
+        panic("[VFS] Invalid mount header");
+    } else {
+        struct mount * current = head;
+        while (current->next != 0) {
+            current = current->next;
+        }
+        current->next = init_mount_header();
+        if (current->next == 0) panic("[VFS] Mount allocation failed!\n");
+        
+        current->device = device;
+        current->partition = part;
+        current->fst = fst;
+        current->internal_index = internal_index;
+    }
+}
 
+uint8_t mount_fs(struct device* dev, struct partition* partition, const char* mountpoint) {
+
+    if (mount_list_head == 0) mount_list_head = init_mount_header();
     struct file_system_type * fst = file_system_type_list_head;
     if (fst == 0) {
         printf("[VFS] There are no registerd fs -\\_(-.-)_/-\n");
         return 0;
     }
 
-    char part_name[48];
-    sprintf(part_name, "%sp%d", dev->name, partition_index);
-
+    printf("[VFS] Detecting fs on %s\n", dev->name);
     while (fst->next != 0) {
+        printf("[VFS] Trying %s\n", fst->name);
         if (fst->detect(dev->name, partition->lba)) {
-            if (fst->register_partition(dev->name, partition->lba) != 0) {
-                printf("[VFS] Mounted %s on %s\n", fst->name, part_name);
-                return 1;
-            } else {
-                printf("[VFS] Failed to mount %s on %s\n", fst->name, part_name);
+            printf("[VFS] Detected %s on %s, trying to mount on %s\n", fst->name, dev->name, mountpoint);
+            int ret = fst->register_partition(dev->name, partition->lba);
+            if (ret == -1) {
+                printf("[VFS] Failed to mount %s on %s\n", fst->name, mountpoint);
                 return 0;
             }
+            snprintf(partition->name, 48, "%s", mountpoint);
+            add_mount(mount_list_head, dev, partition, fst, ret);
+            printf("[VFS] Mounted %s on %s\n", fst->name, mountpoint);
+            return 1;
         }
         fst = fst->next;
     }
@@ -140,9 +168,12 @@ void detect_partition_fs() {
     for (uint32_t i = 0; i < vfs_root_size; i++) {
         struct partition * current_partition = vfs_root[i].partitions;
         uint32_t partition_index = 0;
+        char mountpoint[48];
         while(current_partition->next != 0) {
-            
-            mount_fs(vfs_root[i].dev, current_partition, partition_index);
+            memset(mountpoint, 0, 48);
+            snprintf(mountpoint, 48, "%sp%d", vfs_root[i].dev->name, partition_index);
+
+            mount_fs(vfs_root[i].dev, current_partition, mountpoint);
 
             current_partition = current_partition->next;
             partition_index++;

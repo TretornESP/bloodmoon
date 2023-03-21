@@ -42,20 +42,20 @@ int ext2_compat_flush(int index) {
     return (int)ext2_sync(partition);
 }
 
-int ext2_compat_file_open(const char* path, int flags, int mode) {return -1;}
-int ext2_compat_file_close(int fd) {return -1;}
-int ext2_compat_file_creat(const char* path, int mode) {return -1;}
-uint64_t ext2_compat_file_read(int fd, void* buffer, uint64_t size) {return 1;}
-uint64_t ext2_compat_file_write(int fd, void* buffer, uint64_t size) {return 1;}
-uint64_t ext2_compat_file_seek(int fd, uint64_t offset, int whence) {return 1;}
-int ext2_compat_stat(int fd, stat_t* st) {return -1;}
-dir_t ext2_compat_dir_open(const char* path) {struct dir d; d.fd = -1; return d;}
-int ext2_compat_dir_close(dir_t dir) {return -1;}
-int ext2_compat_dir_read(dir_t dir) {return -1;}
-dir_t ext2_compat_dir_creat(const char* path) {struct dir d; d.fd = -1; return d;}
-int ext2_compat_rename(const char* path, const char* newpath) {return -1;}
-int ext2_compat_remove(const char* path) {return -1;}
-int ext2_compat_chmod(const char* path, int mode) {return -1;}
+int ext2_compat_file_open(int partno, const char* path, int flags, int mode) {return -1;}
+int ext2_compat_file_close(int partno, int fd) {return -1;}
+int ext2_compat_file_creat(int partno, const char* path, int mode) {return -1;}
+uint64_t ext2_compat_file_read(int partno, int fd, void* buffer, uint64_t size) {return 1;}
+uint64_t ext2_compat_file_write(int partno, int fd, void* buffer, uint64_t size) {return 1;}
+uint64_t ext2_compat_file_seek(int partno, int fd, uint64_t offset, int whence) {return 1;}
+int ext2_compat_stat(int partno, int fd, stat_t* st) {return -1;}
+dir_t ext2_compat_dir_open(int partno, const char* path) {struct dir d; d.fd = -1; return d;}
+int ext2_compat_dir_close(int partno, dir_t dir) {return -1;}
+int ext2_compat_dir_read(int partno, dir_t dir) {return -1;}
+dir_t ext2_compat_dir_creat(int partno, const char* path) {struct dir d; d.fd = -1; return d;}
+int ext2_compat_rename(int partno, const char* path, const char* newpath) {return -1;}
+int ext2_compat_remove(int partno, const char* path) {return -1;}
+int ext2_compat_chmod(int partno, const char* path, int mode) {return -1;}
 
 struct vfs_compatible ext2_register = {
     .name = "EXT2",
