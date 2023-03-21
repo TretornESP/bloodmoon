@@ -48,6 +48,7 @@ uint8_t ext2_read_file(struct ext2_partition * partition, const char * path, uin
 uint8_t ext2_write_file(struct ext2_partition * partition, const char * path, uint8_t * source_buffer, uint64_t size, uint64_t skip);
 uint8_t ext2_delete_file(struct ext2_partition* partition, const char * path);
 uint8_t ext2_set_debug_base(const char* base);
+void ext2_inhibit_errors(uint8_t t);
 uint16_t ext2_get_file_permissions(struct ext2_partition* partition, const char* path);
 uint8_t ext2_debug(struct ext2_partition* partition);
 uint8_t ext2_stacktrace();

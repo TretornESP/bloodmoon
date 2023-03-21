@@ -27,6 +27,7 @@ char debug_base_path[ERROR_FILE_SIZE] = {0};
 uint32_t error_count = 0;
 uint64_t error_deletion_counter = 0;
 uint64_t error_id = 0;
+uint8_t errors_inhibited = 0;
 
 const char* error_type_names[] = {
     "DEBUG",
@@ -106,21 +107,27 @@ void ext2_make_space() {
     }
 }
 
+void ext2_integrity_inhibit_errors(uint8_t t) {
+    errors_inhibited = t;
+}
+
 uint64_t ext2_get_error_deletion_counter() {
     return error_deletion_counter*EXT2_DELETE_CYCLE;
 }
 
 void ext2_add_error(char * error, const char* function, char* file, uint32_t line, uint8_t type) {
+    if (errors_inhibited) {
+        free(error);
+        return;
+    }
+
     if (error_count >= EXT2_MAX_ERRORS) {
         printf("[EXT2] We need to free some space for new errors\n");
         ext2_make_space();
     }
-    printf("ENTRO\n");
-    //debug_heap();
+
     struct error_message * message = malloc(sizeof(struct error_message));
     
-    printf("SALIO\n");
-
     if (message == 0) {
         printf("[EXT2] Failed to allocate memory for error message\n");
         free(error);

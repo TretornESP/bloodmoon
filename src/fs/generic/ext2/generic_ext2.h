@@ -36,6 +36,8 @@ uint8_t ext2_compat_unregister_partition(int index) {
 }
 
 uint8_t ext2_compat_detect(const char* disk , uint32_t lba) {
+    ext2_inhibit_errors(1);
+
     return ext2_search(disk, lba);
 }
 
@@ -90,14 +92,16 @@ uint64_t ext2_compat_file_seek(int partno, int fd, uint64_t offset, int whence) 
 int ext2_compat_stat(int partno, int fd, stat_t* st) {return -1;}
 
 dir_t ext2_compat_dir_open(int partno, const char* path) {
+    
     dir_t dir = {.fd = -1, .entries = 0, .index = 0};
     if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
-        return dir;
+        goto end;
     struct ext2_partition * partition = ext2_partitions[partno];
     if (partition == 0)
-        return dir;
+        goto end;
 
     ext2_list_directory(partition, path);
+end:
     return dir;
 }
 

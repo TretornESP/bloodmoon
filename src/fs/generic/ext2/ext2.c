@@ -522,6 +522,14 @@ uint8_t ext2_debug(struct ext2_partition* partition) {
     return EXT2_RESULT_OK;
 }
 
+void ext2_inhibit_errors(uint8_t t) {
+    if (t) {
+        INHIBIT_ERRORS();
+    } else {
+        ALLOW_ERRORS();
+    }
+}
+
 uint8_t ext2_stacktrace() {
     EXT2_INFO("Printing stacktrace");
     if (ext2_has_errors(EXT2_ERROR_INFO)) {
