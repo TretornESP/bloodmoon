@@ -24,8 +24,25 @@ struct file_system_type {
     uint8_t (*unregister_partition)(int);
     uint8_t (*detect)(const char *, uint32_t);
     int (*flush)(int);
-    void (*debug)(void);
+
     int (*file_open)(int, const char*, int, int);
+    int (*file_close)(int, int);
+    int (*file_creat)(int, const char*, int);
+    uint64_t (*file_read)(int, int, void*, uint64_t);
+    uint64_t (*file_write)(int, int, void*, uint64_t);
+    uint64_t (*file_seek)(int, int, uint64_t, int);
+    int (*file_stat)(int, int, stat_t*);
+
+    dir_t (*dir_open)(int, const char*);
+    int (*dir_close)(int, dir_t);
+    int (*dir_read)(int, dir_t);
+    dir_t (*dir_creat)(int, const char*);
+
+    int (*rename)(int, const char*, const char*);
+    int (*remove)(int, const char*);
+    int (*chmod)(int, const char*, int);
+    
+    void (*debug)(void);
     //TODO: Ampliar hasta cubrir generic/compat_vfs
     struct file_system_type * next;
 };
@@ -127,7 +144,8 @@ struct dentry {
     char  d_name[32];
 };
 
-struct mount* get_mount_from_path(const char* ext2_inode_from_path_and_parent, char* native_path);
+struct mount* get_mount_from_path(const char* path, char* native_path);
+char* get_path_from_fd(int fd);
 void register_filesystem(struct vfs_compatible *);
 void init_vfs();
 

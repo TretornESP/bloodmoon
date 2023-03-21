@@ -73,8 +73,24 @@ void register_filesystem(struct vfs_compatible * registrar) {
     fst->unregister_partition = registrar->unregister_partition;
     fst->detect = registrar->detect;
     fst->flush = registrar->flush;
-    fst->debug = registrar->debug;
+
     fst->file_open = registrar->file_open;
+    fst->file_close = registrar->file_close;
+    fst->file_creat = registrar->file_creat;
+    fst->file_read = registrar->file_read;
+    fst->file_write = registrar->file_write;
+    fst->file_seek = registrar->file_seek;
+    fst->file_stat = registrar->file_stat;
+    fst->dir_open = registrar->dir_open;
+    fst->dir_close = registrar->dir_close;
+    fst->dir_read = registrar->dir_read;
+    fst->dir_creat = registrar->dir_creat;
+    fst->rename = registrar->rename;
+    fst->remove = registrar->remove;
+    fst->chmod = registrar->chmod;
+
+    fst->debug = registrar->debug;
+
     //TODO: Expand to vfs_compat
     if (strlen(registrar->name) > VFS_COMPAT_FS_NAME_MAX_LEN) {
         printf("[VFS] Either FS name is too long or you are tryna hack us\n");
@@ -173,6 +189,13 @@ void detect_devices() {
 
         dev = get_next_device(dev);
     }
+}
+
+char* get_path_from_fd(int fd) {
+    struct file_descriptor_entry * entry = vfs_compat_get_file_descriptor(fd);
+    if (entry == 0) return 0;
+
+    return entry->name;
 }
 
 struct mount* get_mount_from_path(const char* path, char* native_path) {

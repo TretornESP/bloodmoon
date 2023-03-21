@@ -62,6 +62,8 @@ dir_t f32_compat_dir_creat(int partno, const char* path) {struct dir d; d.fd = -
 int f32_compat_rename(int partno, const char* path, const char* newpath) {return -1;}
 int f32_compat_remove(int partno, const char* path) {return -1;}
 int f32_compat_chmod(int partno, const char* path, int mode) {return -1;}
+void f32_compat_debug(void) {}
+
 
 struct vfs_compatible fat32_register = {
     .name = "FAT32",
@@ -72,7 +74,19 @@ struct vfs_compatible fat32_register = {
     .flush = f32_compat_flush,
     .file_open = f32_compat_file_open,
     .dir_open = f32_compat_dir_open,
-    .dir_close = f32_compat_dir_close
+    .dir_close = f32_compat_dir_close,
+    .dir_read = f32_compat_dir_read,
+    .dir_creat = f32_compat_dir_creat,
+    .file_close = f32_compat_file_close,
+    .file_creat = f32_compat_file_creat,
+    .file_read = f32_compat_file_read,
+    .file_write = f32_compat_file_write,
+    .file_seek = f32_compat_file_seek,
+    .file_stat = f32_compat_stat,
+    .rename = f32_compat_rename,
+    .remove = f32_compat_remove,
+    .chmod = f32_compat_chmod,
+    .debug = f32_compat_debug
 };
 
 struct vfs_compatible * fat32_registrar = &fat32_register;

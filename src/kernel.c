@@ -49,8 +49,13 @@ void _start(void) {
     char date[32];
     strftime(date, 32, "%Y-%m-%d %H:%M:%S", tm);
     printf("EPOCH: %ld TIME: %s\n", time(0), date);
-    vfs_file_open("/dev/hdap2/cuak.txt", 0x69, 0x13);
-    vfs_file_open("/dev/hdap1/cuak.txt", 0x69, 0x13);
+    vfs_dir_open("/dev/hdap2/data/");
+    int fd = vfs_file_open("/dev/hdap2/data/lorem-ipsum.txt", 0x69, 0x13);
+
+    char buf[1024];
+    vfs_file_read(fd, buf, 1024);
+
+    printf("FILE CONTENTS: %s\n", buf);
 
     printf("KERNEL LOOPING\n");
     while(1);

@@ -5,9 +5,9 @@
 #include "../../../util/printf.h"
 
 #define MAX_EXT2_PARTITIONS 32
+#define MAX_EXT2_OPEN_FILES 65536
 
 struct ext2_partition* ext2_partitions[MAX_EXT2_PARTITIONS] = {0};
-
 //-1 cannot return the object
 // 0 all okey
 // 1 error
@@ -52,16 +52,55 @@ void ext2_compat_debug() {
 }
 
 int ext2_compat_file_open(int partno, const char* path, int flags, int mode) {
-    printf("VFS REQUESTED EXT2 FILE OPEN [partno: %d path: %s flags: %d mode: %d]\n", partno, path, flags, mode);
+    if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
+        return -1;
+    struct ext2_partition * partition = ext2_partitions[partno];
+    if (partition == 0)
+        return -1;
+
+    return get_fd(path, flags, mode);
     return -1;
 }
-int ext2_compat_file_close(int partno, int fd) {return -1;}
+
+int ext2_compat_file_close(int partno, int fd) {
+    if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
+        return -1;
+    struct ext2_partition * partition = ext2_partitions[partno];
+    if (partition == 0)
+        return -1;
+
+    return release_fd(fd);
+}
+
 int ext2_compat_file_creat(int partno, const char* path, int mode) {return -1;}
-uint64_t ext2_compat_file_read(int partno, int fd, void* buffer, uint64_t size) {return 1;}
+
+uint64_t ext2_compat_file_read(int partno, int fd, void* buffer, uint64_t size) {
+    if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
+        return -1;
+    struct ext2_partition * partition = ext2_partitions[partno];
+    if (partition == 0)
+        return -1;
+
+    struct file_descriptor_entry * entry = vfs_compat_get_file_descriptor(fd);
+    return ext2_read_file(partition, entry->name, buffer, size, entry->offset);
+}
+
 uint64_t ext2_compat_file_write(int partno, int fd, void* buffer, uint64_t size) {return 1;}
 uint64_t ext2_compat_file_seek(int partno, int fd, uint64_t offset, int whence) {return 1;}
 int ext2_compat_stat(int partno, int fd, stat_t* st) {return -1;}
-dir_t ext2_compat_dir_open(int partno, const char* path) {struct dir d; d.fd = -1; return d;}
+
+dir_t ext2_compat_dir_open(int partno, const char* path) {
+    dir_t dir = {.fd = -1, .entries = 0, .index = 0};
+    if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
+        return dir;
+    struct ext2_partition * partition = ext2_partitions[partno];
+    if (partition == 0)
+        return dir;
+
+    ext2_list_directory(partition, path);
+    return dir;
+}
+
 int ext2_compat_dir_close(int partno, dir_t dir) {return -1;}
 int ext2_compat_dir_read(int partno, dir_t dir) {return -1;}
 dir_t ext2_compat_dir_creat(int partno, const char* path) {struct dir d; d.fd = -1; return d;}
@@ -76,11 +115,20 @@ struct vfs_compatible ext2_register = {
     .detect = ext2_compat_detect,
     .flush = ext2_compat_flush,
     .debug = ext2_compat_debug,
-    .file_open = ext2_compat_file_open
-    //.dir_open = ext2_compat_dir_open,
-    //.dir_close = ext2_compat_dir_close,
-    //.dir_creat = ext2_compat_dir_create,
-    //.dir_read = ext2_compat_dir_read
+    .file_open = ext2_compat_file_open,
+    .file_close = ext2_compat_file_close,
+    .file_creat = ext2_compat_file_creat,
+    .file_read = ext2_compat_file_read,
+    .file_write = ext2_compat_file_write,
+    .file_seek = ext2_compat_file_seek,
+    .file_stat = ext2_compat_stat,
+    .rename = ext2_compat_rename,
+    .remove = ext2_compat_remove,
+    .chmod = ext2_compat_chmod,
+    .dir_open = ext2_compat_dir_open,
+    .dir_close = ext2_compat_dir_close,
+    .dir_creat = ext2_compat_dir_creat,
+    .dir_read = ext2_compat_dir_read
 };
 
 struct vfs_compatible * ext2_registrar = &ext2_register;

@@ -2,6 +2,7 @@
 #define _VFS_COMPAT_H
 #include <stdint.h>
 #define VFS_COMPAT_FS_NAME_MAX_LEN 32
+#define VFS_COMPAT_MAX_OPEN_FILES 65536
 
 #define O_RDONLY 0x0000
 #define O_WRONLY 0x0001
@@ -71,6 +72,14 @@ struct dir {
     uint32_t index;
 };
 
+struct file_descriptor_entry {
+    char name[256];
+    uint32_t flags;
+    uint32_t mode;
+    uint64_t offset;
+    uint8_t loaded;
+};
+
 typedef struct dir dir_t;
 
 struct vfs_compatible {
@@ -86,7 +95,7 @@ struct vfs_compatible {
     uint64_t (*file_read)(int, int, void*, uint64_t);
     uint64_t (*file_write)(int, int, void*, uint64_t);
     uint64_t (*file_seek)(int, int, uint64_t, int);
-    int (*stat)(int, int, stat_t*);
+    int (*file_stat)(int, int, stat_t*);
 
     dir_t (*dir_open)(int, const char*);
     int (*dir_close)(int, dir_t);
@@ -103,4 +112,7 @@ struct vfs_compatible {
 
 };
 
+struct file_descriptor_entry * vfs_compat_get_file_descriptor(uint32_t fd);
+int get_fd(const char* path, int flags, int mode);
+int release_fd(int fd);
 #endif

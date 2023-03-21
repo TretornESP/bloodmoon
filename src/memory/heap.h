@@ -1,12 +1,14 @@
 #ifndef _HEAP_H
 #define _HEAP_H
 #include <stdint.h>
+#define HEAP_HEADER_CHECKSUM 0x55
+#define HEAP_OVERFLOW_DETECTOR 5000
 
 struct heap_seg_header {
     uint64_t length;
     struct heap_seg_header* next;
     struct heap_seg_header* prev;
-
+    uint8_t checksum;
     uint8_t free;
 };
 

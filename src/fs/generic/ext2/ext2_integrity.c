@@ -111,12 +111,16 @@ uint64_t ext2_get_error_deletion_counter() {
 }
 
 void ext2_add_error(char * error, const char* function, char* file, uint32_t line, uint8_t type) {
-
     if (error_count >= EXT2_MAX_ERRORS) {
+        printf("[EXT2] We need to free some space for new errors\n");
         ext2_make_space();
     }
-
+    printf("ENTRO\n");
+    //debug_heap();
     struct error_message * message = malloc(sizeof(struct error_message));
+    
+    printf("SALIO\n");
+
     if (message == 0) {
         printf("[EXT2] Failed to allocate memory for error message\n");
         free(error);

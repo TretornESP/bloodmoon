@@ -51,6 +51,7 @@ ISOBUILDDIR := build/iso_root
 ISODIR := build/image
 PROGSDIR := progs/sources
 PROGSBUILDDIR := progs/export
+PROGSDATADIR := progs/data
 
 PROGS := $(wildcard $(PROGSDIR)/*)
 
@@ -232,11 +233,15 @@ buildimggpt:
 	@echo System files created, creating f32 data files
 	@sudo mount $(LOOP_DEV_PATH)p2 $(DATDIR)
 	@sudo cp -r $(PROGSBUILDDIR) $(DATDIR)
+	@sudo cp -r $(PROGSDATADIR) $(DATDIR)
+	@sudo tree $(DATDIR)
 	@sudo umount $(DATDIR)
 
 	@echo F32 data files created, creating ext2 data files
 	@sudo mount $(LOOP_DEV_PATH)p3 $(DATDIR)
 	@sudo cp -r $(PROGSBUILDDIR) $(DATDIR)
+	@sudo cp -r $(PROGSDATADIR) $(DATDIR)
+	@sudo tree $(DATDIR)
 	@sudo umount $(DATDIR)
 
 	@sudo rm -rf $(MNTDIR)

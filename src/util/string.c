@@ -13,27 +13,40 @@ char *strpbrk(const char *s, const char *accept) {__UNDEFINED();}
 char *strrchr(const char *s, int c) {__UNDEFINED();}
 size_t strspn(const char *s, const char *accept) {__UNDEFINED();}
 char *strstr(const char *haystack, const char *needle) {__UNDEFINED();}
-char *strtok(char *s, const char *delim) {__UNDEFINED();}
 size_t strxfrm(char *dest, const char *src, size_t n) {__UNDEFINED();}
 
-//Implement function strtok_r
-char *strtok_r(char *s, const char *delim, char **save_ptr) {
-    char *end;
-    if (s == NULL)
-        s = *save_ptr;
-    s += strspn(s, delim);
-    if (*s == '\0') {
-        *save_ptr = s;
-        return NULL;
+char* strtok(char* s, const char* delim) {
+    static char* lastToken = 0;
+    if (s != 0) {
+        lastToken = s;
+    } else if (lastToken == 0) {
+        return 0;
     }
-    end = s + strcspn(s, delim);
-    if (*end == '\0') {
-        *save_ptr = end;
-        return s;
+
+    char* tokenStart = lastToken;
+
+    while (*lastToken != '\0') {
+        const char* d = delim;
+        while (*d != '\0') {
+            if (*lastToken == *d) {
+                *lastToken = '\0';
+                lastToken++;
+                if (tokenStart == lastToken - 1) {
+                    tokenStart = lastToken;
+                    continue;
+                }
+                return tokenStart;
+            }
+            d++;
+        }
+        lastToken++;
     }
-    *end = '\0';
-    *save_ptr = end + 1;
-    return s;
+
+    if (tokenStart == lastToken) {
+        return 0;
+    }
+
+    return tokenStart;
 }
 
 uint64_t strlen(const char *str) {
