@@ -126,6 +126,7 @@ void ext2_add_error(char * error, const char* function, char* file, uint32_t lin
         ext2_make_space();
     }
 
+    printf("I will crash and burn\n");
     struct error_message * message = malloc(sizeof(struct error_message));
     
     if (message == 0) {

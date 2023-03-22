@@ -17,6 +17,7 @@ int ext2_compat_register_partition(const char* drive, uint32_t lba) {
         if (ext2_partitions[i] == 0) {
             ext2_partitions[i] = ext2_register_partition(drive, lba);
             if (ext2_partitions[i] == 0) {
+                panic("ext2: failed to register partition (drive: %s, lba: %d)", drive, lba);
                 ext2_stacktrace();
                 while(1);
             }
@@ -36,7 +37,6 @@ uint8_t ext2_compat_unregister_partition(int index) {
 }
 
 uint8_t ext2_compat_detect(const char* disk , uint32_t lba) {
-    ext2_inhibit_errors(1);
 
     return ext2_search(disk, lba);
 }

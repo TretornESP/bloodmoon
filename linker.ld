@@ -17,17 +17,17 @@ SECTIONS
 
     KERNEL_START = .;
 
-    .text : {
+    .text : ALIGN(CONSTANT(MAXPAGESIZE)) {
         *(.text .text.*)
     } :text
 
     . += CONSTANT(MAXPAGESIZE);
 
-    .data : {
+    .data : ALIGN(CONSTANT(MAXPAGESIZE)){
         *(.data .data.*)
     } :data
 
-    .bss : {
+    .bss : ALIGN(CONSTANT(MAXPAGESIZE)){
         *(COMMON)
         *(.bss .bss.*)
     } :data
