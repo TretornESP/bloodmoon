@@ -25,11 +25,17 @@
 #include "fs/generic/ext2/generic_ext2.h"
 #include "drivers/disk/disk_interface.h"
 
+#include "arch/simd.h"
+
 #include "util/time.h"
+#include "util/rand.h"
 
 #include "test/tests.h"
 
 void _start(void) {
+    heaptest();
+    panic("Test end");
+    init_simd();
     init_memory();
     init_paging();
     init_heap();

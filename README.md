@@ -162,6 +162,7 @@ Now you probably have spurious mounted drives in your system, you will have to:
 
 ## Acknoledgements and credits
 
+- Keep-Konect [github](https://github.com/Keep-Konect)
 - Marco Paland (info@paland.com)
 - Lukás Chmela
 - Absurd Poncho

@@ -1,29 +1,35 @@
-#ifndef _HEAP_H
-#define _HEAP_H
-#include <stdint.h>
-#define HEAP_HEADER_CHECKSUM 0x55
-#define HEAP_OVERFLOW_DETECTOR 5000
+#ifndef HEAP_H
+#define HEAP_H
 
-struct heap_seg_header {
-    uint64_t length;
-    struct heap_seg_header* next;
-    struct heap_seg_header* last;
+#include <stdint.h>
+//This code comes from https://github.com/kot-org/Kot/blob/main/Sources/Kernel/Src/heap/heap.h
+//Thank you Konect!!!
+
+struct heap_segment_header {
     uint8_t free;
-};
+    uint64_t length;
+    struct heap_segment_header* next;
+    struct heap_segment_header* last;
+    uint32_t signature;
+} __attribute__((aligned(0x10)));
 
 struct heap {
-    void* heap_start;
-    void* heap_end;
-    struct heap_seg_header* last_header;
+    void* heapEnd;
+    struct heap_segment_header* lastSegment;
+    struct heap_segment_header* mainSegment;
+    uint64_t totalSize;
+    uint64_t usedSize;
+    uint64_t freeSize;
 };
 
+extern struct heap globalHeap;
+
 void init_heap();
+void* malloc(uint64_t size);
+void* realloc(void* buffer, uint64_t size);
+void free(void* address);
+void expand_heap(uint64_t length);
+void *calloc (uint64_t num, uint64_t size);
+void debug_heap();
 
-void * malloc(uint64_t);
-void * calloc(uint64_t, uint64_t);
-void free(void*);
-
-void debug_heap(struct heap_seg_header *);
-
-void expand_heap(uint64_t);
 #endif

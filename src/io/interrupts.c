@@ -19,6 +19,8 @@
 
 #define PIC_EOI 0x20
 
+#define __UNDEFINED_HANDLER dbg_print(__func__); (void)frame; panic("Undefined interrupt handler");
+
 void pic_end_master() {
     outb(PIC1_COMMAND, PIC_EOI);
 }
@@ -64,21 +66,15 @@ void remap_pic() {
 
 
 __attribute__((interrupt)) void PageFault_Handler(struct interrupt_frame * frame) {
-    dbg_print("PageFault_Handler\n");
-    (void)frame;
-    while(1);
+    __UNDEFINED_HANDLER
 }
 
 __attribute__((interrupt)) void DoubleFault_Handler(struct interrupt_frame * frame) {
-    dbg_print("DoubleFault_Handler\n");
-    (void)frame;
-    while(1);
+    __UNDEFINED_HANDLER
 }
 
 __attribute__((interrupt)) void GPFault_Handler(struct interrupt_frame * frame) {
-    dbg_print("GPFault_Handler\n");
-    (void)frame;
-    while(1);
+    __UNDEFINED_HANDLER
 }
 
 __attribute__((interrupt)) void KeyboardInt_Handler(struct interrupt_frame * frame) {
@@ -89,21 +85,75 @@ __attribute__((interrupt)) void KeyboardInt_Handler(struct interrupt_frame * fra
 }
 
 __attribute__((interrupt)) void MouseInt_Handler(struct interrupt_frame * frame) {
-    dbg_print("MouseInt_Handler\n");
-    (void)frame;
-    while(1);
+    __UNDEFINED_HANDLER
 }
 
 __attribute__((interrupt)) void DivByZero_Handler(struct interrupt_frame * frame) {
-    dbg_print("DivByZero_Handler\n");
-    (void)frame;
-    while(1);
+    __UNDEFINED_HANDLER
 }
 
 __attribute__((interrupt)) void UncaughtInt_Handler(struct interrupt_frame* frame) {
-    dbg_print("UncaughtInt_Handler\n");
-    (void)frame;
-    while(1);
+    __UNDEFINED_HANDLER
+}
+
+__attribute__((interrupt)) void NMI_Handler(struct interrupt_frame* frame) {
+    __UNDEFINED_HANDLER
+}
+
+__attribute__((interrupt)) void Overflow_Handler(struct interrupt_frame* frame) {
+    __UNDEFINED_HANDLER
+}
+
+__attribute__((interrupt)) void BoundRangeExceeded_Handler(struct interrupt_frame* frame) {
+    __UNDEFINED_HANDLER
+}
+
+__attribute__((interrupt)) void InvalidOpc_Handler(struct interrupt_frame* frame) {
+    __UNDEFINED_HANDLER
+}
+
+__attribute__((interrupt)) void NoCoproc_Handler(struct interrupt_frame* frame) {
+    __UNDEFINED_HANDLER
+}
+
+__attribute__((interrupt)) void CoprocSegmentOverrun_Handler(struct interrupt_frame* frame) {
+    __UNDEFINED_HANDLER
+}
+
+__attribute__((interrupt)) void INVTSS_Handler(struct interrupt_frame* frame) {
+    __UNDEFINED_HANDLER
+}
+
+__attribute__((interrupt)) void SegNotPresent_Handler(struct interrupt_frame* frame) {
+    __UNDEFINED_HANDLER
+}
+
+__attribute__((interrupt)) void StackSegmentFault_Handler(struct interrupt_frame* frame) {
+    __UNDEFINED_HANDLER
+}
+
+__attribute__((interrupt)) void x87FPE_Handler(struct interrupt_frame* frame) {
+    __UNDEFINED_HANDLER
+}
+
+__attribute__((interrupt)) void AlignCheck_Handler(struct interrupt_frame* frame) {
+    __UNDEFINED_HANDLER
+}
+
+__attribute__((interrupt)) void MachineCheck_Handler(struct interrupt_frame* frame) {
+    __UNDEFINED_HANDLER
+}
+
+__attribute__((interrupt)) void SIMD_FPE_Handler(struct interrupt_frame* frame) {
+    __UNDEFINED_HANDLER
+}
+
+__attribute__((interrupt)) void Virtualization_Handler(struct interrupt_frame* frame) {
+    __UNDEFINED_HANDLER
+}
+
+__attribute__((interrupt)) void Security_Handler(struct interrupt_frame* frame) {
+    __UNDEFINED_HANDLER
 }
 
 //you may need save_all here
@@ -112,6 +162,7 @@ __attribute__((interrupt)) void PitInt_Handler(struct interrupt_frame * frame) {
     tick();
     pic_end_master();
 }
+
 struct idtr idtr;
 void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uint8_t selector) {
     struct idtdescentry* interrupt = (struct idtdescentry*)(idtr.offset + (entry_offset * sizeof(struct idtdescentry)));
@@ -139,6 +190,21 @@ void init_interrupts(uint8_t pit_disable) {
     set_idt_gate((uint64_t)MouseInt_Handler,    0x2C,   IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)PitInt_Handler,      0x20,   IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)DivByZero_Handler,   0x0,    IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)NMI_Handler,         0x2,    IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)Overflow_Handler,    0x4,    IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)BoundRangeExceeded_Handler, 0x5, IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)InvalidOpc_Handler,  0x6,    IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)NoCoproc_Handler,    0x7,    IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)CoprocSegmentOverrun_Handler, 0x9, IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)INVTSS_Handler,      0xA,    IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)SegNotPresent_Handler, 0xB,  IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)StackSegmentFault_Handler, 0xC, IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)x87FPE_Handler,      0x10,   IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)AlignCheck_Handler,  0x11,   IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)MachineCheck_Handler, 0x12,  IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)SIMD_FPE_Handler,    0x13,   IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)Virtualization_Handler, 0x14, IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)Security_Handler,    0x1E,   IDT_TA_InterruptGate, 0x28);
     
     __asm__ volatile("lidt %0" : : "m"(idtr));
 

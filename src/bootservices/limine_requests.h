@@ -32,4 +32,9 @@ static volatile struct limine_smbios_request smbios_request = {
     .id = LIMINE_SMBIOS_REQUEST,
     .revision = 0
 };
+static volatile struct limine_stack_size_request stack_size_request = {
+    .id = LIMINE_STACK_SIZE_REQUEST,
+    .revision = 0,
+    .stack_size = 0x2000000
+};
 #endif // _LIMINE_REQUESTS_H

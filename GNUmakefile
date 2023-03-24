@@ -31,8 +31,8 @@ WSLHOSTIP := $(shell ipconfig.exe | grep 'vEthernet (WSL)' -a -A4 | tail -n1 | c
 KERNEL_ENTRY := _start
 
 BLOCKSIZE := 1024
-QFLAGS ?= -cpu qemu64 -d cpu_reset -machine q35 -m 512 -boot d -cdrom 
-QFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 -m 512 -boot d -cdrom ./test/useless.iso -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -net none -drive file=
+QFLAGS ?= -cpu qemu64,+ssse3,+sse4.1,+sse4.2,+x2apic -d cpu_reset -machine q35 -m 512 -boot d -cdrom 
+QFLAGSEXP ?= -cpu qemu64,+ssse3,+sse4.1,+sse4.2,+x2apic -d cpu_reset -machine q35 -m 1024 -boot d -cdrom ./test/useless.iso -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -net none -drive file=
 
 CFLAGS ?= -O2 -g -Wall -Wextra -pipe -std=c11
 NASMFLAGS ?= -F dwarf -g

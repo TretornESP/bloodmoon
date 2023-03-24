@@ -3,11 +3,18 @@
 #include "string.h"
 #define BUFFERSIZE 128
 
+char dbgmsg[BUFFERSIZE] = {0};
 char boot_conversor_buffer[BUFFERSIZE] = {0};
 
 void dbg_print(const char * str) {
     void (*writer)(const char*, uint64_t) = get_terminal_writer();
     writer(str, strlen(str));
+}
+
+void set_debug_msg(const char * str) {
+    memset(dbgmsg, 0, BUFFERSIZE);
+    strncpy(dbgmsg, str, BUFFERSIZE);
+    dbgmsg[BUFFERSIZE - 1] = 0;
 }
 
 void putchar(char chr) {
@@ -19,6 +26,7 @@ void panic(const char * str) {
     dbg_print("\nKERNEL PANIC!\n");
     dbg_print(str);
     dbg_print("\n");
+    dbg_print(dbgmsg);
     while(1);
 }
 

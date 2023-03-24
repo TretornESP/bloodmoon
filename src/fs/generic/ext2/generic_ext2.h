@@ -3,6 +3,7 @@
 #include "../vfs_compat.h"
 #include "ext2.h"
 #include "../../../util/printf.h"
+#include "../../../util/dbgprinter.h"
 
 #define MAX_EXT2_PARTITIONS 32
 #define MAX_EXT2_OPEN_FILES 65536
@@ -17,7 +18,7 @@ int ext2_compat_register_partition(const char* drive, uint32_t lba) {
         if (ext2_partitions[i] == 0) {
             ext2_partitions[i] = ext2_register_partition(drive, lba);
             if (ext2_partitions[i] == 0) {
-                panic("ext2: failed to register partition (drive: %s, lba: %d)", drive, lba);
+                panic("ext2: failed to register partition\n");
                 ext2_stacktrace();
                 while(1);
             }

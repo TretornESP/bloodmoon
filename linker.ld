@@ -21,8 +21,6 @@ SECTIONS
         *(.text .text.*)
     } :text
 
-    . += CONSTANT(MAXPAGESIZE);
-
     .data : ALIGN(CONSTANT(MAXPAGESIZE)){
         *(.data .data.*)
     } :data

@@ -13,9 +13,9 @@
 #define EXT2_DELETE_CYCLE 128
 
 struct error_message {
-    char message[ERROR_MESSAGE_SIZE];
-    char function[ERROR_FUNC_SIZE];
-    char file[ERROR_FILE_SIZE];
+    char *msg;
+    char *function;
+    char *file;
     uint32_t line;
     uint8_t type;
     uint64_t id;
@@ -44,7 +44,7 @@ void ext2_set_debug_base_path(const char* path) {
         return;
     }
 
-    strcpy(debug_base_path, path);
+    strncpy(debug_base_path, path, strlen(path));
 }
 
 char* ext2_format_message(const char* error, ...) {
@@ -58,16 +58,6 @@ char* ext2_format_message(const char* error, ...) {
     vsnprintf(buffer, ERROR_MESSAGE_SIZE, error, args);
     va_end(args);
     return buffer;
-}
-
-void ext2_subtract_base_path(char* path, char* result) {
-    if (strlen(path) <= strlen(debug_base_path)) {
-        return;
-    }
-
-    if (strncmp(path, debug_base_path, strlen(debug_base_path)) == 0) {
-        strcpy(result, path+strlen(debug_base_path));
-    }
 }
 
 void ext2_clear_oldest_error() {
@@ -126,34 +116,55 @@ void ext2_add_error(char * error, const char* function, char* file, uint32_t lin
         ext2_make_space();
     }
 
-    printf("I will crash and burn\n");
-    struct error_message * message = malloc(sizeof(struct error_message));
-    
+    struct error_message * message = calloc(1, sizeof(struct error_message));
     if (message == 0) {
         printf("[EXT2] Failed to allocate memory for error message\n");
         free(error);
         return;
     }
 
-    if (strlen(error) > ERROR_MESSAGE_SIZE) {
-        strcpy(message->message, "Error message too long");
-    } else {
-        strcpy(message->message, error);
-    }
-
+    message->msg = calloc(1, strlen("v"));
+    //strcpy(message->msg, "v");
+    message->function = calloc(1, strlen(function));
+    //strcpy(message->function, function);
+    message->file = calloc(1, strlen(file));
+    //strcpy(message->file, file);
+/*
     if (strlen(function) > ERROR_FUNC_SIZE) {
-        strcpy(message->function, "Function name too long");
+        message->function = malloc(strlen("Function name too long"));
+        strncpy(message->function, "Function name too long", strlen("Function name too long"));
     } else {
-        strcpy(message->function, function);
+        message->function = malloc(strlen(function));
+        strncpy(message->function, function, strlen(function));
     }
 
 
     if ((strlen(file) - strlen(debug_base_path)) > ERROR_FILE_SIZE) {
-        strcpy(message->file, "File name too long");
+        message->file = malloc(strlen("File name too long"));
+        strncpy(message->file, "File name too long", strlen("File name too long"));
     } else {
-        ext2_subtract_base_path(file, message->file);
+        if (strlen(file) <= strlen(debug_base_path)) {
+            if (strlen(file) > ERROR_FILE_SIZE) {
+                message->file = malloc(strlen("File name too long"));
+                strncpy(message->file, "File name too long", strlen("File name too long"));
+            } else {
+                message->file = malloc(strlen(file));
+                strncpy(message->file, file, strlen(file));
+            }
+        
+        } else {
+            if (strncmp(file, debug_base_path, strlen(debug_base_path)) == 0) {
+                if (strlen(file)-strlen(debug_base_path) > ERROR_FILE_SIZE) {
+                    message->file = malloc(strlen("File name too long"));
+                    strncpy(message->file, "File name too long", strlen("File name too long"));
+                } else {
+                    message->file = malloc(strlen(file)-strlen(debug_base_path));
+                    strncpy(message->file, file+strlen(debug_base_path), strlen(file)-strlen(debug_base_path));
+                }
+            }
+        }
     }    
-
+*/
     message->type = type;
     message->line = line;
     message->next = error_messages;
@@ -188,7 +199,7 @@ void ext2_print_errors(uint8_t min_level) {
     struct error_message * message = error_messages;
     while (message != 0) {
         if (message->type >= min_level) {
-            printf("[EXT2] [%s] %-128s [%s]\n", error_type_names[message->type], message->message, message->function);
+            printf("[EXT2] [%s] %-128s [%s]\n", error_type_names[message->type], message->msg, message->function);
         }
         message = message->next;
     }
@@ -198,6 +209,9 @@ void ext2_clear_errors() {
     struct error_message * message = error_messages;
     while (message != 0) {
         struct error_message * next = message->next;
+        free(message->msg);
+        free(message->function);
+        free(message->file);
         free(message);
         message = next;
     }

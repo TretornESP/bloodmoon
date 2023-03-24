@@ -387,7 +387,7 @@ uint32_t ext2_path_to_inode(struct ext2_partition* partition, const char * path)
         return 0;
     }
 
-    strcpy(path_copy, path);
+    strncpy(path_copy, path, strlen(path) + 1);
     char * token = strtok(path_copy, "/");
     uint32_t inode_index = EXT2_ROOT_INO_INDEX;
     while (token != 0) {
@@ -730,7 +730,7 @@ void ext2_dump_all_inodes(struct ext2_partition* partition, const char* root_pat
                 return;
             }
             
-            strcpy(new_path, root_path);
+            strncpy(new_path, root_path, strlen(root_path) + 1);
             strcat(new_path, "/");
             strcat(new_path, entry->name);
             ext2_dump_all_inodes(partition, new_path);
