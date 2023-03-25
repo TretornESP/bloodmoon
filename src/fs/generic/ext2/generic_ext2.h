@@ -13,14 +13,12 @@ struct ext2_partition* ext2_partitions[MAX_EXT2_PARTITIONS] = {0};
 // 0 all okey
 // 1 error
 
-int ext2_compat_register_partition(const char* drive, uint32_t lba) {
+int ext2_compat_register_partition(const char* drive, uint32_t lba, const char* mountpoint) {
     for (int i = 0; i < MAX_EXT2_PARTITIONS; i++) {
         if (ext2_partitions[i] == 0) {
-            ext2_partitions[i] = ext2_register_partition(drive, lba);
+            ext2_partitions[i] = ext2_register_partition(drive, lba, mountpoint);
             if (ext2_partitions[i] == 0) {
-                panic("ext2: failed to register partition\n");
-                ext2_stacktrace();
-                while(1);
+                return -1;
             }
             return i;
         }
@@ -51,18 +49,36 @@ int ext2_compat_flush(int index) {
 }
 
 void ext2_compat_debug() {
-    ext2_stacktrace();
+    for (int i = 0; i < MAX_EXT2_PARTITIONS; i++) {
+        if (ext2_partitions[i] != 0) {
+            printf("Partition %d\n", i);
+            ext2_dump_partition(ext2_partitions[i]);
+        }
+    }
 }
 
 int ext2_compat_file_open(int partno, const char* path, int flags, int mode) {
     if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
         return -1;
+    printf("opening file: partno: %d, path: %s\n", partno, path);
+    struct ext2_partition * partition = ext2_partitions[partno];
+    if (partition == 0)
+        return -1;
+    
+    return get_fd(path, partition->name, flags, mode);
+}
+
+
+int ext2_compat_dir_open(int partno, const char* path) {
+    
+    if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
+        return -1;
+    printf("opening directory: partno: %d, path: %s\n", partno, path);
     struct ext2_partition * partition = ext2_partitions[partno];
     if (partition == 0)
         return -1;
 
-    return get_fd(path, flags, mode);
-    return -1;
+    return get_dirfd(path, partition->name, 0, 0);
 }
 
 int ext2_compat_file_close(int partno, int fd) {
@@ -75,7 +91,50 @@ int ext2_compat_file_close(int partno, int fd) {
     return release_fd(fd);
 }
 
-int ext2_compat_file_creat(int partno, const char* path, int mode) {return -1;}
+int ext2_compat_dir_close(int partno, int fd) {
+    if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
+        return -1;
+    struct ext2_partition * partition = ext2_partitions[partno];
+    if (partition == 0)
+        return -1;
+
+    return get_dirfd(fd);
+}
+
+
+int ext2_compat_file_creat(int partno, const char* path, int mode) {
+    if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
+        return -1;
+    printf("creating file: partno: %d, path: %s in mode: %d\n", partno, path, mode);
+    struct ext2_partition * partition = ext2_partitions[partno];
+    if (partition == 0)
+        return -1;
+    
+    //uint8_t ext2_create_file(struct ext2_partition * partition, const char* path, uint32_t type, uint32_t permissions);
+    uint8_t res = ext2_create_file(partition, path, EXT2_FILE_TYPE_REGULAR, mode);
+    if (res != EXT2_RESULT_OK) {
+        return -1;
+    }
+
+    return get_fd(path, partition->name, 0, mode);
+}
+
+int ext2_compat_dir_creat(int partno, const char* path, int mode) {
+    if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
+        return -1;
+    printf("creating directory: partno: %d, path: %s in mode: %d\n", partno, path, mode);
+    struct ext2_partition * partition = ext2_partitions[partno];
+    if (partition == 0)
+        return -1;
+    
+    uint8_t res = ext2_create_file(partition, path, EXT2_FILE_TYPE_DIRECTORY, mode);
+    if (res != EXT2_RESULT_OK) {
+        return -1;
+    }
+
+    return get_dirfd(path, partition->name, 0, mode);
+}
+
 
 uint64_t ext2_compat_file_read(int partno, int fd, void* buffer, uint64_t size) {
     if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
@@ -88,27 +147,59 @@ uint64_t ext2_compat_file_read(int partno, int fd, void* buffer, uint64_t size) 
     return ext2_read_file(partition, entry->name, buffer, size, entry->offset);
 }
 
-uint64_t ext2_compat_file_write(int partno, int fd, void* buffer, uint64_t size) {return 1;}
-uint64_t ext2_compat_file_seek(int partno, int fd, uint64_t offset, int whence) {return 1;}
-int ext2_compat_stat(int partno, int fd, stat_t* st) {return -1;}
-
-dir_t ext2_compat_dir_open(int partno, const char* path) {
-    
-    dir_t dir = {.fd = -1, .entries = 0, .index = 0};
+int ext2_compat_dir_read(int partno, int fd, int *buffer) {
     if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
-        goto end;
+        return -1;
     struct ext2_partition * partition = ext2_partitions[partno];
     if (partition == 0)
-        goto end;
+        return -1;
 
-    ext2_list_directory(partition, path);
-end:
-    return dir;
+    dir_t * entry = vfs_compat_get_dir(fd);
+
+    //TODO: 24/03 last changes here
+    return ext2_read_file(partition, entry->name, buffer, size, entry->offset);
 }
 
-int ext2_compat_dir_close(int partno, dir_t dir) {return -1;}
-int ext2_compat_dir_read(int partno, dir_t dir) {return -1;}
-dir_t ext2_compat_dir_creat(int partno, const char* path) {struct dir d; d.fd = -1; return d;}
+uint64_t ext2_compat_file_write(int partno, int fd, void* buffer, uint64_t size) {
+    if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
+        return -1;
+    struct ext2_partition * partition = ext2_partitions[partno];
+    if (partition == 0)
+        return -1;
+
+    struct file_descriptor_entry * entry = vfs_compat_get_file_descriptor(fd);
+    return ext2_write_file(partition, entry->name, buffer, size, entry->offset);
+}
+
+uint64_t ext2_compat_file_seek(int partno, int fd, uint64_t offset, int whence) {
+    if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
+        return 0;
+    struct ext2_partition * partition = ext2_partitions[partno];
+    if (partition == 0)
+        return 0;
+    struct file_descriptor_entry * entry = vfs_compat_get_file_descriptor(fd);
+    uint64_t size = 0;
+    switch (whence) {
+        case SEEK_SET: {
+            entry->offset = offset;
+            break;
+        }
+        case SEEK_CUR: {
+            entry->offset += offset;
+            break;
+        }
+        case SEEK_END: {
+            size = ext2_get_file_size(partition, entry->name);
+            entry->offset = size + offset;
+            break;
+        }
+        default:
+            return 0;
+    }
+
+    return entry->offset;
+}
+int ext2_compat_stat(int partno, int fd, stat_t* st) {return -1;}
 int ext2_compat_rename(int partno, const char* path, const char* newpath) {return -1;}
 int ext2_compat_remove(int partno, const char* path) {return -1;}
 int ext2_compat_chmod(int partno, const char* path, int mode) {return -1;}

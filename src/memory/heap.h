@@ -31,5 +31,5 @@ void free(void* address);
 void expand_heap(uint64_t length);
 void *calloc (uint64_t num, uint64_t size);
 void debug_heap();
-
+void walk_heap();
 #endif

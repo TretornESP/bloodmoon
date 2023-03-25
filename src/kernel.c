@@ -33,8 +33,6 @@
 #include "test/tests.h"
 
 void _start(void) {
-    heaptest();
-    panic("Test end");
     init_simd();
     init_memory();
     init_paging();
@@ -50,16 +48,25 @@ void _start(void) {
     init_vfs();
     pseudo_ps();
 
-    time_t t = time(0);
-    struct tm * tm = localtime(&t);
-    char date[32];
-    strftime(date, 32, "%Y-%m-%d %H:%M:%S", tm);
-    printf("EPOCH: %ld TIME: %s\n", time(0), date);
+    //time_t t = time(0);
+    //struct tm * tm = localtime(&t);
+    //char date[32];
+    //strftime(date, 32, "%Y-%m-%d %H:%M:%S", tm);
+    //printf("EPOCH: %ld TIME: %s\n", time(0), date);
     vfs_dir_open("/dev/hdap2/data/");
     int fd = vfs_file_open("/dev/hdap2/data/lorem-ipsum.txt", 0x69, 0x13);
-
     char buf[1024];
     vfs_file_read(fd, buf, 1024);
+    vfs_file_close(fd);
+
+    fd = vfs_file_creat("/dev/hdap2/data/ipsum-lorem.txt", O_RDWR);
+    if (fd == -1)
+        panic("ERROR CREATING FILE\n");
+    vfs_file_write(fd, buf, 1024);
+    memset(buf, 0, 1024);
+    vfs_file_read(fd, buf, 1024);
+    vfs_file_close(fd);
+    vfs_dir_open("/dev/hdap2/data/");
 
     printf("FILE CONTENTS: %s\n", buf);
 

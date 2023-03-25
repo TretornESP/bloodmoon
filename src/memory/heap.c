@@ -83,10 +83,20 @@ struct heap_segment_header* splitSegment(struct heap_segment_header* segment, ui
 
     if (segment->next == 0) globalHeap.lastSegment = segment;
     if (segment->last != 0) segment->last->next = newSegment;
-
+    segment->last = newSegment;
     segment->length -= size + sizeof(struct heap_segment_header);
 
     return newSegment;
+}
+
+void walk_heap() {
+    struct heap_segment_header* currentSegment = (struct heap_segment_header*)globalHeap.mainSegment;
+    while(1) {
+        if (currentSegment->signature != HEAP_SIGNATURE) panic("Invalid heap segment signature debug");
+        dump_segment(currentSegment);
+        if (currentSegment->next == 0) break;
+        currentSegment = currentSegment->next;
+    }
 }
 
 void* malloc(uint64_t size) {
@@ -101,7 +111,7 @@ void* malloc(uint64_t size) {
     uint64_t sizeWithHeader = size + sizeof(struct heap_segment_header);
 
     while(1) {
-        if (currentSegment->signature != HEAP_SIGNATURE) panic("Invalid heap segment signature malloc");
+        if (currentSegment->signature != HEAP_SIGNATURE) walk_heap();
         if (currentSegment->free) {
             if (currentSegment->length > sizeWithHeader) {
                 currentSegment = splitSegment(currentSegment, size);
@@ -109,7 +119,7 @@ void* malloc(uint64_t size) {
                 globalHeap.usedSize += currentSegment->length + sizeof(struct heap_segment_header);
                 globalHeap.freeSize -= currentSegment->length + sizeof(struct heap_segment_header);
                 return (void*)((uint64_t)currentSegment + sizeof(struct heap_segment_header));
-            } else if (currentSegment->length == sizeWithHeader) {
+            } else if (currentSegment->length == size) {
                 currentSegment->free = 0;
                 globalHeap.usedSize += currentSegment->length + sizeof(struct heap_segment_header);
                 globalHeap.freeSize -= currentSegment->length + sizeof(struct heap_segment_header);
@@ -117,6 +127,7 @@ void* malloc(uint64_t size) {
             }
         }
         if (currentSegment->next == 0) break;
+        if (currentSegment->next == currentSegment) panic("Current segment cycle\n");
         currentSegment = currentSegment->next;
     }
 
@@ -139,7 +150,7 @@ void MergeLastToThis(struct heap_segment_header* header){
     struct heap_segment_header* last = header->last;
     header->length += last->length + sizeof(struct heap_segment_header);
     header->last = last->last;
-    last->last->next = header;
+    header->last->next = header;
 
     memset(last, 0, sizeof(struct heap_segment_header));
 }

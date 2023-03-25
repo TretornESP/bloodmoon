@@ -13,10 +13,10 @@ struct f32_dir_usage f32_compat_open_dirs[MAX_OPEN_DIRS];
 
 char f32_compat_partitions[MAX_FAT32_PARTITIONS] = {0};
 
-int f32_compat_register_partition(const char* path, uint32_t lba) {
+int f32_compat_register_partition(const char* path, uint32_t lba, const char* mountpoint) {
     for (int index = 0; index < MAX_FAT32_PARTITIONS; index++) {
         if (f32_compat_partitions[index] == 0) {
-            f32_compat_partitions[index] = register_fat32_partition(path, lba);
+            f32_compat_partitions[index] = register_fat32_partition(path, lba, mountpoint);
             return index;
         }
     }

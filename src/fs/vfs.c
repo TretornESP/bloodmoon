@@ -134,20 +134,22 @@ uint8_t mount_fs(struct device* dev, struct partition* partition, const char* mo
         return 0;
     }
 
+    int fs_idx = 0;
     while (fst->next != 0) {
         if (fst->detect(dev->name, partition->lba)) {
             printf("[VFS] Detected %s on %s, trying to mount on %s\n", fst->name, dev->name, mountpoint);
-            int ret = fst->register_partition(dev->name, partition->lba);
+            int ret = fst->register_partition(dev->name, partition->lba, mountpoint);
             if (ret == -1) {
                 printf("[VFS] Failed to mount %s on %s\n", fst->name, mountpoint);
                 return 0;
             }
             snprintf(partition->name, 48, "%s", mountpoint);
             add_mount(mount_list_head, dev, partition, fst, ret);
-            printf("[VFS] Mounted %s on %s\n", fst->name, mountpoint);
+            printf("[VFS] Mounted %s on %s index %d\n", fst->name, mountpoint, ret);
             return 1;
         }
         fst = fst->next;
+        fs_idx++;
     }
     
     printf("[VFS] Unknown fs, mount is impossible!!!!\n");
@@ -191,11 +193,14 @@ void detect_devices() {
     }
 }
 
-char* get_path_from_fd(int fd) {
+char* get_full_path_from_fd(int fd) {
     struct file_descriptor_entry * entry = vfs_compat_get_file_descriptor(fd);
     if (entry == 0) return 0;
-
-    return entry->name;
+    char * full_path = malloc(strlen(entry->name) + strlen(entry->mount) + 1);
+    if (full_path == 0) return 0;
+    strcpy(full_path, entry->mount);
+    strcpy(full_path + strlen(entry->mount), entry->name);
+    return full_path;
 }
 
 struct mount* get_mount_from_path(const char* path, char* native_path) {

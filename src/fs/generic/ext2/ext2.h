@@ -30,7 +30,7 @@
 #define EXT2_FILE_TYPE_SOCKET   6
 #define EXT2_FILE_TYPE_SYMLINK  7
 
-struct ext2_partition * ext2_register_partition(const char* disk, uint32_t lba);
+struct ext2_partition * ext2_register_partition(const char* disk, uint32_t lba, const char* mountpoint);
 uint8_t ext2_sync(struct ext2_partition * partition);
 const char * ext2_get_partition_name(struct ext2_partition * partition);
 uint32_t ext2_count_partitions();

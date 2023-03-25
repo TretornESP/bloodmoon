@@ -3,6 +3,8 @@
 #include <stdint.h>
 #define VFS_COMPAT_FS_NAME_MAX_LEN 32
 #define VFS_COMPAT_MAX_OPEN_FILES 65536
+#define VFS_COMPAT_MAX_OPEN_DIRECTORIES 4096
+#define VFS_FDE_NAME_MAX_LEN 256
 
 #define O_RDONLY 0x0000
 #define O_WRONLY 0x0001
@@ -66,25 +68,26 @@ struct stat {
 };
 typedef struct stat stat_t;
 
-struct dir {
-    int fd;
-    uint32_t entries;
-    uint32_t index;
-};
-
 struct file_descriptor_entry {
-    char name[256];
+    char name[VFS_FDE_NAME_MAX_LEN];
+    char mount[VFS_FDE_NAME_MAX_LEN];
     uint32_t flags;
     uint32_t mode;
     uint64_t offset;
     uint8_t loaded;
 };
 
+struct dir {
+    struct file_descriptor_entry fd;
+    uint32_t number;
+    uint32_t index;
+};
+
 typedef struct dir dir_t;
 
 struct vfs_compatible {
     char name[VFS_COMPAT_FS_NAME_MAX_LEN];
-    int (*register_partition)(const char*, uint32_t);
+    int (*register_partition)(const char*, uint32_t, const char*);
     uint8_t (*unregister_partition)(int);
     uint8_t (*detect)(const char*, uint32_t);
     int (*flush)(int);
@@ -97,10 +100,10 @@ struct vfs_compatible {
     uint64_t (*file_seek)(int, int, uint64_t, int);
     int (*file_stat)(int, int, stat_t*);
 
-    dir_t (*dir_open)(int, const char*);
-    int (*dir_close)(int, dir_t);
-    int (*dir_read)(int, dir_t);
-    dir_t (*dir_creat)(int, const char*);
+    int (*dir_open)(int, const char*);
+    int (*dir_close)(int, int);
+    int (*dir_read)(int, int);
+    int (*dir_creat)(int, const char*);
 
     int (*rename)(int, const char*, const char*);
     int (*remove)(int, const char*);
@@ -112,7 +115,10 @@ struct vfs_compatible {
 
 };
 
+struct dir_t * vfs_compat_get_dir(uint32_t fd);
 struct file_descriptor_entry * vfs_compat_get_file_descriptor(uint32_t fd);
-int get_fd(const char* path, int flags, int mode);
+int get_fd(const char* path, const char* mount, int flags, int mode);
+int get_dirfd(const char* path const char* mount, int flags, int mode);
+int get_dirfd(int fd);
 int release_fd(int fd);
 #endif

@@ -20,7 +20,7 @@
 
 struct file_system_type {
 	char name[32];
-    int (*register_partition)(const char*, uint32_t);
+    int (*register_partition)(const char*, uint32_t, const char*);
     uint8_t (*unregister_partition)(int);
     uint8_t (*detect)(const char *, uint32_t);
     int (*flush)(int);
@@ -145,7 +145,7 @@ struct dentry {
 };
 
 struct mount* get_mount_from_path(const char* path, char* native_path);
-char* get_path_from_fd(int fd);
+char* get_full_path_from_fd(int fd);
 void register_filesystem(struct vfs_compatible *);
 void init_vfs();
 

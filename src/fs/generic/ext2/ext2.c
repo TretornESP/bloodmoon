@@ -49,8 +49,8 @@ char * ext2_file_type_names[8] = {
 #define EXT2_TRANSLATE_INODE(native) (EXT2_TRANSLATE_UNIT(native, EXT2_INODE_TRANSLATOR_INDEX))
 
 //Returns EXT2_RESULT_ERROR on error, struct ext2_partition * on success
-struct ext2_partition * ext2_register_partition(const char* disk, uint32_t lba) {
-    EXT2_INFO("Registering partition on disk %s at LBA %d", disk, lba);
+struct ext2_partition * ext2_register_partition(const char* disk, uint32_t lba, const char* mountpoint) {
+    EXT2_INFO("Registering partition on disk %s at LBA %d, mountpoint: %s", disk, lba, mountpoint);
 
     if (!ext2_check_status(disk)) {
         EXT2_WARN("Disk is not ready");
@@ -151,7 +151,7 @@ struct ext2_partition * ext2_register_partition(const char* disk, uint32_t lba) 
         partition = partition->next;
     }
 
-    snprintf(partition->name, 32, "%sp%d", disk, partition_id);
+    snprintf(partition->name, 32, "%s", mountpoint);
     snprintf(partition->disk, 32, "%s", disk);
     partition->group_number = block_groups_first;
     partition->lba = lba;

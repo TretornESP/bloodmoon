@@ -747,7 +747,8 @@ void fat32_debug(const char* disk) {
 /// Note that this is the only functions referencing the `disk` parameter. All
 /// further interactions happend will via the volume letter e.g. D: drive.
 
-char register_fat32_partition(const char* disk, uint32_t lba) {
+char register_fat32_partition(const char* disk, uint32_t lba, const char* mountpoint) {
+	(void)mountpoint; //TODO: Implement this
 	uint8_t mount_buffer[512];
 
 	if (!disk_read(disk, mount_buffer, lba, 1)) {

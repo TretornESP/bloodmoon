@@ -5,7 +5,8 @@
 
 struct fat32_compat_device f32_device_list[MAX_F32_DEVICES] = {0};
 
-int fat32exp_compat_register_partition(const char* device, uint32_t lba) {
+int fat32exp_compat_register_partition(const char* device, uint32_t lba, const char* mountpoint) {
+    (void)mountpoint; //TODO
     for (int i = 0; i < MAX_F32_DEVICES; i++) {
         if (f32_device_list[i].name[0] == 0) {
             strncpy(f32_device_list[i].name, device, 32);

@@ -201,7 +201,7 @@ struct fat_fmt_s {
 void fat32_debug(const char* disk);
 
 /// Disk functions
-char 	register_fat32_partition(const char* disk, uint32_t lba);
+char 	register_fat32_partition(const char* disk, uint32_t lba, const char* mountpoint);
 uint8_t unregstr_fat32_partition(char letter);
 uint8_t disk_eject(const char* disk);
 uint8_t fat_search(const char*, uint32_t);
