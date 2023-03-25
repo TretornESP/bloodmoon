@@ -11,11 +11,12 @@ int vfs_file_creat(const char*, int);
 
 int vfs_dir_open(const char*);
 int vfs_dir_close(int);
-int vfs_dir_read(int);
+int vfs_dir_load(int);
 int vfs_mkdir(const char*, int);
+int vfs_dir_read(int, char*, uint32_t *, uint32_t *);
 
 int vfs_rename(const char*, const char*);
 int vfs_remove(const char*);
 int vfs_chmod(const char*, int);
-void vfs_debug_by_path(const char* path);
+void vfs_debug_by_path(const char*);
 #endif

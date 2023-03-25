@@ -5,7 +5,7 @@
 #include "../../memory/heap.h"
 #include "../../util/dbgprinter.h"
 
-uint32_t read_mbr(const char* disk, struct partition* partitions, void (*add_part)(struct partition*, uint32_t, uint32_t, uint8_t, uint8_t)) {
+uint32_t read_mbr(const char* disk, struct vfs_partition* partitions, void (*add_part)(struct vfs_partition*, uint32_t, uint32_t, uint8_t, uint8_t)) {
     uint8_t mount_buffer[512];
 	memset(mount_buffer, 0, 512);
 	

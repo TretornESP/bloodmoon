@@ -1,11 +1,13 @@
 #pragma GCC diagnostic ignored "-Wvariadic-macros"
 
-#include "ext2.h"
+#include <time.h>
+
 #include "ext2_util.h"
 
 #include "../../../memory/heap.h"
 #include "../../../util/string.h"
-#include <time.h>
+
+#define EXT2_UNIQUE_START       0x00CAFE00
 
 uint32_t ext2_unique_id = EXT2_UNIQUE_START;
 

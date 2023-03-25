@@ -1,9 +1,13 @@
 #ifndef _EXT2_INTEGRITY_H
 #define _EXT2_INTEGRITY_H
 
-#include "ext2_partition.h"
 #include <stdint.h>
 #include <stdarg.h>
+
+#include "ext2_bg.h"
+#include "ext2_sb.h"
+
+#include "ext2_structs.h"
 
 #define EXT2_ERROR_DEBUG 0
 #define EXT2_ERROR_INFO 1

@@ -1,7 +1,12 @@
 #ifndef _GENERIC_EXT2_H
 #define _GENERIC_EXT2_H
-#include "../vfs_compat.h"
+
 #include "ext2.h"
+
+#include "ext2_structs.h"
+
+#include "../vfs_compat.h"
+
 #include "../../../util/printf.h"
 #include "../../../util/dbgprinter.h"
 
@@ -98,7 +103,7 @@ int ext2_compat_dir_close(int partno, int fd) {
     if (partition == 0)
         return -1;
 
-    return get_dirfd(fd);
+    return release_dirfd(fd);
 }
 
 
@@ -138,26 +143,45 @@ int ext2_compat_dir_creat(int partno, const char* path, int mode) {
 
 uint64_t ext2_compat_file_read(int partno, int fd, void* buffer, uint64_t size) {
     if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
-        return -1;
+        return 0;
     struct ext2_partition * partition = ext2_partitions[partno];
     if (partition == 0)
-        return -1;
+        return 0;
 
     struct file_descriptor_entry * entry = vfs_compat_get_file_descriptor(fd);
+    if (entry == 0 || entry->loaded == 0) return 1;
     return ext2_read_file(partition, entry->name, buffer, size, entry->offset);
 }
 
-int ext2_compat_dir_read(int partno, int fd, int *buffer) {
+int ext2_compat_dir_read(int partno, int fd, char* name, uint32_t * name_len, uint32_t * type) {
+    return read_dirfd(fd, name, name_len, type);
+}
+
+int ext2_compat_dir_load(int partno, int fd) {
     if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
-        return -1;
+        return 0;
     struct ext2_partition * partition = ext2_partitions[partno];
     if (partition == 0)
-        return -1;
+        return 0;
 
-    dir_t * entry = vfs_compat_get_dir(fd);
+    dir_t * dir_entry = vfs_compat_get_dir(fd);
+    if (dir_entry == 0) return 0;
+    struct file_descriptor_entry * entry = &(dir_entry->fd);
+    if (entry == 0 || entry->loaded == 0) return 0;
 
-    //TODO: 24/03 last changes here
-    return ext2_read_file(partition, entry->name, buffer, size, entry->offset);
+    struct ext2_directory_entry * entries;
+    uint32_t count = 0;
+    uint8_t result = ext2_read_directory(partition, entry->name, &count, &entries);
+    if (result != EXT2_RESULT_OK) {
+        return 0;
+    }
+
+    for (uint32_t i = 0; i < count; i++) {
+        struct ext2_directory_entry * entry = &entries[i];
+        add_file_to_dirfd(fd, entry->name, entry->inode, entry->file_type, entry->name_len);
+    }
+
+    return 1;
 }
 
 uint64_t ext2_compat_file_write(int partno, int fd, void* buffer, uint64_t size) {
@@ -224,7 +248,8 @@ struct vfs_compatible ext2_register = {
     .dir_open = ext2_compat_dir_open,
     .dir_close = ext2_compat_dir_close,
     .dir_creat = ext2_compat_dir_creat,
-    .dir_read = ext2_compat_dir_read
+    .dir_read = ext2_compat_dir_read,
+    .dir_load = ext2_compat_dir_load
 };
 
 struct vfs_compatible * ext2_registrar = &ext2_register;

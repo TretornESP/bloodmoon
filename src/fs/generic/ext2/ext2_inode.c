@@ -1,19 +1,19 @@
 #pragma GCC diagnostic ignored "-Wvariadic-macros"
 
-#include "ext2.h"
 #include "ext2_inode.h"
-#include "ext2_util.h"
-#include "ext2_bg.h"
-#include "ext2_block.h"
+
 #include "ext2_dentry.h"
-#include "ext2_sb.h"
+#include "ext2_block.h"
+
+#include "ext2_util.h"
 #include "ext2_integrity.h"
 
 #include "../../../drivers/disk/disk_interface.h"
-
 #include "../../../memory/heap.h"
 #include "../../../util/string.h"
 #include "../../../util/printf.h"
+
+#define EXT2_ROOT_INO_INDEX     2
 
 void ext2_dump_inode_bitmap(struct ext2_partition * partition) {
     uint32_t block_size = 1024 << (((struct ext2_superblock*)partition->sb)->s_log_block_size);

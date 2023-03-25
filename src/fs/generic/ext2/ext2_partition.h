@@ -1,27 +1,20 @@
 #ifndef _EXT2_PARTITION_H
 #define _EXT2_PARTITION_H
 
-#include "ext2.h"
 #include <stdint.h>
 
-struct ext2_partition {
-    char name[32];
-    char disk[32];
-    int32_t backup_bgs[64];
-    uint32_t backup_bgs_count;
-    uint32_t lba;
-    uint32_t group_number;
-    uint32_t sector_size;
-    uint32_t bgdt_block;
-    uint32_t sb_block;
-    uint8_t flush_required;
-    struct ext2_superblock_extended *sb;
-    struct ext2_block_group_descriptor *gd;
-    struct ext2_partition *next;
-};
+#include "ext2_structs.h"
+
+#define SB_OFFSET_LBA           2
+#define EXT2_SUPER_MAGIC        0xEF53
 
 void ext2_disk_from_partition(char * destination, const char * partition);
 uint8_t ext2_check_status(const char* disk);
 struct ext2_partition * get_partition(struct ext2_partition* partition, const char * partno);
-void ext2_dump_partition(struct ext2_partition* partition);
+void ext2_partition_dump_partition(struct ext2_partition* partition);
+struct ext2_partition * ext2_partition_register_partition(const char* disk, uint32_t lba, const char* mountpoint);
+struct ext2_partition * ext2_partition_get_partition_by_index(uint32_t index);
+uint32_t ext2_partition_count_partitions();
+uint8_t ext2_partition_search(const char* name, uint32_t lba);
+uint8_t ext2_partition_unregister_partition(struct ext2_partition* partition);
 #endif /* _EXT2_PARTITION_H */

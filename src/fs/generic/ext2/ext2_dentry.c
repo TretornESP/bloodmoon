@@ -1,9 +1,11 @@
 #pragma GCC diagnostic ignored "-Wvariadic-macros"
 
 #include "ext2_dentry.h"
-#include "ext2_util.h"
+
 #include "ext2_inode.h"
-#include "ext2_block.h"
+#include "ext2_bLock.h"
+
+#include "ext2_util.h"
 #include "ext2_integrity.h"
 
 #include "../../../memory/heap.h"
@@ -251,14 +253,14 @@ uint8_t ext2_initialize_directory(struct ext2_partition* partition, uint32_t ino
             .inode = inode_number,
             .rec_len = 0,
             .name_len = 1,
-            .file_type = EXT2_FILE_TYPE_DIRECTORY,
+            .file_type = EXT2_DIR_TYPE_DIRECTORY,
             .name = "."
         },
         {
             .inode = parent_inode_number,
             .rec_len = 0,
             .name_len = 2,
-            .file_type = EXT2_FILE_TYPE_DIRECTORY,
+            .file_type = EXT2_DIR_TYPE_DIRECTORY,
             .name = ".."
         }
     };

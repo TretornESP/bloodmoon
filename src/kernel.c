@@ -48,27 +48,33 @@ void _start(void) {
     init_vfs();
     pseudo_ps();
 
-    //time_t t = time(0);
-    //struct tm * tm = localtime(&t);
-    //char date[32];
-    //strftime(date, 32, "%Y-%m-%d %H:%M:%S", tm);
-    //printf("EPOCH: %ld TIME: %s\n", time(0), date);
-    vfs_dir_open("/dev/hdap2/data/");
-    int fd = vfs_file_open("/dev/hdap2/data/lorem-ipsum.txt", 0x69, 0x13);
-    char buf[1024];
-    vfs_file_read(fd, buf, 1024);
-    vfs_file_close(fd);
-
-    fd = vfs_file_creat("/dev/hdap2/data/ipsum-lorem.txt", O_RDWR);
+    int fd = vfs_dir_open("/dev/hdap2/data/");
+    vfs_dir_load(fd);
     if (fd == -1)
-        panic("ERROR CREATING FILE\n");
-    vfs_file_write(fd, buf, 1024);
-    memset(buf, 0, 1024);
-    vfs_file_read(fd, buf, 1024);
-    vfs_file_close(fd);
-    vfs_dir_open("/dev/hdap2/data/");
+        panic("ERROR OPENING DIR\n");
 
-    printf("FILE CONTENTS: %s\n", buf);
+    char name[256];
+    uint32_t type;
+    uint32_t name_len;
+
+    while (vfs_dir_read(fd, name, &type, &name_len) > 0) {
+        printf("DIR ENTRY: %s, %d, %d\n", name, type, name_len);
+    }
+    //int fd = vfs_file_open("/dev/hdap2/data/lorem-ipsum.txt", 0x69, 0x13);
+    //char buf[1024];
+    //vfs_file_read(fd, buf, 1024);
+    //vfs_file_close(fd);
+
+    //fd = vfs_file_creat("/dev/hdap2/data/ipsum-lorem.txt", O_RDWR);
+    //if (fd == -1)
+    //    panic("ERROR CREATING FILE\n");
+    //vfs_file_write(fd, buf, 1024);
+    //memset(buf, 0, 1024);
+    //vfs_file_read(fd, buf, 1024);
+    //vfs_file_close(fd);
+    //vfs_dir_open("/dev/hdap2/data/");
+
+    //printf("FILE CONTENTS: %s\n", buf);
 
     printf("KERNEL LOOPING\n");
     while(1);

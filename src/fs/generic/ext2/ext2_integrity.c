@@ -1,9 +1,9 @@
 #pragma GCC diagnostic ignored "-Wvariadic-macros"
 
 #include "ext2_integrity.h"
+#include "ext2_partition.h"
+
 #include "ext2_util.h"
-#include "ext2_sb.h"
-#include "ext2_bg.h"
 
 #include "../../../memory/heap.h"
 #include "../../../util/string.h"
@@ -231,9 +231,9 @@ void ext2_flush_partition(struct ext2_partition * partition) {
 }
 
 void ext2_flush_all_partitions() {
-    uint32_t partitions = ext2_count_partitions();
+    uint32_t partitions = ext2_partition_count_partitions();
     for (uint32_t i = 0; i < partitions; i++) {
-        struct ext2_partition * partition = ext2_get_partition_by_index(i);
+        struct ext2_partition * partition = ext2_partition_get_partition_by_index(i);
         if (partition->flush_required) {
             ext2_flush_partition(partition);
         }
@@ -245,9 +245,9 @@ uint8_t ext2_is_flush_required(struct ext2_partition * partition) {
 }
 
 uint8_t ext2_is_any_flush_required() {
-    uint32_t partitions = ext2_count_partitions();
+    uint32_t partitions = ext2_partition_count_partitions();
     for (uint32_t i = 0; i < partitions; i++) {
-        struct ext2_partition * partition = ext2_get_partition_by_index(i);
+        struct ext2_partition * partition = ext2_partition_get_partition_by_index(i);
         if (partition->flush_required) {
             return 1;
         }

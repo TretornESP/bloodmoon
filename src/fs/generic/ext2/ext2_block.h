@@ -1,9 +1,12 @@
 #ifndef _EXT2_BLOCK_H
 #define _EXT2_BLOCK_H
 
-#include "ext2.h"
-#include "ext2_inode.h"
+#include <stdint.h>
 
+#include "ext2_structs.h"
+
+#define EXT2_READ_FAILED        0xFFFFFFFE
+#define EXT2_WRITE_FAILED       0xFFFFFFFD
 #define EXT2_DEALLOCATE_FAILED 0xFFFFFFFC
 
 int64_t ext2_read_block(struct ext2_partition* partition, uint32_t block, uint8_t * destination_buffer);

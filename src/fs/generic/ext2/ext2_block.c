@@ -2,17 +2,15 @@
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 #pragma GCC diagnostic ignored "-Wvariadic-macros"
 
-#include "ext2.h"
 #include "ext2_block.h"
+
 #include "ext2_inode.h"
-#include "ext2_sb.h"
-#include "ext2_bg.h"
+
 #include "ext2_util.h"
 #include "ext2_integrity.h"
 
 #include "../../../memory/heap.h"
 #include "../../../util/string.h"
-
 #include "../../../drivers/disk/disk_interface.h"
 
 int64_t ext2_read_block(struct ext2_partition* partition, uint32_t block, uint8_t * destination_buffer) {

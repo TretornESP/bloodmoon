@@ -1,13 +1,14 @@
 #pragma GCC diagnostic ignored "-Wvariadic-macros"
 
 #include "ext2_bg.h"
-#include "ext2_util.h"
+
 #include "ext2_block.h"
+
+#include "ext2_util.h"
 #include "ext2_integrity.h"
 
 #include "../../../util/printf.h"
 #include "../../../memory/heap.h"
-
 #include "../../../drivers/disk/disk_interface.h"
 
 int32_t ext2_operate_on_bg(struct ext2_partition * partition, uint8_t (*callback)(struct ext2_partition *, struct ext2_block_group_descriptor*, uint32_t)) {

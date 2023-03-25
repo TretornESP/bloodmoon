@@ -3,7 +3,6 @@
 #include "ext2_sb.h"
 
 #include "../../../drivers/disk/disk_interface.h"
-
 #include "../../../util/printf.h"
 
 uint8_t ext2_flush_sb(struct ext2_partition* partition, struct ext2_block_group_descriptor* bg, uint32_t bgid) {

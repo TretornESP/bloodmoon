@@ -55,10 +55,11 @@ uint64_t f32_compat_file_read(int partno, int fd, void* buffer, uint64_t size) {
 uint64_t f32_compat_file_write(int partno, int fd, void* buffer, uint64_t size) {return 1;}
 uint64_t f32_compat_file_seek(int partno, int fd, uint64_t offset, int whence) {return 1;}
 int f32_compat_stat(int partno, int fd, stat_t* st) {return -1;}
-dir_t f32_compat_dir_open(int partno, const char* path) {struct dir d; d.fd = -1; return d;}
-int f32_compat_dir_close(int partno, dir_t dir) {return -1;}
-int f32_compat_dir_read(int partno, dir_t dir) {return -1;}
-dir_t f32_compat_dir_creat(int partno, const char* path) {struct dir d; d.fd = -1; return d;}
+int f32_compat_dir_open(int partno, const char* path) {return -1;}
+int f32_compat_dir_close(int partno, int dir) {return -1;}
+int f32_compat_dir_load(int partno, int dir) {return -1;}
+int f32_compat_dir_read(int partno, int dir, char* path, uint32_t * name_len, uint32_t * type) {return -1;}
+int f32_compat_dir_creat(int partno, const char* path, int mode) {return -1;}
 int f32_compat_rename(int partno, const char* path, const char* newpath) {return -1;}
 int f32_compat_remove(int partno, const char* path) {return -1;}
 int f32_compat_chmod(int partno, const char* path, int mode) {return -1;}
@@ -75,6 +76,7 @@ struct vfs_compatible fat32_register = {
     .file_open = f32_compat_file_open,
     .dir_open = f32_compat_dir_open,
     .dir_close = f32_compat_dir_close,
+    .dir_load = f32_compat_dir_load,
     .dir_read = f32_compat_dir_read,
     .dir_creat = f32_compat_dir_creat,
     .file_close = f32_compat_file_close,
