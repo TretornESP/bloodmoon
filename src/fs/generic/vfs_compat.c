@@ -67,6 +67,45 @@ int get_dirfd(const char* path, const char* mount, int flags, int mode) {
     return -1;
 }
 
+int is_open(const char* path) {
+    for (int i = 0; i < VFS_COMPAT_MAX_OPEN_FILES; i++) {
+        if (open_file_table[i].loaded == 1) {
+            if (strcmp(open_file_table[i].name, path) == 0) {
+                return i;
+            }
+        }
+    }
+    for (int i = 0; i < VFS_COMPAT_MAX_OPEN_DIRECTORIES; i++) {
+        if (open_directory_table[i].fd.loaded == 1) {
+            if (strcmp(open_directory_table[i].fd.name, path) == 0) {
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
+int force_release(const char * path) {
+    int changes = 0;
+    for (int i = 0; i < VFS_COMPAT_MAX_OPEN_FILES; i++) {
+        if (open_file_table[i].loaded == 1) {
+            if (strcmp(open_file_table[i].name, path) == 0) {
+                open_file_table[i].loaded = 0;
+                changes++;
+            }
+        }
+    }
+    for (int i = 0; i < VFS_COMPAT_MAX_OPEN_DIRECTORIES; i++) {
+        if (open_directory_table[i].fd.loaded == 1) {
+            if (strcmp(open_directory_table[i].fd.name, path) == 0) {
+                open_directory_table[i].fd.loaded = 0;
+                changes++;
+            }
+        }
+    }
+    return changes;
+}
+
 int release_fd(int fd) {
     if (fd >= VFS_COMPAT_MAX_OPEN_FILES) return -1;
     open_file_table[fd].loaded = 0;
@@ -80,11 +119,12 @@ int read_dirfd(int fd, char * name, uint32_t * name_len, uint32_t * type) {
 
     uint32_t index = open_directory_table[fd].index;
     struct dentry * dentry = open_directory_table[fd].dentries;
+    if (dentry == 0 || dentry->next == 0) return 0;
+    dentry = dentry->next; // Skip the first entry as it is empty
     for (uint32_t i = 0; i < index; i++) {
-        printf("dentry: %s, nl: %d, t: %d\n", dentry->name, dentry->name_len, dentry->type);
+        //printf("dentry: %s, nl: %d, t: %d\n", dentry->name, dentry->name_len, dentry->type);
         dentry = dentry->next;
     }
-    //TODO 25/03/2023
     strncpy(name, dentry->name, dentry->name_len);
     *name_len = dentry->name_len;
     *type = dentry->type;

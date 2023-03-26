@@ -86,6 +86,7 @@ void register_filesystem(struct vfs_compatible * registrar) {
     fst->dir_read = registrar->dir_read;
     fst->dir_load = registrar->dir_load;
     fst->dir_creat = registrar->dir_creat;
+    fst->prepare_remove = registrar->prepare_remove;
     fst->rename = registrar->rename;
     fst->remove = registrar->remove;
     fst->chmod = registrar->chmod;
@@ -209,6 +210,19 @@ char* get_full_path_from_fd(int fd) {
 
 char* get_full_path_from_dir(int fd) {
     return get_full_path_from_fdentry(&(vfs_compat_get_dir(fd)->fd));
+}
+
+int is_safe_for_removing(const char* path, uint8_t force) {
+    if (is_open(path) > 0) {
+        if (force == 0) {
+            printf("[VFS] File is open, cannot remove\n");
+            return 0;
+        } else {
+            printf("[VFS] File is open, but force is enabled, removing anyway\n");
+            force_release(path);
+        }
+    }
+    return 1;
 }
 
 struct vfs_mount* get_mount_from_path(const char* path, char* native_path) {

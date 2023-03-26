@@ -14,9 +14,10 @@ int vfs_dir_close(int);
 int vfs_dir_load(int);
 int vfs_mkdir(const char*, int);
 int vfs_dir_read(int, char*, uint32_t *, uint32_t *);
+void vfs_dir_list(char*);
 
 int vfs_rename(const char*, const char*);
-int vfs_remove(const char*);
+int vfs_remove(const char*, uint8_t);
 int vfs_chmod(const char*, int);
 void vfs_debug_by_path(const char*);
 #endif

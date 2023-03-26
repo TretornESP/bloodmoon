@@ -46,12 +46,36 @@ char * ext2_file_type_names[8] = {
 };
 
 #define EXT2_TRANSLATE_UNIT(native, unit) ((file_type_translator[native][unit]))
-#define EXT2_TRANSLATE_DENTRY(native) (EXT2_TRANSLATE_UNIT(native, EXT2_DENTRY_TRANSLATOR_INDEX))
-#define EXT2_TRANSLATE_INODE(native) (EXT2_TRANSLATE_UNIT(native, EXT2_INODE_TRANSLATOR_INDEX))
+#define EXT2_TRANSLATE_DENTRY_TO_NATIVE(dentry) ({\
+    uint32_t i = 0;\
+    for (; i < 8; i++) {\
+        if (file_type_translator[i][EXT2_DENTRY_TRANSLATOR_INDEX] == dentry) {\
+            break;\
+        }\
+    }\
+    i;\
+})
+#define EXT2_TRANSLATE_INODE_TO_NATIVE(inode) ({\
+    uint32_t i = 0;\
+    for (; i < 8; i++) {\
+        if (file_type_translator[i][EXT2_INODE_TRANSLATOR_INDEX] == inode) {\
+            break;\
+        }\
+    }\
+    i;\
+})
+#define EXT2_TRANSLATE_NATIVE_TO_DENTRY(native) (EXT2_TRANSLATE_UNIT(native, EXT2_DENTRY_TRANSLATOR_INDEX))
+#define EXT2_TRANSLATE_NATIVE_TO_INODE(native) (EXT2_TRANSLATE_UNIT(native, EXT2_INODE_TRANSLATOR_INDEX))
+
+uint8_t is_directory(struct ext2_directory_entry * dentry) {
+    return (dentry->file_type == EXT2_DIR_TYPE_DIRECTORY);
+}
+
+uint8_t is_regular_file(struct ext2_directory_entry * dentry) {
+    return (dentry->file_type == EXT2_DIR_TYPE_REGULAR);
+}
 
 //Returns EXT2_RESULT_ERROR on error, struct ext2_partition * on success
-
-
 uint8_t ext2_sync(struct ext2_partition * partition) {
     EXT2_INFO("Syncing partition %s", partition->name);
     ext2_flush_partition(partition);
@@ -78,6 +102,31 @@ uint8_t ext2_search(const char* name, uint32_t lba) {
 
 uint8_t ext2_unregister_partition(struct ext2_partition* partition) {
     return ext2_partition_unregister_partition(partition);
+}
+
+uint8_t split_into_path_and_name(const char* full_path, char* parent, char* name) {
+    // Check if the full path is empty
+    if (strlen(full_path) == 0) {
+        return 0;
+    }
+
+    // Find the last occurrence of the directory separator
+    const char* last_sep = strrchr(full_path, '/');
+    if (last_sep == NULL) {
+        // No separator found, so assume the full path is a file name
+        strcpy(parent, "");
+        strcpy(name, full_path);
+    } else {
+        // Split the full path into parent directory and file name
+        size_t parent_len = last_sep - full_path;
+        if (parent_len == 0) {
+            parent_len = 1;  // special case for root directory
+        }
+        strncpy(parent, full_path, parent_len);
+        parent[parent_len] = '\0';
+        strcpy(name, last_sep + 1);
+    }
+    return 1;
 }
 
 //Returns uint64, on error returns EXT2_RESULT_ERROR
@@ -111,6 +160,31 @@ uint8_t ext2_set_debug_base(const char* base) {
 uint8_t ext2_list_directory(struct ext2_partition* partition, const char * path) {
     EXT2_INFO("Listing directory %s", path);
     ext2_list_dentry(partition, path);
+    return EXT2_RESULT_OK;
+}
+
+uint8_t ext2_get_dentry(struct ext2_partition* partition, const char* path, struct ext2_directory_entry* dentry) {
+    EXT2_INFO("Getting dentry of %s", path);
+    if (path == 0) {
+        return EXT2_RESULT_ERROR;
+    }
+
+    char * parent_path = malloc(strlen(path) + 1);
+    char * name = malloc(strlen(path) + 1);
+    if (split_into_path_and_name(path, parent_path, name) == 0) {
+        free(parent_path);
+        free(name);
+        return EXT2_RESULT_ERROR;
+    }
+
+    if (ext2_dentry_get_dentry(partition, parent_path, name, dentry)) {
+        free(parent_path);
+        free(name);
+        return EXT2_RESULT_ERROR;
+    }
+
+    free(parent_path);
+    free(name);
     return EXT2_RESULT_OK;
 }
 
@@ -152,7 +226,7 @@ uint8_t ext2_create_file(struct ext2_partition * partition, const char* path, ui
     }
 
     EXT2_DEBUG("Allocated inode %d", new_inode_index);
-    struct ext2_inode_descriptor * inode = ext2_initialize_inode(partition, new_inode_index, EXT2_TRANSLATE_INODE(type), permissions);
+    struct ext2_inode_descriptor * inode = ext2_initialize_inode(partition, new_inode_index, EXT2_TRANSLATE_NATIVE_TO_INODE(type), permissions);
     EXT2_DEBUG("Initialized inode %d", new_inode_index);
 
     if (ext2_write_inode(partition, new_inode_index, inode)) {
@@ -176,7 +250,7 @@ uint8_t ext2_create_file(struct ext2_partition * partition, const char* path, ui
     }
 
     EXT2_DEBUG("Creating directory entry for inode %d", new_inode_index);
-    if (ext2_create_directory_entry(partition, parent_inode_index, new_inode_index, name, EXT2_TRANSLATE_DENTRY(type))) {
+    if (ext2_create_directory_entry(partition, parent_inode_index, new_inode_index, name, EXT2_TRANSLATE_NATIVE_TO_DENTRY(type))) {
         EXT2_ERROR("Failed to create directory entry");
         return EXT2_RESULT_ERROR;
     }

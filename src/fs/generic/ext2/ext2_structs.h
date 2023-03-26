@@ -16,7 +16,7 @@ struct ext2_directory_entry {
     uint16_t rec_len;               /* Directory entry length */
     uint8_t  name_len;              /* Name length */
     uint8_t  file_type;             /* File type */
-    char     name[255];   /* File name */ //IM SO FUCKING DUMB
+    char     name[255];   /* File name */ //TODO: CONVERT THIS TO A POINTER
 } __attribute__((packed));
 
 struct ext2_inode_descriptor_generic {

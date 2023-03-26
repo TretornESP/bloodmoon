@@ -48,33 +48,31 @@ void _start(void) {
     init_vfs();
     pseudo_ps();
 
-    int fd = vfs_dir_open("/dev/hdap2/data/");
-    vfs_dir_load(fd);
-    if (fd == -1)
-        panic("ERROR OPENING DIR\n");
+    //Create folder erasable
+    vfs_mkdir("/dev/hdap2/data/erasable", 0);
+    //Create folder noterasable
+    vfs_mkdir("/dev/hdap2/data/noterasable", 0);
+    //Create file lorem-ipsum.txt in erasable
+    vfs_file_creat("/dev/hdap2/data/erasable/lorem-ipsum.txt", 0);
+    //Create file ipsum-lorem.txt in noterasable
+    vfs_file_creat("/dev/hdap2/data/noterasable/ipsum-lorem.txt", 0);
+    //Open file erasable/lorem-ipsum.txt
+    int fd = vfs_file_open("/dev/hdap2/data/erasable/lorem-ipsum.txt", 0, 0);
+    //Try to delete erasable/lorem-ipsum.txt
+    vfs_remove("/dev/hdap2/data/erasable/lorem-ipsum.txt", 0);
+    //Close file erasable/lorem-ipsum.txt
+    vfs_file_close(fd);
+    //Try to delete erasable/lorem-ipsum.txt
+    vfs_remove("/dev/hdap2/data/erasable/lorem-ipsum.txt", 0);
+    //Try to delete erasable
+    vfs_remove("/dev/hdap2/data/erasable", 0);
+    //Try to delete noterasable
+    vfs_remove("/dev/hdap2/data/noterasable", 0);
+    //Print directory contents of /data
 
-    char name[256];
-    uint32_t type;
-    uint32_t name_len;
-
-    while (vfs_dir_read(fd, name, &type, &name_len) > 0) {
-        printf("DIR ENTRY: %s, %d, %d\n", name, type, name_len);
-    }
-    //int fd = vfs_file_open("/dev/hdap2/data/lorem-ipsum.txt", 0x69, 0x13);
-    //char buf[1024];
-    //vfs_file_read(fd, buf, 1024);
-    //vfs_file_close(fd);
-
-    //fd = vfs_file_creat("/dev/hdap2/data/ipsum-lorem.txt", O_RDWR);
-    //if (fd == -1)
-    //    panic("ERROR CREATING FILE\n");
-    //vfs_file_write(fd, buf, 1024);
-    //memset(buf, 0, 1024);
-    //vfs_file_read(fd, buf, 1024);
-    //vfs_file_close(fd);
-    //vfs_dir_open("/dev/hdap2/data/");
-
-    //printf("FILE CONTENTS: %s\n", buf);
+    vfs_dir_list("/dev/hdap2/data");
+    vfs_dir_list("/dev/hdap2/data/erasable");
+    vfs_dir_list("/dev/hdap2/data/noterasable");
 
     printf("KERNEL LOOPING\n");
     while(1);

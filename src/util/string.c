@@ -5,12 +5,24 @@ void *memchr(const void *s, int c, size_t n) {__UNDEFINED();}
 void *memmove(void *dest, const void *src, size_t n) {__UNDEFINED();}
 void *strcat(char *dest, const char *src) {__UNDEFINED();}
 void *strncat(char *dest, const char *src, size_t n) {__UNDEFINED();}
-void *strchr(const char *s, int c) {__UNDEFINED();}
+void *strchr(const char *str, int ch) {__UNDEFINED();}
 int strcoll(const char *s1, const char *s2) {__UNDEFINED();}
 size_t strcspn(const char *s, const char *reject) {__UNDEFINED();}
 char *strerror(int errnum) {__UNDEFINED();}
 char *strpbrk(const char *s, const char *accept) {__UNDEFINED();}
-char *strrchr(const char *s, int c) {__UNDEFINED();}
+char *strrchr(const char *str, int ch) {
+    char *last = 0;
+    while (*str != '\0') {
+        if (*str == ch) {
+            last = (char *)str;
+        }
+        str++;
+    }
+    if (*str == ch) {
+        last = (char *)str;
+    }
+    return last;
+}
 size_t strspn(const char *s, const char *accept) {__UNDEFINED();}
 char *strstr(const char *haystack, const char *needle) {__UNDEFINED();}
 size_t strxfrm(char *dest, const char *src, size_t n) {__UNDEFINED();}

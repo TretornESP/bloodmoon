@@ -114,6 +114,8 @@ struct vfs_compatible {
     int (*dir_load)(int, int);
     int (*dir_read)(int, int, char*, uint32_t *, uint32_t *);
     int (*dir_creat)(int, const char*, int);
+    
+    int (*prepare_remove)(int partno, const char* path);
 
     int (*rename)(int, const char*, const char*);
     int (*remove)(int, const char*);
@@ -131,6 +133,9 @@ int get_fd(const char* path, const char* mount, int flags, int mode);
 int get_dirfd(const char* path, const char* mount, int flags, int mode);
 uint8_t add_file_to_dirfd(int fd, const char* name, uint32_t inode, uint32_t type, uint32_t name_len);
 int release_dirfd(int fd);
+int is_open(const char* path);
+int is_empty(const char* path);
+int force_release(const char * path);
 int read_dirfd(int fd, char * name, uint32_t * name_len, uint32_t * type); 
 int release_fd(int fd);
 #endif

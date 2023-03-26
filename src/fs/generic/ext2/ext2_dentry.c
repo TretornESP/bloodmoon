@@ -98,6 +98,53 @@ uint8_t ext2_delete_dentry(struct ext2_partition* partition, const char * path) 
 
 }
 
+uint8_t ext2_dentry_get_dentry(struct ext2_partition* partition, const char* parent_path, const char* name, struct ext2_directory_entry* entry) {
+    uint32_t inode_number = ext2_path_to_inode(partition, parent_path);
+    if (inode_number == 0) {
+        EXT2_ERROR("Directory %s does not exist", parent_path);
+        return 1;
+    }
+
+    uint32_t block_size = 1024 << (((struct ext2_superblock*)partition->sb)->s_log_block_size);
+    struct ext2_inode_descriptor_generic * root_inode = (struct ext2_inode_descriptor_generic *)ext2_read_inode(partition, inode_number);
+    if (root_inode == 0) {
+        EXT2_ERROR("Failed to read directory %s", parent_path);
+        return 1;
+    }
+
+    if (root_inode->i_mode & INODE_TYPE_DIR) {
+        uint8_t *block_buffer = malloc(root_inode->i_size + block_size);
+        if (block_buffer == 0) {
+            EXT2_ERROR("Failed to allocate block buffer");
+            return 1;
+        }
+
+        if (ext2_read_inode_bytes(partition, inode_number, block_buffer, root_inode->i_size, 0) == EXT2_READ_FAILED) {
+            EXT2_ERROR("Failed to read directory %s", parent_path);
+            return 1;
+        }
+
+        uint32_t parsed_bytes = 0;
+        uint32_t list_count = 0;
+        while (parsed_bytes < root_inode->i_size && list_count < LIST_MAX) {
+            struct ext2_directory_entry *entry = (struct ext2_directory_entry *) (block_buffer + parsed_bytes);
+            if (entry->inode != 0) {
+                if (strncmp(entry->name, name, entry->name_len) == 0) {
+                    memcpy(entry, entry, sizeof(struct ext2_directory_entry));
+                    free(block_buffer);
+                    return 0;
+                }
+            }
+            parsed_bytes += entry->rec_len;
+            list_count++;
+        }
+       
+        free(block_buffer);
+    }
+
+    return 1;
+}
+
 void ext2_list_dentry(struct ext2_partition* partition, const char * path) {
     uint32_t inode_number = ext2_path_to_inode(partition, path);
     if (inode_number == 0) {

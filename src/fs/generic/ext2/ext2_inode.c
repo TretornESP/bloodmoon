@@ -368,7 +368,7 @@ uint32_t ext2_inode_from_path_and_parent(struct ext2_partition* partition, uint3
 
         while (parsed_bytes < root_inode->i_size) {
             struct ext2_directory_entry *entry = (struct ext2_directory_entry *) (block_buffer + parsed_bytes);
-            if (strcmp(entry->name, path) == 0) {
+            if (strncmp(entry->name, path, entry->name_len) == 0) {
                 return entry->inode;
             }
             parsed_bytes += entry->rec_len;
@@ -720,7 +720,7 @@ void ext2_dump_all_inodes(struct ext2_partition* partition, const char* root_pat
         ext2_dentry_walk_inodes_cb(partition, entry->inode);
 
         if (entry->file_type == EXT2_DIR_TYPE_DIRECTORY) {
-            if (strcmp(entry->name, ".") == 0 || strcmp(entry->name, "..") == 0) {
+            if (strncmp(entry->name, ".", entry->name_len) == 0 || strncmp(entry->name, "..", entry->name_len) == 0) {
                 continue;
             }
             

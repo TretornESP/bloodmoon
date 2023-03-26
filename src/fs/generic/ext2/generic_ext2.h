@@ -225,7 +225,44 @@ uint64_t ext2_compat_file_seek(int partno, int fd, uint64_t offset, int whence) 
 }
 int ext2_compat_stat(int partno, int fd, stat_t* st) {return -1;}
 int ext2_compat_rename(int partno, const char* path, const char* newpath) {return -1;}
-int ext2_compat_remove(int partno, const char* path) {return -1;}
+
+int ext2_compat_prepare_remove(int partno, const char* path) {
+    if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
+        return 0;
+    struct ext2_partition * partition = ext2_partitions[partno];
+    if (partition == 0)
+        return 0;
+   
+
+    struct ext2_directory_entry entry;
+    uint8_t result = ext2_get_dentry(partition, path, &entry);
+    if (result != EXT2_RESULT_OK) {
+        return 0;
+    }
+
+    if (is_directory(&entry)) {
+        uint32_t count = 0;
+        struct ext2_directory_entry * entries;
+        result = ext2_read_directory(partition, path, &count, &entries);
+        if (result != EXT2_RESULT_OK) {
+            return 0;
+        }
+
+        return (count == 0);
+    }
+
+    return 1;
+}
+
+int ext2_compat_remove(int partno, const char* path) {
+    if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
+        return 0;
+    struct ext2_partition * partition = ext2_partitions[partno];
+    if (partition == 0)
+        return 0;
+
+    return ext2_delete_file(partition, path);
+}
 int ext2_compat_chmod(int partno, const char* path, int mode) {return -1;}
 
 struct vfs_compatible ext2_register = {
@@ -249,7 +286,8 @@ struct vfs_compatible ext2_register = {
     .dir_close = ext2_compat_dir_close,
     .dir_creat = ext2_compat_dir_creat,
     .dir_read = ext2_compat_dir_read,
-    .dir_load = ext2_compat_dir_load
+    .dir_load = ext2_compat_dir_load,
+    .prepare_remove = ext2_compat_prepare_remove
 };
 
 struct vfs_compatible * ext2_registrar = &ext2_register;

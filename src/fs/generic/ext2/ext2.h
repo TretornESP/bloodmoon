@@ -32,6 +32,9 @@ uint8_t ext2_search(const char* name, uint32_t lba);
 uint8_t ext2_unregister_partition(struct ext2_partition* partition);
 void ext2_dump_partition(struct ext2_partition* partition);
 
+uint8_t is_directory(struct ext2_directory_entry * dentry);
+uint8_t is_regular_file(struct ext2_directory_entry * dentry);
+uint8_t ext2_get_dentry(struct ext2_partition* partition, const char* path, struct ext2_directory_entry* dentry);
 uint64_t ext2_get_file_size(struct ext2_partition* partition, const char* path);
 uint8_t ext2_list_directory(struct ext2_partition* partition, const char * path);
 uint8_t ext2_read_directory(struct ext2_partition* partition, const char * path, uint32_t * count, struct ext2_directory_entry** buffer);
