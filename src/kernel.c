@@ -7,8 +7,8 @@
 #include "scheduling/pit.h"
 #include "scheduling/scheduler.h"
 
-#include "fs/vfs.h"
-#include "fs/vfs_adapters.h"
+#include "vfs/vfs.h"
+#include "vfs/vfs_adapters.h"
 
 #include "io/interrupts.h"
 #include "io/serial.h"
@@ -22,8 +22,8 @@
 #include "util/string.h"
 #include "util/printf.h"
 
-#include "fs/generic/fat32/generic_f32.h"
-#include "fs/generic/ext2/generic_ext2.h"
+#include "vfs/generic/fat32/generic_f32.h"
+#include "vfs/generic/ext2/generic_ext2.h"
 #include "drivers/disk/disk_interface.h"
 
 #include "arch/simd.h"
