@@ -130,6 +130,11 @@ $(OBJDIR)/io/interrupts.o: $(SRCDIR)/io/interrupts.c
 	@ mkdir -p $(@D)
 	@$(CC) $(CFLAGS) -mgeneral-regs-only -c $^ -o $@
 
+$(OBJDIR)/drivers/serial/serial.o: $(SRCDIR)/drivers/serial/serial.c
+#	@ echo !==== COMPILING $^ with -mgeneral-regs-only
+	@ mkdir -p $(@D)
+	@$(CC) $(CFLAGS) -mgeneral-regs-only -c $^ -o $@
+
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 #	@ echo !==== COMPILING $^
 	@ mkdir -p $(@D)

@@ -11,13 +11,13 @@
 #include "vfs/vfs_adapters.h"
 
 #include "io/interrupts.h"
-#include "io/serial.h"
 
 #include "dev/smbios/smbios_interface.h"
 #include "dev/devices.h"
 
 #include "drivers/disk/disk.h"
 #include "drivers/ahci/ahci.h"
+#include "drivers/serial/serial.h"
 
 #include "util/string.h"
 #include "util/printf.h"
@@ -33,6 +33,14 @@
 
 #include "test/tests.h"
 
+void printchar(char c) {
+    printf("Serial: %c\n", c);
+}
+
+void printchar2(char c) {
+    printf("Cuak: %c\n", c);
+}
+
 void _start(void) {
     init_simd();
     init_memory();
@@ -47,15 +55,8 @@ void _start(void) {
     register_filesystem(fat32_registrar);
     register_filesystem(ext2_registrar);
     init_vfs();
+    init_serial(4096, 4096);
     pseudo_ps();
-
-    if (init_serial()) printf("Serial failed!\n");
-    write_serial('H');
-    write_serial('e');
-    write_serial('l');
-    write_serial('l');
-    write_serial('o');
-
     printf("KERNEL LOOPING\n");
     while(1);
 

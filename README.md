@@ -160,6 +160,21 @@ Now you probably have spurious mounted drives in your system, you will have to:
 - delete everything with **sudo cleansetup**
 - rebuild
 
+## TODO
+
+### VFS
+
+Okay, so the idea is the following:
+
+- Implement the ext2 format functions
+- Implement the ext2 link functions
+- Allocate a chunk of memory for the filesystem
+- Format it with ext2
+- Create folders for /dev /sys /proc /bin /etc /home /mnt /tmp /var /usr and whatever else i feel like
+- Link the devices to the /dev folder
+- ¿What does mount mean in this context?
+- Chroot this virtual filesystem to /
+
 ## Acknoledgements and credits
 
 - Keep-Konect [github](https://github.com/Keep-Konect)

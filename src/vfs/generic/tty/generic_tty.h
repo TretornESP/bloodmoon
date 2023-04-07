@@ -45,8 +45,8 @@ int tty_compat_flush(int index) {
     if (index < 0 || index >= MAX_TTY_DEVICES)
         return -1;
 
-    struct tty_device* device = tty_devices[index];
-    return (int)tty_sync(index);
+    struct tty* device = tty_devices[index];
+    return (int)tty_sync(device);
 }
 
 void tty_compat_debug() {
@@ -58,36 +58,43 @@ void tty_compat_debug() {
     }
 }
 
-uint64_t tty_compat_file_read(int partno, int dummy, void* buffer, uint64_t size) {
-    if (partno < 0 || partno >= MAX_tty_PARTITIONS) 
-        return 0;
-    struct tty_partition * partition = tty_partitions[partno];
-    if (partition == 0)
-        return 0;
-
-    struct file_descriptor_entry * entry = vfs_compat_get_file_descriptor(fd);
-    if (entry == 0 || entry->loaded == 0) return 1;
-    return tty_read_file(partition, entry->name, buffer, size, entry->offset);
-}
-
-uint64_t tty_compat_file_write(int partno, int fd, void* buffer, uint64_t size) {
-    if (partno < 0 || partno >= MAX_tty_PARTITIONS) 
-        return -1;
-    struct tty_partition * partition = tty_partitions[partno];
-    if (partition == 0)
+uint64_t tty_compat_file_read(int devno, int fd, void* buffer, uint64_t size) {
+    if (partno < 0 || partno >= MAX_TTY_DEVICES) 
         return -1;
 
-    struct file_descriptor_entry * entry = vfs_compat_get_file_descriptor(fd);
-    return tty_write_file(partition, entry->name, buffer, size, entry->offset);
+    struct tty * device = tty_devices[devno];
+    if (device == 0)
+        return -1;
+
+    struct device_descriptor_entry * entry = vfs_compat_get_device(fd);
+    if (entry == 0 || entry->loaded == 0) return -1;
+    return tty_read(device, buffer, size, entry->offset);
 }
 
-uint64_t tty_compat_file_seek(int partno, int fd, uint64_t offset, int whence) {
-    if (partno < 0 || partno >= MAX_tty_PARTITIONS) 
-        return 0;
-    struct tty_partition * partition = tty_partitions[partno];
-    if (partition == 0)
-        return 0;
-    struct file_descriptor_entry * entry = vfs_compat_get_file_descriptor(fd);
+uint64_t tty_compat_file_write(int devno, int fd, void* buffer, uint64_t size) {
+    if (devno < 0 || devno >= MAX_TTY_DEVICES) 
+        return -1;
+
+    struct tty * device = tty_devices[devno];
+    if (device == 0)
+        return -1;
+
+    struct device_descriptor_entry * entry = vfs_compat_get_device(fd);
+    if (entry == 0 || entry->loaded == 0) return -1;
+    return tty_write(device, buffer, size, entry->offset);
+}
+
+uint64_t tty_compat_file_seek(int devno, int fd, uint64_t offset, int whence) {
+    if (devno < 0 || devno >= MAX_TTY_DEVICES) 
+        return -1;
+
+    struct tty * device = tty_devices[devno];
+    if (device == 0)
+        return -1;
+
+    struct device_descriptor_entry * entry = vfs_compat_get_device(fd);
+    if (entry == 0 || entry->loaded == 0) return -1;
+
     uint64_t size = 0;
     switch (whence) {
         case SEEK_SET: {
@@ -99,7 +106,7 @@ uint64_t tty_compat_file_seek(int partno, int fd, uint64_t offset, int whence) {
             break;
         }
         case SEEK_END: {
-            size = tty_get_file_size(partition, entry->name);
+            size = tty_get_size(device);
             entry->offset = size + offset;
             break;
         }
@@ -110,10 +117,30 @@ uint64_t tty_compat_file_seek(int partno, int fd, uint64_t offset, int whence) {
     return entry->offset;
 }
 
-int tty_compat_file_open(int partno, const char* path, int flags, int mode) {
-    
+int tty_compat_file_open(int devno, const char* path, int flags, int mode) {
+    if (devno < 0 || devno >= MAX_TTY_DEVICES) 
+        return -1;
+
+    struct tty * device = tty_devices[devno];
+    if (device == 0)
+        return -1;
+
+    if (!strcmp(path, "/"))
+        return -1;
+
+    return get_devfd(path, device->name, flags, mode);
 }
-int tty_compat_file_close(int partno, int fd) {return -1;}
+
+int tty_compat_file_close(int devno, int fd) {
+    if (partno < 0 || partno >= MAX_TTY_DEVICES) 
+        return -1;
+
+    struct tty * device = tty_devices[devno];
+    if (device == 0)
+        return -1;
+
+    return release_devfd(fd);
+}
 
 int tty_compat_dir_open(int partno, const char* path) {return -1;}
 int tty_compat_dir_close(int partno, int fd) {return -1;}

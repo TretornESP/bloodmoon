@@ -21,6 +21,13 @@
 
 #define __UNDEFINED_HANDLER dbg_print(__func__); (void)frame; panic("Undefined interrupt handler");
 
+void pic_eoi(unsigned char irq) {
+    if (irq >= 12) {
+        outb(PIC2_COMMAND, PIC_EOI);
+    }
+    outb(PIC1_COMMAND, PIC_EOI);
+}
+
 void pic_end_master() {
     outb(PIC1_COMMAND, PIC_EOI);
 }
@@ -163,6 +170,26 @@ __attribute__((interrupt)) void PitInt_Handler(struct interrupt_frame * frame) {
     pic_end_master();
 }
 
+__attribute__((interrupt)) void Serial1Int_Handler(struct interrupt_frame * frame) {
+    (void)frame;
+    char c = inb(0x3f8);
+    dbg_print("Serial1: ");
+    dbg_print(itoa(c, 16));
+    dbg_print("\n");
+    pic_end_master();
+
+}
+
+__attribute__((interrupt)) void Serial2Int_Handler(struct interrupt_frame * frame) {
+    (void)frame;
+    char c = inb(0x3f8);
+    dbg_print("Serial2: ");
+    dbg_print(itoa(c, 16));
+    dbg_print("\n");
+    pic_end_master();
+
+}
+
 struct idtr idtr;
 void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uint8_t selector) {
     struct idtdescentry* interrupt = (struct idtdescentry*)(idtr.offset + (entry_offset * sizeof(struct idtdescentry)));
@@ -171,6 +198,47 @@ void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uin
     interrupt->selector = selector;
 }
 
+void irq_set_mask(unsigned char interrupt) {
+    uint16_t port;
+    uint8_t value;
+ 
+    if(interrupt < 8) {
+        port = PIC1_DATA;
+    } else {
+        port = PIC2_DATA;
+        interrupt -= 8;
+    }
+    value = inb(port) | (1 << interrupt);
+    outb(port, value);        
+}
+ 
+void irq_clear_mask(unsigned char interrupt) {
+    uint16_t port;
+    uint8_t value;
+ 
+    if(interrupt < 8) {
+        port = PIC1_DATA;
+    } else {
+        port = PIC2_DATA;
+        interrupt -= 8;
+    }
+    value = inb(port) & ~(1 << interrupt);
+    outb(port, value);        
+}
+
+void hook_interrupt(uint8_t interrupt, void* handler) {
+    __asm__("cli");
+    set_idt_gate((uint64_t)handler, interrupt, IDT_TA_InterruptGate, 0x28);
+    irq_clear_mask(interrupt);
+    __asm__("sti");
+}
+
+void unhook_interrupt(uint8_t interrupt) {
+    __asm__("cli");
+    set_idt_gate((uint64_t)UncaughtInt_Handler, interrupt, IDT_TA_InterruptGate, 0x28);
+    irq_set_mask(interrupt);
+    __asm__("sti");
+}
 
 void init_interrupts(uint8_t pit_disable) {
     dbg_print("### INTERRUPTS STARTUP ###\n");
@@ -188,6 +256,8 @@ void init_interrupts(uint8_t pit_disable) {
     set_idt_gate((uint64_t)GPFault_Handler,     0xD,    IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)KeyboardInt_Handler, 0x21,   IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)MouseInt_Handler,    0x2C,   IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)Serial1Int_Handler,   0x24,   IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)Serial2Int_Handler,  0x23,   IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)PitInt_Handler,      0x20,   IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)DivByZero_Handler,   0x0,    IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)NMI_Handler,         0x2,    IDT_TA_InterruptGate, 0x28);
@@ -212,8 +282,9 @@ void init_interrupts(uint8_t pit_disable) {
 
     init_keyboard();
 
-    outb(PIC1_DATA, 0xf8 + pit_disable); //PIT IS DISABLED
+    outb(PIC1_DATA, 0xe1 + pit_disable); //PIT IS DISABLED
     outb(PIC2_DATA, 0xef);
+
     dbg_print("Interrupts initialized\n");
     __asm__("sti");
 

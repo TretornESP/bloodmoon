@@ -5,6 +5,7 @@
 
 struct file_descriptor_entry open_file_table[VFS_COMPAT_MAX_OPEN_FILES] = {0};
 dir_t open_directory_table[VFS_COMPAT_MAX_OPEN_DIRECTORIES] = {0};
+struct device_descriptor_entry open_device_table[VFS_COMPAT_MAX_OPEN_DEVICES] = {0};
 
 dir_t * vfs_compat_get_dir(int fd) {
     if (fd >= VFS_COMPAT_MAX_OPEN_DIRECTORIES) return 0;
@@ -12,10 +13,38 @@ dir_t * vfs_compat_get_dir(int fd) {
     return entry;
 }
 
+struct device_descriptor_entry * vfs_compat_get_device(int fd) {
+    if (fd >= VFS_COMPAT_MAX_OPEN_DEVICES) return 0;
+    struct device_descriptor_entry * entry = &open_device_table[fd];
+    return entry;
+}
+
 struct file_descriptor_entry * vfs_compat_get_file_descriptor(int fd) {
     if (fd >= VFS_COMPAT_MAX_OPEN_FILES) return 0;
     struct file_descriptor_entry * entry = &open_file_table[fd];
     return entry;
+}
+
+int get_devfd(const char* path, const char* mount, int flags, int mode) {
+    if (strlen(path) >  VFS_FDE_NAME_MAX_LEN) return -1;
+    if (strlen(mount) > VFS_FDE_NAME_MAX_LEN) return -1;
+    static int fd = 0;
+    for (int i = 0; i < VFS_COMPAT_MAX_OPEN_DEVICES; i++) {
+        if (open_device_table[fd].loaded == 0) {
+            open_device_table[fd].loaded = 1;
+            open_device_table[fd].flags = flags;
+            open_device_table[fd].mode = mode;
+            open_device_table[fd].offset = 0;
+            strncpy(open_device_table[fd].name, path, strlen(path));
+            strncpy(open_device_table[fd].mount, mount, strlen(mount));
+
+            return fd++;
+        } else {
+            fd++;
+            if (fd >= VFS_COMPAT_MAX_OPEN_DEVICES) fd = 0;
+        }
+    }
+    return -1;
 }
 
 int get_fd(const char* path, const char* mount, int flags, int mode) {
@@ -75,6 +104,13 @@ int is_open(const char* path) {
             }
         }
     }
+    for (int i = 0; i < VFS_COMPAT_MAX_OPEN_DEVICES; i++) {
+        if (open_device_table[i].loaded == 1) {
+            if (strcmp(open_device_table[i].name, path) == 0) {
+                return i;
+            }
+        }
+    }
     for (int i = 0; i < VFS_COMPAT_MAX_OPEN_DIRECTORIES; i++) {
         if (open_directory_table[i].fd.loaded == 1) {
             if (strcmp(open_directory_table[i].fd.name, path) == 0) {
@@ -95,6 +131,14 @@ int force_release(const char * path) {
             }
         }
     }
+    for (int i = 0; i < VFS_COMPAT_MAX_OPEN_DEVICES; i++) {
+        if (open_device_table[i].loaded == 1) {
+            if (strcmp(open_device_table[i].name, path) == 0) {
+                open_device_table[i].loaded = 0;
+                changes++;
+            }
+        }
+    }
     for (int i = 0; i < VFS_COMPAT_MAX_OPEN_DIRECTORIES; i++) {
         if (open_directory_table[i].fd.loaded == 1) {
             if (strcmp(open_directory_table[i].fd.name, path) == 0) {
@@ -109,6 +153,12 @@ int force_release(const char * path) {
 int release_fd(int fd) {
     if (fd >= VFS_COMPAT_MAX_OPEN_FILES) return -1;
     open_file_table[fd].loaded = 0;
+    return 0;
+}
+
+int release_devfd(int fd) {
+    if (fd >= VFS_COMPAT_MAX_OPEN_DEVICES) return -1;
+    open_device_table[fd].loaded = 0;
     return 0;
 }
 
