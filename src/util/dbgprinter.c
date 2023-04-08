@@ -61,3 +61,16 @@ char* itoa(int64_t value, int base) {
     }
     return boot_conversor_buffer;
 }
+
+//atoi
+int64_t atoi(const char * str) {
+    int64_t res = 0; // Initialize result
+
+    // Iterate through all characters of input string and
+    // update result
+    for (int i = 0; str[i] != '\0'; ++i)
+        res = res*10 + str[i] - '0';
+
+    // return result.
+    return res;
+}

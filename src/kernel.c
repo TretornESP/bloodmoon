@@ -33,14 +33,6 @@
 
 #include "test/tests.h"
 
-void printchar(char c) {
-    printf("Serial: %c\n", c);
-}
-
-void printchar2(char c) {
-    printf("Cuak: %c\n", c);
-}
-
 void _start(void) {
     init_simd();
     init_memory();
@@ -57,7 +49,10 @@ void _start(void) {
     init_vfs();
     init_serial(4096, 4096);
     pseudo_ps();
+
     printf("KERNEL LOOPING\n");
-    while(1);
+
+    while(1) {
+    }
 
 }

@@ -21,6 +21,10 @@
 
 #define __UNDEFINED_HANDLER dbg_print(__func__); (void)frame; panic("Undefined interrupt handler");
 
+volatile int dynamic_interrupt = -1;
+
+void (*dynamic_interrupt_handlers[256])(struct interrupt_frame* frame) = {0};
+
 void pic_eoi(unsigned char irq) {
     if (irq >= 12) {
         outb(PIC2_COMMAND, PIC_EOI);
@@ -198,6 +202,26 @@ void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uin
     interrupt->selector = selector;
 }
 
+struct idtdescentry * get_idt_gate(uint8_t entry_offset) {
+    return (struct idtdescentry*)(idtr.offset + (entry_offset * sizeof(struct idtdescentry)));
+}
+
+__attribute__((interrupt)) void DynamicInt_Handler(struct interrupt_frame * frame) {
+    (void)frame;
+    if (dynamic_interrupt < 0) {
+        dbg_print("Dynamic interrupt called without being hooked\n");
+        return;
+    }
+    
+    void (*handler)(struct interrupt_frame * frame) = (void*)dynamic_interrupt_handlers[dynamic_interrupt];
+    if (handler == 0 || handler == (void*)DynamicInt_Handler) {
+        dbg_print("Dynamic interrupt called without being hooked\n");
+        return;
+    }
+
+    handler(frame);
+}
+
 void irq_set_mask(unsigned char interrupt) {
     uint16_t port;
     uint8_t value;
@@ -226,17 +250,25 @@ void irq_clear_mask(unsigned char interrupt) {
     outb(port, value);        
 }
 
-void hook_interrupt(uint8_t interrupt, void* handler) {
+void hook_interrupt(uint8_t interrupt, void* handler, uint8_t dynamic) {
     __asm__("cli");
-    set_idt_gate((uint64_t)handler, interrupt, IDT_TA_InterruptGate, 0x28);
-    irq_clear_mask(interrupt);
+    if (dynamic) {
+        dynamic_interrupt_handlers[interrupt] = handler;
+    } else {
+        set_idt_gate((uint64_t)handler, interrupt, IDT_TA_InterruptGate, 0x28);
+        irq_clear_mask(interrupt);
+    }
     __asm__("sti");
 }
 
-void unhook_interrupt(uint8_t interrupt) {
+void unhook_interrupt(uint8_t interrupt, uint8_t dynamic) {
     __asm__("cli");
-    set_idt_gate((uint64_t)UncaughtInt_Handler, interrupt, IDT_TA_InterruptGate, 0x28);
-    irq_set_mask(interrupt);
+    if (dynamic) {
+        dynamic_interrupt_handlers[interrupt] = (void*)0;
+    } else {
+        set_idt_gate((uint64_t)UncaughtInt_Handler, interrupt, IDT_TA_InterruptGate, 0x28);
+        irq_set_mask(interrupt);
+    }
     __asm__("sti");
 }
 
@@ -275,6 +307,7 @@ void init_interrupts(uint8_t pit_disable) {
     set_idt_gate((uint64_t)SIMD_FPE_Handler,    0x13,   IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)Virtualization_Handler, 0x14, IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)Security_Handler,    0x1E,   IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)DynamicInt_Handler,  0x90,   IDT_TA_InterruptGate, 0x28);
     
     __asm__ volatile("lidt %0" : : "m"(idtr));
 
@@ -288,4 +321,9 @@ void init_interrupts(uint8_t pit_disable) {
     dbg_print("Interrupts initialized\n");
     __asm__("sti");
 
+}
+
+void raise_interrupt(uint8_t interrupt) {
+    dynamic_interrupt = interrupt;
+    __asm__("int %0" : : "i"(DYNAMIC_HANDLER));
 }

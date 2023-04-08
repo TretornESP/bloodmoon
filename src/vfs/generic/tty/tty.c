@@ -1,7 +1,7 @@
 #include "tty.h"
 #include "../../../memory/heap.h"
 #include "../../../util/string.h"
-#include "../../../util/printf/printf.h"
+#include "../../../util/printf.h"
 #include "../../../util/dbgprinter.h"
 #include "../../../drivers/serial/serial.h"
 
@@ -26,16 +26,10 @@ uint64_t tty_get_size(struct tty* device) {(void*)device; return 0;}
 uint8_t tty_read(struct tty * device, uint8_t * destination_buffer, uint64_t size, uint64_t skip) {
 
     struct serial_device* serial = get_serial(device->com_port);
-    (void*)device;
-    (void*)destination_buffer;
-    (void*)size;
-    (void*)skip;
+
     return 0;
 }
 uint8_t tty_write(struct tty * device, uint8_t * source_buffer, uint64_t size, uint64_t skip) {
-    (void*)device;
-    (void*)source_buffer;
-    (void*)size;
-    (void*)skip;
+
     return 0;
 }
