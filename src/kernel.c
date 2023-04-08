@@ -64,15 +64,7 @@ void _start(void) {
     register_filesystem(ext2_registrar);
     init_vfs();
     init_serial(4096, 4096);
-    pseudo_ps();
-
-    serial_read_event_add(DEFAULT_COM1_PORT, read_serial_cb1);
-    serial_write_event_add(DEFAULT_COM1_PORT, write_serial_cb1);
-    serial_read_event_add(DEFAULT_COM1_PORT, read_serial_cb2);
-    serial_write_event_add(DEFAULT_COM1_PORT, write_serial_cb2);
-    serial_read_event_remove(DEFAULT_COM1_PORT, read_serial_cb1);
-    serial_write_event_remove(DEFAULT_COM1_PORT, write_serial_cb1);
-    
+    pseudo_ps();  
 
     printf("KERNEL LOOPING\n");
 

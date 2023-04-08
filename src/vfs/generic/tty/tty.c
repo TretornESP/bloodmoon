@@ -7,20 +7,19 @@
 
 int tty_id = 0;
 
+
 struct tty* tty_register_device(const char * device, const char * mountpoint, uint8_t mode) {
+    if (strncmp(device, "/dev/com", 8)) return;
+    if (mode != TTY_MODE_RAW && mode != TTY_MODE_CANONICAL) return;
+
     struct tty* tty = (struct tty*)calloc(1, sizeof(struct tty));
     if (!tty) return 0;
-
-    if (strncmp(device, "/dev/com", 8)) return;
 
     int comm = atoi(device + 8);
     struct serial_device * serial_dev = get_serial_by_comm(comm);
 
     tty->com_port = serial_dev->port;
-    if (mode == TTY_MODE_RAW || mode == TTY_MODE_CANONICAL)
-        tty->mode = mode; //TODO: Support alternative tty modes
-    else
-        tty->mode = TTY_MODE_RAW;
+    tty->mode = mode;
     tty->id = tty_id++;
     snprintf(tty->name, 32, "%s", mountpoint);
 

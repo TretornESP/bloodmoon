@@ -2,9 +2,12 @@
 #define _TTY_H
 
 #include <stdint.h>
+#include "../../../drivers/serial/serial.h"
+
 #define TTY_MODE_CANONICAL 0
 #define TTY_MODE_RAW 1
-
+#define TTY_SIGNAL_READ 0
+#define TTY_SIGNAL_WRITE 1
 
 struct tty_buffer {
     void * page;
@@ -16,9 +19,9 @@ struct tty {
     char name[32];
     int id;
     int mode;
+    int com_port;
     struct tty_buffer * input;
     struct tty_buffer * output;
-    int com_port;
     void (*signal_handler)(int);
 };
 

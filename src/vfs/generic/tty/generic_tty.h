@@ -13,13 +13,27 @@ struct tty* tty_devices[MAX_TTY_DEVICES] = {0};
 // 0 all okey
 // 1 error
 
+void tty_read_callback(char c, int port) {
+    for (int i = 0; i < MAX_TTY_DEVICES; i++) {
+        if (tty_devices[i] != 0) {
+            if (tty_devices[i]->com_port == port) {
+                tty_buffer_write(tty_device // todo: 08/04/2023
+                if (tty_devices[i]->signal_handler != 0) {
+                    tty_devices[i]->signal_handler(TTY_SIGNAL_READ);
+                }
+            }
+        }
+    }
+}
+
 int tty_compat_register_device(const char* device, uint32_t mode, const char* mountpoint) {
     for (int i = 0; i < MAX_TTY_DEVICES; i++) {
         if (tty_devices[i] == 0) {
-            tty_devices[i] = tty_register_device(device, mountpoint, mode);
+            tty_devices[i] = tty_register_device(structdevice, mountpoint, mode);
             if (tty_devices[i] == 0) {
                 return -1;
             }
+            
             return i;
         }
     }
