@@ -4,6 +4,8 @@
 
 #include "../../io/interrupts.h"
 
+#define SERIAL_READ 1
+#define SERIAL_WRITE 2
 #define SERIAL_BUFFER_SIZE 1024
 #define MAX_COM_DEVICES 2
 #define SERIAL_OF_IRQ 0x91
@@ -20,14 +22,19 @@
 //Inb: Buffer that hold what the serial port is sending to this computer
 //Outb: Buffer that hold what this computer is sending to the serial port
 
+struct serial_subscriber {
+    void (*handler)(char c, int port);
+    struct serial_subscriber * next;
+};
+
 struct serial_device {
     int valid;
     int port;
     int irq;
 
     void (*handler)(struct interrupt_frame *frame);
-    void (*write_handler)(char c, int port);
-    void (*read_handler)(char c, int port);
+    struct serial_subscriber * read_subscribers;
+    struct serial_subscriber * write_subscribers;
 
     char * inb;
     int inb_size;
@@ -43,13 +50,14 @@ struct serial_device {
 void init_serial(int inbs, int outbs);
 
 struct serial_device* get_serial(int port);
+struct serial_device* get_serial_by_comm(int comm);
 volatile struct serial_device* get_last_interrupted_serial();
 
 void serial_read_event_add(int port, void (*handler)(char c, int port));
-void serial_read_event_remove(int port);
+void serial_read_event_remove(int port, void (*handler)(char c, int port));
 
 void serial_write_event_add(int port, void (*handler)(char c, int port));
-void serial_write_event_remove(int port);
+void serial_write_event_remove(int port, void (*handler)(char c, int port));
 
 void serial_flush(int port);
 void serial_write(int port, char c);

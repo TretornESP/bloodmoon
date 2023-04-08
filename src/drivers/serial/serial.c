@@ -4,6 +4,7 @@
 #include "../../memory/heap.h"
 
 #include "../../util/printf.h"
+#include "../../util/string.h"
 
 #include <stdint.h>
 
@@ -28,32 +29,32 @@ struct serial_device serial_devices[] = {
       .port = DEFAULT_COM1_PORT,
       .irq = IRQ_COM1,
       .handler = COM1_HANDLER,
-      .read_handler = 0,
-      .write_handler = 0,
+      .read_subscribers = 0,
+      .write_subscribers = 0,
       .valid = 0
    },
    {
       .port = DEFAULT_COM2_PORT,
       .irq = IRQ_COM2,
       .handler = COM2_HANDLER,
-      .read_handler = 0,
-      .write_handler = 0,
+      .read_subscribers = 0,
+      .write_subscribers = 0,
       .valid = 0
    },
    {
       .port = DEFAULT_COM3_PORT,
       .irq = IRQ_COM3,
       .handler = COM3_HANDLER,
-      .read_handler = 0,
-      .write_handler = 0,
+      .read_subscribers = 0,
+      .write_subscribers = 0,
       .valid = 0
    },
    {
       .port = DEFAULT_COM4_PORT,
       .irq = IRQ_COM4,
       .handler = COM4_HANDLER,
-      .read_handler = 0,
-      .write_handler = 0,
+      .read_subscribers = 0,
+      .write_subscribers = 0,
       .valid = 0
    }
 };
@@ -80,13 +81,69 @@ void write_serial(int port, char a) {
    outb(port,a);
 }
 
+void add_subscriber(struct serial_device* device, uint8_t type, void* handler) {
+   struct serial_subscriber* subscriber;
+   if (type == SERIAL_READ) {
+      subscriber = device->read_subscribers;
+   } else if (type == SERIAL_WRITE) {
+      subscriber = device->write_subscribers;
+   } else {
+      return;
+   }
+
+   while (subscriber->next) {
+      subscriber = subscriber->next;
+   }
+
+   subscriber->next = malloc(sizeof(struct serial_subscriber));
+   subscriber->next->handler = handler;
+   subscriber->next->next = 0;
+}
+
+void remove_subscriber(struct serial_device* device, uint8_t type, void* handler) {
+   struct serial_subscriber* subscriber;
+   if (type == SERIAL_READ) {
+      subscriber = device->read_subscribers;
+   } else if (type == SERIAL_WRITE) {
+      subscriber = device->write_subscribers;
+   } else {
+      return;
+   }
+
+   while (subscriber->next) {
+      if (subscriber->next->handler == handler) {
+         struct serial_subscriber* to_remove = subscriber->next;
+         subscriber->next = subscriber->next->next;
+         free(to_remove);
+         return;
+      }
+      subscriber = subscriber->next;
+   }
+}
+
+void run_subscribers(struct serial_device* device, uint8_t type, char c) {
+   struct serial_subscriber* subscriber;
+   if (type == SERIAL_READ) {
+      subscriber = device->read_subscribers;
+   } else if (type == SERIAL_WRITE) {
+      subscriber = device->write_subscribers;
+   } else {
+      return;
+   }
+
+   while (subscriber->next) {
+      subscriber = subscriber->next;
+      subscriber->handler(c, device->port);
+   }
+}
+
 void write_inb(struct serial_device* device, char c) {
    device->inb[device->inb_write++] = c;
    if (device->inb_write >= device->inb_size) device->inb_write = 0;
    if (device->inb_write == device->inb_read) {
       raise_interrupt(SERIAL_OF_IRQ);
    }
-   if (device->write_handler) device->write_handler(c, device->port);
+   run_subscribers(device, SERIAL_WRITE, c);
 }
 
 char read_inb(struct serial_device* device) {
@@ -94,7 +151,7 @@ char read_inb(struct serial_device* device) {
    if (device->inb_read == device->inb_write) return 0; //No data available
    char c = device->inb[device->inb_read++];
    if (device->inb_read >= device->inb_size) device->inb_read = 0;
-   if (device->read_handler) device->read_handler(c, device->port);
+   run_subscribers(device, SERIAL_READ, c);
    return c;
 }
 
@@ -104,14 +161,14 @@ void write_outb(struct serial_device* device, char c) {
    if (device->outb_write == device->outb_read) {
       raise_interrupt(SERIAL_OF_IRQ);
    }
-   if (device->write_handler) device->write_handler(c, device->port);
+   run_subscribers(device, SERIAL_WRITE, c);
 }
 
 char read_outb(struct serial_device* device) {
    if (device->outb_read == device->outb_write) return 0; //No data available
    char c = device->outb[device->outb_read++];
    if (device->outb_read >= device->outb_size) device->outb_read = 0;
-   if (device->read_handler) device->read_handler(c, device->port);
+   run_subscribers(device, SERIAL_READ, c);
    return c;
 }
 
@@ -155,6 +212,12 @@ __attribute__((interrupt)) void COM4_HANDLER(struct interrupt_frame * frame) {
    pic_eoi(device->irq);
 }
 
+struct serial_device* get_serial_by_comm(int comm) {
+   if (!initialized) return 0;
+   if (comm < 0 || comm >= MAX_COM_DEVICES) return 0;
+   if (!serial_devices[comm].valid) return 0;
+   return &(serial_devices[comm]);
+}
 
 struct serial_device* get_serial(int port) {
    if (!initialized) return 0;
@@ -216,11 +279,19 @@ void init_serial(int inbs, int outbs) {
          device->inb_size = inbs;
          device->outb_size = outbs;
          device->inb = (char*)calloc(1, inbs);
+         memset(device->inb, 0, inbs);
          device->outb = (char*)calloc(1, outbs);
+         memset(device->outb, 0, outbs);
          device->inb_read = 0;
          device->outb_read = 0;
          device->inb_write = 0;
          device->outb_write = 0;
+         device->read_subscribers = malloc(sizeof(struct serial_subscriber));
+         device->write_subscribers = malloc(sizeof(struct serial_subscriber));
+         device->read_subscribers->next = 0;
+         device->write_subscribers->next = 0;
+         device->read_subscribers->handler = 0;
+         device->write_subscribers->handler = 0;
 
          if (device->inb && device->outb) {
             enable_serial_int(device);
@@ -239,16 +310,16 @@ void serial_read_event_add(int port, void (*handler)(char c, int port)) {
    struct serial_device* device = get_serial(port);
    if (!device) return;
 
-   device->read_handler = handler;
+   add_subscriber(device, SERIAL_READ, handler);
 }
 
-void serial_read_event_remove(int port) {
+void serial_read_event_remove(int port, void (*handler)(char c, int port)) {
    if (!initialized) return;
 
    struct serial_device* device = get_serial(port);
    if (!device) return;
 
-   device->read_handler = 0;
+   remove_subscriber(device, SERIAL_READ, handler);
 }
 
 void serial_write_event_add(int port, void (*handler)(char c, int port)) {
@@ -257,16 +328,16 @@ void serial_write_event_add(int port, void (*handler)(char c, int port)) {
    struct serial_device* device = get_serial(port);
    if (!device) return;
 
-   device->write_handler = handler;
+   add_subscriber(device, SERIAL_WRITE, handler);
 }
 
-void serial_write_event_remove(int port) {
+void serial_write_event_remove(int port, void (*handler)(char c, int port)) {
    if (!initialized) return;
 
    struct serial_device* device = get_serial(port);
    if (!device) return;
 
-   device->write_handler = 0;
+   remove_subscriber(device, SERIAL_WRITE, handler);
 }
 
 void serial_flush(int port) {

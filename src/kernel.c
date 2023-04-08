@@ -33,6 +33,22 @@
 
 #include "test/tests.h"
 
+void read_serial_cb1(char c, int port) {
+    printf("rcb1[%d] %c\n", port, c);
+}
+
+void write_serial_cb1(char c, int port) {
+    printf("wcb1[%d] %c\n", port, c);
+}
+
+void read_serial_cb2(char c, int port) {
+    printf("rcb2[%d] %c\n", port, c);
+}
+
+void write_serial_cb2(char c, int port) {
+    printf("wcb2[%d] %c\n", port, c);
+}
+
 void _start(void) {
     init_simd();
     init_memory();
@@ -49,6 +65,14 @@ void _start(void) {
     init_vfs();
     init_serial(4096, 4096);
     pseudo_ps();
+
+    serial_read_event_add(DEFAULT_COM1_PORT, read_serial_cb1);
+    serial_write_event_add(DEFAULT_COM1_PORT, write_serial_cb1);
+    serial_read_event_add(DEFAULT_COM1_PORT, read_serial_cb2);
+    serial_write_event_add(DEFAULT_COM1_PORT, write_serial_cb2);
+    serial_read_event_remove(DEFAULT_COM1_PORT, read_serial_cb1);
+    serial_write_event_remove(DEFAULT_COM1_PORT, write_serial_cb1);
+    
 
     printf("KERNEL LOOPING\n");
 

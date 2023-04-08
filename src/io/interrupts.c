@@ -315,7 +315,7 @@ void init_interrupts(uint8_t pit_disable) {
 
     init_keyboard();
 
-    outb(PIC1_DATA, 0xe1 + pit_disable); //PIT IS DISABLED
+    outb(PIC1_DATA, 0xe0 + pit_disable); //PIT IS DISABLED
     outb(PIC2_DATA, 0xef);
 
     dbg_print("Interrupts initialized\n");

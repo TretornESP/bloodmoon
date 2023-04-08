@@ -2,6 +2,9 @@
 #define _TTY_H
 
 #include <stdint.h>
+#define TTY_MODE_CANONICAL 0
+#define TTY_MODE_RAW 1
+
 
 struct tty_buffer {
     void * page;
@@ -15,7 +18,6 @@ struct tty {
     int mode;
     struct tty_buffer * input;
     struct tty_buffer * output;
-    int signal;
     int com_port;
     void (*signal_handler)(int);
 };

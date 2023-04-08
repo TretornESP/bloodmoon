@@ -13,11 +13,10 @@ struct tty* tty_devices[MAX_TTY_DEVICES] = {0};
 // 0 all okey
 // 1 error
 
-int tty_compat_register_device(const char* device, uint32_t unused, const char* mountpoint) {
-    (void)unused;
+int tty_compat_register_device(const char* device, uint32_t mode, const char* mountpoint) {
     for (int i = 0; i < MAX_TTY_DEVICES; i++) {
         if (tty_devices[i] == 0) {
-            tty_devices[i] = tty_register_device(device, mountpoint);
+            tty_devices[i] = tty_register_device(device, mountpoint, mode);
             if (tty_devices[i] == 0) {
                 return -1;
             }
