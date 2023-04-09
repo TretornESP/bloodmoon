@@ -9,6 +9,8 @@ struct device_driver char_device_drivers[256] = {0};
 struct device_driver block_device_drivers[256] = {0};
 struct device* devices;
 
+
+
 void insert_device(uint8_t major, struct pci_device_header* pci, const char * prefix, uint8_t id) {
     char name[32];
     memset(name, 0, 32);
