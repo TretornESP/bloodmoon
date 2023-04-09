@@ -6,6 +6,8 @@
 #include "../../util/printf.h"
 #include "../../util/string.h"
 
+#include "../../dev/devices.h"
+
 #include <stdint.h>
 
 __attribute__((interrupt)) void COM1_HANDLER(struct interrupt_frame * frame);
@@ -370,3 +372,9 @@ char serial_read(int port) {
 
    return read_inb(device);
 }
+
+struct file_operations serial_fops = {
+    .read = dd_disk_read,
+    .write = dd_disk_write,
+    .ioctl = dd_ioctl
+};
