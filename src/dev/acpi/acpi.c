@@ -106,7 +106,7 @@ void* init_acpi_vz(void* rsdp_address) {
     return (void*)mcfg;
 }
 
-void init_acpi() {
+struct mcfg_header* get_acpi_mcfg() {
     char signature[9];
     char oemid[7];
     char oemtableid[9];
@@ -132,5 +132,5 @@ void init_acpi() {
         mcfg_header->header.oem_revision, mcfg_header->header.creator_id, mcfg_header->header.creator_revision
     );
 
-    enumerate_pci(mcfg_header);
+    return mcfg_header;
 }

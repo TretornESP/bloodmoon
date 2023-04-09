@@ -55,5 +55,5 @@ struct device_config {
     uint32_t reserved;
 };
 
-void init_acpi();
+struct mcfg_header* get_acpi_mcfg();
 #endif

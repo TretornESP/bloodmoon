@@ -253,6 +253,11 @@ struct pci_device_header_0 {
     uint8_t max_latency;
 } __attribute__ ((packed));
 
-void enumerate_pci(struct mcfg_header *);
-struct pci_device_header* get_device_header();
+const char* get_vendor_name(uint16_t);
+const char* get_device_name(uint16_t, uint16_t);
+const char* get_device_class(uint8_t);
+const char* get_subclass_name(uint8_t, uint8_t);
+const char* get_prog_interface(uint8_t, uint8_t, uint8_t);
+
+void register_pci(struct mcfg_header *);
 #endif

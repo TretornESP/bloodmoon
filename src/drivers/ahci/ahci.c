@@ -10,6 +10,7 @@ struct ahci_port ahci_ports[32];
 uint8_t port_count = 0;
 
 uint8_t get_port_count() {
+    if ((uint64_t)abar == 0) return 0;
     return port_count;
 }
 
@@ -28,6 +29,7 @@ int8_t find_cmd_slot(struct ahci_port* port) {
 }
 
 uint8_t identify(uint8_t port_no) {
+    if ((uint64_t)abar == 0) return 0;
     struct ahci_port* port = &ahci_ports[port_no];
     port->hba_port->interrupt_status = (uint32_t)-1;
 
@@ -86,6 +88,7 @@ uint8_t identify(uint8_t port_no) {
 }
 
 uint8_t write_atapi_port(uint8_t port_no, uint64_t sector, uint32_t sector_count) {
+    if ((uint64_t)abar == 0) return 0;
     uint32_t useless = port_no+sector+sector_count;
     useless += 1;
     panic("write_atapi_port not implemented"); return 0;
@@ -93,6 +96,7 @@ uint8_t write_atapi_port(uint8_t port_no, uint64_t sector, uint32_t sector_count
 
 uint8_t read_atapi_port(uint8_t port_no, uint64_t sector, uint32_t sector_count) {
     //printf("Atapi read issued (port %d, sector %d, sector_count %d)\n", port_no, sector, sector_count);
+    if ((uint64_t)abar == 0) return 0;
 
     struct ahci_port* port = &ahci_ports[port_no];
     void* buffer = port->buffer;
@@ -171,6 +175,8 @@ uint8_t read_atapi_port(uint8_t port_no, uint64_t sector, uint32_t sector_count)
 }
 
 uint8_t read_port(uint8_t port_no, uint64_t sector, uint32_t sector_count) {
+    if ((uint64_t)abar == 0) return 0;
+
     struct ahci_port* port = &ahci_ports[port_no];
 
     uint32_t sector_low = (uint32_t)sector;
@@ -252,6 +258,8 @@ uint8_t read_port(uint8_t port_no, uint64_t sector, uint32_t sector_count) {
 }
 
 uint8_t write_port(uint8_t port_no, uint64_t sector, uint32_t sector_count) {
+    if ((uint64_t)abar == 0) return 0;
+
     struct ahci_port* port = &ahci_ports[port_no];
 
     uint32_t sector_low = (uint32_t)sector;
@@ -333,6 +341,8 @@ uint8_t write_port(uint8_t port_no, uint64_t sector, uint32_t sector_count) {
 }
 
 uint8_t* get_buffer(uint8_t port_no) {
+    if ((uint64_t)abar == 0) return 0;
+
     return ahci_ports[port_no].buffer;
 }
 
@@ -405,6 +415,8 @@ enum port_type check_port_type(struct hba_port* port) {
 }
 
 enum port_type get_port_type(uint8_t port_no) {
+    if ((uint64_t)abar == 0) return 0;
+
     return ahci_ports[port_no].port_type;
 }
 
