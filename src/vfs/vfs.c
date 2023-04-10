@@ -68,7 +68,12 @@ void register_filesystem(struct vfs_compatible * registrar) {
             panic("[VFS] File system type with same name already registered\n");
         fst = fst->next;
     }
+    
+    for (int i = 0; i < registrar->major_no; i++) {
+        fst->majors[i] = registrar->majors[i];
+    }
 
+    fst->major_no = registrar->major_no;
     fst->register_partition = registrar->register_partition;
     fst->unregister_partition = registrar->unregister_partition;
     fst->detect = registrar->detect;
@@ -138,6 +143,20 @@ uint8_t mount_fs(struct device* dev, struct vfs_partition* partition, const char
 
     int fs_idx = 0;
     while (fst->next != 0) {
+        int supported_major_number = fst->major_no;
+        int found = 0;
+        
+        for (int i = 0; i < supported_major_number; i++) {
+            if (fst->majors[i] == dev->major) {
+                found = 1;
+                break;
+            }
+        }
+        if (!found) {
+            fst = fst->next;
+            fs_idx++;
+            continue;
+        }
         if (fst->detect(dev->name, partition->lba)) {
             printf("[VFS] Detected %s on %s, trying to mount on %s\n", fst->name, dev->name, mountpoint);
             int ret = fst->register_partition(dev->name, partition->lba, mountpoint);
@@ -154,14 +173,22 @@ uint8_t mount_fs(struct device* dev, struct vfs_partition* partition, const char
         fs_idx++;
     }
     
-    printf("[VFS] Unknown fs, mount is impossible!!!!\n");
+    printf("[VFS] Device %s is not supported by any fs\n", dev->name);
     return 0;
 }
 
 uint32_t detect_partitions(struct device* dev, struct vfs_partition* part) {
-    uint32_t partition_number = read_gpt(dev->name, part, add_partition);
-    if (partition_number == 0) {
-        partition_number = read_mbr(dev->name, part, add_partition);
+    uint32_t partition_number = 0;
+    if (dev->major < 8 || dev->major > 0xc) {
+        partition_number = 1;
+        add_partition(part, 0, 0, 0, 0);
+    } else {
+        if (partition_number == 0) {
+            partition_number = read_gpt(dev->name, part, add_partition);
+        }
+        if (partition_number == 0) {
+            partition_number = read_mbr(dev->name, part, add_partition);
+        }
     }
     return partition_number;
 }

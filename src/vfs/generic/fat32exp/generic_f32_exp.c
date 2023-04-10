@@ -100,7 +100,8 @@ int f32exp_compat_flush(int index) {
 
 struct vfs_compatible fat32_exp_register = {
     .name = "FAT32EXP",
-
+    .majors = {0x8, 0x9, 0xa, 0xb, 0xc},
+    .major_no = 5,
     .register_partition = fat32exp_compat_register_partition,
     .unregister_partition = fat32exp_compat_unregister_partition,
     .detect = fat32exp_compat_detect_partition,

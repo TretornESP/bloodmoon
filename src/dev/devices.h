@@ -13,15 +13,15 @@
 struct file_operations {
     //struct module *owner;
     //loff_t (*llseek) (struct file *, loff_t, int);
-    uint64_t (*read) (uint8_t, uint64_t, uint64_t, uint8_t*);
-    uint64_t (*write) (uint8_t, uint64_t, uint64_t, uint8_t*);
+    uint64_t (*read) (uint64_t, uint64_t, uint64_t, uint8_t*);
+    uint64_t (*write) (uint64_t, uint64_t, uint64_t, uint8_t*);
     //ssize_t (*read_iter) (struct kiocb *, struct iov_iter *);
     //ssize_t (*write_iter) (struct kiocb *, struct iov_iter *);
     //int (*iopoll)(struct kiocb *kiocb, bool spin);
     //int (*iterate) (struct file *, struct dir_context *);
     //int (*iterate_shared) (struct file *, struct dir_context *);
     //__poll_t (*poll) (struct file *, struct poll_table_struct *);
-    uint64_t (*ioctl) (uint8_t, uint32_t, void*);
+    uint64_t (*ioctl) (uint64_t, uint32_t, void*);
     //long (*compat_ioctl) (struct file *, unsigned int, unsigned long);
     //int (*mmap) (struct file *, struct vm_area_struct *);
     //unsigned long mmap_supported_flags;
@@ -60,7 +60,7 @@ struct device {
     uint8_t major;
     uint8_t minor;
     char name[DEVICE_NAME_SIZE];
-    uint8_t internal_id;
+    uint64_t internal_id;
     struct pci_device_header *pci;
     struct device *next;
 };

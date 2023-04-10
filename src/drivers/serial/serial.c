@@ -6,8 +6,6 @@
 #include "../../util/printf.h"
 #include "../../util/string.h"
 
-#include "../../dev/devices.h"
-
 #include <stdint.h>
 
 __attribute__((interrupt)) void COM1_HANDLER(struct interrupt_frame * frame);
@@ -306,6 +304,27 @@ void init_serial(int inbs, int outbs) {
    initialized = 1;
 }
 
+void serial_get_ports(int * ports) {
+   if (!initialized) return;
+   for (int i = 0; i < MAX_COM_DEVICES; i++) {
+      if (serial_devices[i].valid) {
+         *ports = serial_devices[i].port;
+         ports++;
+      }
+   }
+}
+
+int serial_count_ports() {
+   if (!initialized) return 0;
+   int valid = 0;
+   for (int i = 0; i < MAX_COM_DEVICES; i++) {
+      if (serial_devices[i].valid) {
+         valid++;
+      }
+   }
+   return valid;
+}
+
 void serial_read_event_add(int port, void (*handler)(char c, int port)) {
    if (!initialized) return;
 
@@ -342,7 +361,7 @@ void serial_write_event_remove(int port, void (*handler)(char c, int port)) {
    remove_subscriber(device, SERIAL_WRITE, handler);
 }
 
-void serial_flush(int port) {
+void _serial_flush(int port) {
    if (!initialized) return;
 
    struct serial_device* device = get_serial(port);
@@ -355,7 +374,7 @@ void serial_flush(int port) {
    } while (c != 0);
 }
 
-void serial_write(int port, char c) {
+void _serial_write(int port, char c) {
    if (!initialized) return;
 
    struct serial_device* device = get_serial(port);
@@ -364,7 +383,7 @@ void serial_write(int port, char c) {
    write_outb(device, c);
 }
 
-char serial_read(int port) {
+char _serial_read(int port) {
    if (!initialized) return 0;
 
    struct serial_device* device = get_serial(port);
@@ -372,9 +391,3 @@ char serial_read(int port) {
 
    return read_inb(device);
 }
-
-struct file_operations serial_fops = {
-    //.read = dd_disk_read, TODO
-    //.write = dd_disk_write,
-    //.ioctl = dd_ioctl
-};

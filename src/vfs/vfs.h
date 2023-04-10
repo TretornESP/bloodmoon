@@ -20,6 +20,8 @@
 
 struct vfs_file_system_type {
 	char name[32];
+    char majors[256];
+    int major_no;
     int (*register_partition)(const char*, uint32_t, const char*);
     uint8_t (*unregister_partition)(int);
     uint8_t (*detect)(const char *, uint32_t);

@@ -240,7 +240,7 @@ const char* get_prog_interface(uint8_t class_code, uint8_t subclass_code, uint8_
     return itoa(prog_interface, 16);
 }
 
-void register_pci_device(struct pci_device_header* pci, void (*cb)(struct pci_device_header*, uint8_t, uint8_t)) {
+void register_pci_device(struct pci_device_header* pci, void (*cb)(struct pci_device_header*, uint8_t, uint64_t)) {
     printf("Device detected: %x, %x, %x\n", pci->class_code, pci->subclass, pci->prog_if);
     switch (pci->class_code){
         case 0x01: {
@@ -248,7 +248,7 @@ void register_pci_device(struct pci_device_header* pci, void (*cb)(struct pci_de
                 case 0x06: {
                     switch (pci->prog_if){
                         case 0x01:
-                            init_ahci(pci); //TODO: Careful. This is a dynamic driver startup.
+                            init_ahci(((struct pci_device_header_0*)pci)->bar5);//TODO: Careful. This is a dynamic driver startup.
                             for (int i = 0; i < get_port_count(); i++) {
                                 switch (get_port_type(i)) {
                                     case PORT_TYPE_SATA:
@@ -280,7 +280,7 @@ void register_pci_device(struct pci_device_header* pci, void (*cb)(struct pci_de
     }
 }
 
-void enumerate_function(uint64_t device_address, uint64_t function, void (*cb)(struct pci_device_header*, uint8_t, uint8_t)) {
+void enumerate_function(uint64_t device_address, uint64_t function, void (*cb)(struct pci_device_header*, uint8_t, uint64_t)) {
 
     uint64_t offset = function << 12;
 
@@ -304,7 +304,7 @@ void enumerate_function(uint64_t device_address, uint64_t function, void (*cb)(s
     register_pci_device(pci_device_header, cb);
 }
 
-void enumerate_device(uint64_t bus_address, uint64_t device, void (*cb)(struct pci_device_header*, uint8_t, uint8_t)) {
+void enumerate_device(uint64_t bus_address, uint64_t device, void (*cb)(struct pci_device_header*, uint8_t, uint64_t)) {
     uint64_t offset = device << 15;
 
     uint64_t device_address = bus_address + offset;
@@ -320,7 +320,7 @@ void enumerate_device(uint64_t bus_address, uint64_t device, void (*cb)(struct p
     }
 }
 
-void enumerate_bus(uint64_t base_address, uint64_t bus, void (*cb)(struct pci_device_header*, uint8_t, uint8_t)) {
+void enumerate_bus(uint64_t base_address, uint64_t bus, void (*cb)(struct pci_device_header*, uint8_t, uint64_t)) {
     uint64_t offset = bus << 20;
 
     uint64_t bus_address = base_address + offset;
@@ -336,7 +336,7 @@ void enumerate_bus(uint64_t base_address, uint64_t bus, void (*cb)(struct pci_de
     }
 }
 
-void register_pci(struct mcfg_header *mcfg, void (*cb)(struct pci_device_header*, uint8_t, uint8_t)) {
+void register_pci(struct mcfg_header *mcfg, void (*cb)(struct pci_device_header*, uint8_t, uint64_t)) {
     uint64_t entries = ((mcfg->header.length) - sizeof(struct mcfg_header)) / sizeof(struct device_config);
 
     for (uint64_t i = 0; i < entries; i++) {

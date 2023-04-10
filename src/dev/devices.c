@@ -3,6 +3,7 @@
 #include "../util/dbgprinter.h"
 #include "../util/string.h"
 #include "../util/printf.h"
+#include "comm/comm.h"
 
 struct device_driver char_device_drivers[256] = {0};
 struct device_driver block_device_drivers[256] = {0};
@@ -22,16 +23,17 @@ const char* device_identifiers[] = {
     "semb", // a
     "pm",   // b
     "umsd", // c
-    "serial", // d
+    "none", // d
     "tty", // e
     "kbd", // f
     "mouse", // 10
     "none", // 11
     "none", // 12
-    "none" // 13
+    "none", // 13
+    [0x8d] = "serial", // 80
 };
 
-void insert_device(uint8_t major, struct pci_device_header* pci, const char * prefix, uint8_t id) {
+void insert_device(uint8_t major, struct pci_device_header* pci, const char * prefix, uint64_t id) {
     char name[32];
     memset(name, 0, 32);
 
@@ -59,8 +61,12 @@ void insert_device(uint8_t major, struct pci_device_header* pci, const char * pr
     device->internal_id = id;
 }
 
-void insert_pci_device(struct pci_device_header* pci, uint8_t major, uint8_t id) {
+void insert_pci_device(struct pci_device_header* pci, uint8_t major, uint64_t id) {
     insert_device(major, pci, device_identifiers[major], id);
+}
+
+void insert_comm_device(uint8_t major, uint64_t port) {
+    insert_device(major, 0, device_identifiers[major], port);
 }
 
 void register_char(uint8_t major, const char* name, struct file_operations* fops) {
@@ -93,6 +99,7 @@ void init_devices() {
     if (header != 0) {
         register_pci(header, insert_pci_device);
     }
+    register_comm(insert_comm_device);
 }
 
 void device_list() {
@@ -153,8 +160,12 @@ uint64_t device_read(const char * device, uint64_t size, uint64_t offset, uint8_
     while (dev->valid) {
         if (memcmp((void*)dev->name, (void*)device, strlen(device)) == 0) {
             if (dev->bc == 0) {
+                if (!block_device_drivers[dev->major].registered)
+                    return 0;
                 return block_device_drivers[dev->major].fops->read(dev->internal_id, size, offset, buffer);
             } else {
+                if (!char_device_drivers[dev->major].registered)
+                    return 0;
                 return char_device_drivers[dev->major].fops->read(dev->internal_id, size, offset, buffer);
             }
         }
@@ -169,8 +180,12 @@ uint64_t device_write(const char * device, uint64_t size, uint64_t offset, uint8
     do {
         if (memcmp((void*)dev->name, (void*)device, strlen(device)) == 0) {
             if (dev->bc == 0) {
+                if (!block_device_drivers[dev->major].registered)
+                    return 0;
                 return block_device_drivers[dev->major].fops->write(dev->internal_id, size, offset, buffer);
             } else {
+                if (!char_device_drivers[dev->major].registered)
+                    return 0;
                 return char_device_drivers[dev->major].fops->write(dev->internal_id, size, offset, buffer);
             }
         }
@@ -184,8 +199,12 @@ uint64_t device_ioctl (const char * device, uint32_t op, void* buffer) {
     do {
         if (memcmp((void*)dev->name, (void*)device, strlen(device)) == 0) {
             if (dev->bc == 0) {
+                if (!block_device_drivers[dev->major].registered)
+                    return 0;
                 return block_device_drivers[dev->major].fops->ioctl(dev->internal_id, op, buffer);
             } else {
+                if (!char_device_drivers[dev->major].registered)
+                    return 0;
                 return char_device_drivers[dev->major].fops->ioctl(dev->internal_id, op, buffer);
             }
         }

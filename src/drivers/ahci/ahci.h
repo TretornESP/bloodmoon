@@ -1,6 +1,5 @@
 #ifndef _AHCI_H
 #define _AHCI_H
-#include "../../dev/pci/pci.h" //TODO: This dependency will die
 #include <stdint.h>
 
 #define SATA_SIG_ATAPI 0xEB140101
@@ -167,7 +166,7 @@ struct hba_command_table {
     struct hba_prdt_entry prdt_entry[32];
 } __attribute__ ((packed));
 
-void init_ahci(struct pci_device_header*);
+void init_ahci(uint32_t);
 
 uint8_t identify(uint8_t);
 uint8_t read_port(uint8_t, uint64_t, uint32_t);

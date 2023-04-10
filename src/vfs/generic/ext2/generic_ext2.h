@@ -267,6 +267,8 @@ int ext2_compat_chmod(int partno, const char* path, int mode) {return -1;}
 
 struct vfs_compatible ext2_register = {
     .name = "EXT2",
+    .majors = {0x8, 0x9, 0xa, 0xb, 0xc},
+    .major_no = 5,
     .register_partition = ext2_compat_register_partition,
     .unregister_partition = ext2_compat_unregister_partition,
     .detect = ext2_compat_detect,

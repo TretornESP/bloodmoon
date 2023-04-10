@@ -53,13 +53,22 @@ struct serial_device* get_serial(int port);
 struct serial_device* get_serial_by_comm(int comm);
 volatile struct serial_device* get_last_interrupted_serial();
 
+void serial_get_ports(int * ports);
+int  serial_count_ports();
+
 void serial_read_event_add(int port, void (*handler)(char c, int port));
 void serial_read_event_remove(int port, void (*handler)(char c, int port));
 
 void serial_write_event_add(int port, void (*handler)(char c, int port));
 void serial_write_event_remove(int port, void (*handler)(char c, int port));
 
-void serial_flush(int port);
-void serial_write(int port, char c);
-char serial_read(int port);
+void _serial_flush(int port);
+void _serial_write(int port, char c);
+char _serial_read(int port);
+
+void write_inb(struct serial_device* device, char c);
+char read_inb(struct serial_device* device);
+void write_outb(struct serial_device* device, char c);
+char read_outb(struct serial_device* device);
+
 #endif

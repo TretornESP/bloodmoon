@@ -5,10 +5,10 @@
 #include "../../util/dbgprinter.h"
 #include "../../dev/devices.h"
 
-uint64_t dd_disk_read(uint8_t port, uint64_t size, uint64_t offset, uint8_t* buffer) {
-    uint8_t * hw_buffer = get_buffer(port);
+uint64_t dd_disk_read(uint64_t port, uint64_t size, uint64_t offset, uint8_t* buffer) {
+    uint8_t * hw_buffer = get_buffer((uint8_t)port);
     for (uint64_t i = 0; i < size; i++) {
-        if (read_port(port, offset+i, 1)) {
+        if (read_port((uint8_t)port, offset+i, 1)) {
             memcpy(buffer + (512*i), hw_buffer, 512);
         } else {
             return i;
@@ -17,47 +17,47 @@ uint64_t dd_disk_read(uint8_t port, uint64_t size, uint64_t offset, uint8_t* buf
     return size;
 }
 
-uint64_t dd_disk_write(uint8_t port, uint64_t size, uint64_t offset, uint8_t* buffer) {
-    uint8_t * hw_buffer = get_buffer(port);
+uint64_t dd_disk_write(uint64_t port, uint64_t size, uint64_t offset, uint8_t* buffer) {
+    uint8_t * hw_buffer = get_buffer((uint8_t)port);
     
     for (uint64_t i = 0; i < size; i++) {
         memcpy(hw_buffer, buffer + (512*i), 512);
-        if (!write_port(port, offset+i, 1)) {
+        if (!write_port((uint8_t)port, offset+i, 1)) {
             return i;
         }
     }
     return size;
 }
 
-uint64_t dd_disk_atapi_read(uint8_t port, uint64_t size, uint64_t offset, uint8_t* buffer) {
+uint64_t dd_disk_atapi_read(uint64_t port, uint64_t size, uint64_t offset, uint8_t* buffer) {
     if (offset != 0)
         printf("WARNING: ATAPI READS ARE NOT WORKING WELL, AN OFFSET != 0 YIELDS ZEROS\n");
-    uint8_t * hw_buffer = get_buffer(port);
-    if (!read_atapi_port(port, offset, size))
+    uint8_t * hw_buffer = get_buffer((uint8_t)port);
+    if (!read_atapi_port((uint8_t)port, offset, size))
         return 0;
     memcpy(buffer, hw_buffer, 512*size);
     return size;
 }
 
-uint64_t dd_disk_atapi_write(uint8_t port, uint64_t size, uint64_t offset, uint8_t* buffer) {
+uint64_t dd_disk_atapi_write(uint64_t port, uint64_t size, uint64_t offset, uint8_t* buffer) {
     panic("ATAPI WRITE NOT IMPLEMENTED");
-    uint8_t * hw_buffer = get_buffer(port);
+    uint8_t * hw_buffer = get_buffer((uint8_t)port);
     
     for (uint64_t i = 0; i < size; i++) {
         memcpy(hw_buffer, buffer + (512*i), 512);
-        if (!write_port(port, offset+i, 1)) {
+        if (!write_port((uint8_t)port, offset+i, 1)) {
             return i;
         }
     }
     return size;
 }
 
-uint64_t dd_ioctl (uint8_t port, uint32_t op , void* data) {
-    uint8_t * hw_buffer = get_buffer(port);
+uint64_t dd_ioctl (uint64_t port, uint32_t op , void* data) {
+    uint8_t * hw_buffer = get_buffer((uint8_t)port);
 
     switch (op) {
         case IOCTL_ATAPI_IDENTIFY:
-            identify(port);
+            identify((uint8_t)port);
             memcpy(data, hw_buffer, 512);
             break;
         case IOCTL_INIT:
@@ -74,7 +74,7 @@ uint64_t dd_ioctl (uint8_t port, uint32_t op , void* data) {
             return 512;
         }
         case IOCTL_GET_SECTOR_COUNT: {
-            identify(port);
+            identify((uint8_t)port);
             struct sata_ident * sident = (struct sata_ident*) hw_buffer;
             *(uint64_t*)data = sident->CurrentSectorCapacity;
             return sident->CurrentSectorCapacity;

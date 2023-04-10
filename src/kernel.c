@@ -17,7 +17,8 @@
 
 #include "drivers/disk/disk.h"
 #include "drivers/ahci/ahci.h"
-#include "drivers/serial/serial.h"
+#include "drivers/serial/serial_dd.h"
+#include "drivers/serial/serial_interface.h"
 
 #include "util/string.h"
 #include "util/printf.h"
@@ -25,6 +26,8 @@
 #include "vfs/generic/fat32/generic_f32.h"
 #include "vfs/generic/ext2/generic_ext2.h"
 #include "drivers/disk/disk_interface.h"
+
+#include "drivers/keyboard/keyboard.h"
 
 #include "arch/simd.h"
 
@@ -60,15 +63,23 @@ void _start(void) {
     init_smbios_interface();
     init_devices();
     init_drive();
+    init_serial_dd();
     register_filesystem(fat32_registrar);
     register_filesystem(ext2_registrar);
     init_vfs();
-    init_serial(4096, 4096);
     pseudo_ps();  
     device_list();
 
     printf("KERNEL LOOPING\n");
 
+    serial_write_now("seriala", "Hello from COM1\n", 17);
+    halt_until_enter();
+    char buf[256];
+    
+    int res = serial_read("seriala", (uint8_t*)buf, 16);
+    for (int i = 0; i < res; i++) {
+        printf("%c", buf[i]);
+    }
     while(1) {
     }
 

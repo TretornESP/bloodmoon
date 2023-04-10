@@ -108,6 +108,8 @@ typedef struct dir dir_t;
 
 struct vfs_compatible {
     char name[VFS_COMPAT_FS_NAME_MAX_LEN];
+    char majors[256];
+    int major_no;
     int (*register_partition)(const char*, uint32_t, const char*);
     uint8_t (*unregister_partition)(int);
     uint8_t (*detect)(const char*, uint32_t);

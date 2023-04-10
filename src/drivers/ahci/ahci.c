@@ -436,11 +436,11 @@ void probe_ports(struct hba_memory* abar) {
     }
 }
 
-void init_ahci(struct pci_device_header* pci_header) {
+void init_ahci(uint32_t bar5) {
     if ((uint64_t)abar != 0)
         panic("AHCI already initialized\n");
 
-    abar = (struct hba_memory*)(uint64_t)(((struct pci_device_header_0*)pci_header)->bar5);
+    abar = (struct hba_memory*)(uint64_t)(bar5);
 
     map_memory(abar, abar);
     PAGE_DISABLE_CACHE(abar);

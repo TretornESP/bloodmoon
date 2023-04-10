@@ -68,7 +68,8 @@ void f32_compat_debug(void) {}
 
 struct vfs_compatible fat32_register = {
     .name = "FAT32",
-
+    .majors = {0x8, 0x9, 0xa, 0xb, 0xc},
+    .major_no = 5,
     .register_partition = f32_compat_register_partition,
     .unregister_partition = f32_compat_unregister_partition,
     .detect = f32_compat_detect,
