@@ -1,5 +1,4 @@
 #include "devices.h"
-#include "../drivers/ahci/ahci.h"
 #include "../memory/memory.h"
 #include "../util/dbgprinter.h"
 #include "../util/string.h"
@@ -9,7 +8,28 @@ struct device_driver char_device_drivers[256] = {0};
 struct device_driver block_device_drivers[256] = {0};
 struct device* devices;
 
-
+const char* device_identifiers[] = {
+    "none", // 0
+    "none", // 1
+    "none", // 2
+    "none", // 3
+    "none", // 4
+    "none", // 5
+    "none", // 6
+    "none", // 7
+    "hd",   // 8
+    "cd",   // 9
+    "semb", // a
+    "pm",   // b
+    "umsd", // c
+    "serial", // d
+    "tty", // e
+    "kbd", // f
+    "mouse", // 10
+    "none", // 11
+    "none", // 12
+    "none" // 13
+};
 
 void insert_device(uint8_t major, struct pci_device_header* pci, const char * prefix, uint8_t id) {
     char name[32];
@@ -39,44 +59,8 @@ void insert_device(uint8_t major, struct pci_device_header* pci, const char * pr
     device->internal_id = id;
 }
 
-void register_device(struct pci_device_header* pci) {
-    printf("Device detected: %x, %x, %x\n", pci->class_code, pci->subclass, pci->prog_if);
-    switch (pci->class_code){
-        case 0x01: {
-            switch (pci->subclass){
-                case 0x06: {
-                    switch (pci->prog_if){
-                        case 0x01:
-                            init_ahci(pci);
-                            for (int i = 0; i < get_port_count(); i++) {
-                                switch (get_port_type(i)) {
-                                    case PORT_TYPE_SATA:
-                                        insert_device(0x8, pci, "/dev/hd", i);
-                                        break;
-                                    case PORT_TYPE_SATAPI:
-                                        insert_device(0x9, pci, "/dev/cd", i);
-                                        break;
-                                    case PORT_TYPE_SEMB:
-                                        insert_device(0xa, pci, "/dev/semb", i);
-                                        break;
-                                    case PORT_TYPE_PM:
-                                        insert_device(0xb, pci, "/dev/pm", i);
-                                        break;
-                                    case PORT_TYPE_NONE:
-                                        insert_device(0xc, pci, "/dev/unknown", i);
-                                        break;
-                                }
-                            }
-                            break;
-                        default:
-                            printf("Unknown AHCI interface: %x\n", pci->prog_if);
-                    }
-                    break;
-                }
-            }
-            break;
-        }
-    }
+void insert_pci_device(struct pci_device_header* pci, uint8_t major, uint8_t id) {
+    insert_device(major, pci, device_identifiers[major], id);
 }
 
 void register_char(uint8_t major, const char* name, struct file_operations* fops) {
@@ -107,7 +91,7 @@ void init_devices() {
 
     struct mcfg_header* header = get_acpi_mcfg();
     if (header != 0) {
-        register_pci(header);
+        register_pci(header, insert_pci_device);
     }
 }
 

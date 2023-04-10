@@ -374,7 +374,7 @@ char serial_read(int port) {
 }
 
 struct file_operations serial_fops = {
-    .read = dd_disk_read,
-    .write = dd_disk_write,
-    .ioctl = dd_ioctl
+    //.read = dd_disk_read, TODO
+    //.write = dd_disk_write,
+    //.ioctl = dd_ioctl
 };

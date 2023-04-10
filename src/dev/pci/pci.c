@@ -1,6 +1,8 @@
 #include "pci.h"
 #include "../../memory/paging.h"
 #include "../../util/printf.h"
+#include "../../util/dbgprinter.h"
+#include "../../drivers/ahci/ahci.h"
 
 struct pci_device_header* global_device_header = {0};
 
@@ -238,7 +240,7 @@ const char* get_prog_interface(uint8_t class_code, uint8_t subclass_code, uint8_
     return itoa(prog_interface, 16);
 }
 
-void register_pci_device(struct pci_device_header* pci) {
+void register_pci_device(struct pci_device_header* pci, void (*cb)(struct pci_device_header*, uint8_t, uint8_t)) {
     printf("Device detected: %x, %x, %x\n", pci->class_code, pci->subclass, pci->prog_if);
     switch (pci->class_code){
         case 0x01: {
@@ -250,19 +252,19 @@ void register_pci_device(struct pci_device_header* pci) {
                             for (int i = 0; i < get_port_count(); i++) {
                                 switch (get_port_type(i)) {
                                     case PORT_TYPE_SATA:
-                                        insert_device(0x8, pci, "/dev/hd", i);
+                                        cb(pci, 0x8, i);
                                         break;
                                     case PORT_TYPE_SATAPI:
-                                        insert_device(0x9, pci, "/dev/cd", i);
+                                        cb(pci, 0x9, i);
                                         break;
                                     case PORT_TYPE_SEMB:
-                                        insert_device(0xa, pci, "/dev/semb", i);
+                                        cb(pci, 0xa, i);
                                         break;
                                     case PORT_TYPE_PM:
-                                        insert_device(0xb, pci, "/dev/pm", i);
+                                        cb(pci, 0xb, i);
                                         break;
                                     case PORT_TYPE_NONE:
-                                        insert_device(0xc, pci, "/dev/unknown", i);
+                                        cb(pci, 0xc, i);
                                         break;
                                 }
                             }
@@ -278,7 +280,7 @@ void register_pci_device(struct pci_device_header* pci) {
     }
 }
 
-void enumerate_function(uint64_t device_address, uint64_t function) {
+void enumerate_function(uint64_t device_address, uint64_t function, void (*cb)(struct pci_device_header*, uint8_t, uint8_t)) {
 
     uint64_t offset = function << 12;
 
@@ -299,10 +301,10 @@ void enumerate_function(uint64_t device_address, uint64_t function) {
         get_prog_interface(pci_device_header->class_code, pci_device_header->subclass, pci_device_header->prog_if)
     );
 
-    register_pci_device(pci_device_header);
+    register_pci_device(pci_device_header, cb);
 }
 
-void enumerate_device(uint64_t bus_address, uint64_t device) {
+void enumerate_device(uint64_t bus_address, uint64_t device, void (*cb)(struct pci_device_header*, uint8_t, uint8_t)) {
     uint64_t offset = device << 15;
 
     uint64_t device_address = bus_address + offset;
@@ -314,11 +316,11 @@ void enumerate_device(uint64_t bus_address, uint64_t device) {
     if (pci_device_header->device_id == 0xFFFF) return;
 
     for (uint64_t function = 0; function < 8; function++) {
-        enumerate_function(device_address, function);
+        enumerate_function(device_address, function, cb);
     }
 }
 
-void enumerate_bus(uint64_t base_address, uint64_t bus) {
+void enumerate_bus(uint64_t base_address, uint64_t bus, void (*cb)(struct pci_device_header*, uint8_t, uint8_t)) {
     uint64_t offset = bus << 20;
 
     uint64_t bus_address = base_address + offset;
@@ -330,17 +332,17 @@ void enumerate_bus(uint64_t base_address, uint64_t bus) {
     if (pci_device_header->device_id == 0xFFFF) return;
 
     for (uint64_t device = 0; device < 32; device++) {
-        enumerate_device(bus_address, device);
+        enumerate_device(bus_address, device, cb);
     }
 }
 
-void register_pci(struct mcfg_header *mcfg) {
+void register_pci(struct mcfg_header *mcfg, void (*cb)(struct pci_device_header*, uint8_t, uint8_t)) {
     uint64_t entries = ((mcfg->header.length) - sizeof(struct mcfg_header)) / sizeof(struct device_config);
 
     for (uint64_t i = 0; i < entries; i++) {
         struct device_config * new_device_config = (struct device_config*)((uint64_t)mcfg + sizeof(struct mcfg_header) + (sizeof(struct device_config) * i));	
         for (uint64_t bus = new_device_config->start_bus; bus < new_device_config->end_bus; bus++) {
-            enumerate_bus(new_device_config->base_address, bus);
+            enumerate_bus(new_device_config->base_address, bus, cb);
         }
     }
 }

@@ -65,6 +65,7 @@ void _start(void) {
     init_vfs();
     init_serial(4096, 4096);
     pseudo_ps();  
+    device_list();
 
     printf("KERNEL LOOPING\n");
 
