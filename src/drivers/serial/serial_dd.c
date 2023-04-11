@@ -39,7 +39,30 @@ uint64_t serial_dd_ioctl(uint64_t port, uint32_t op, void* data) {
             _serial_flush(port);
             return 1;
         }
-
+        case SERIAL_SUBSCRIBE_READ: {
+            serial_read_event_add(port, (void (*)(char c, int port))data);
+            return 1;
+        }
+        case SERIAL_UNSUBSCRIBE_READ: {
+            serial_read_event_remove(port, (void (*)(char c, int port))data);
+            return 1;
+        }
+        case SERIAL_SUBSCRIBE_WRITE: {
+            serial_write_event_add(port, (void (*)(char c, int port))data);
+            return 1;
+        }
+        case SERIAL_UNSUBSCRIBE_WRITE: {
+            serial_write_event_remove(port, (void (*)(char c, int port))data);
+            return 1;
+        }
+        case SERIAL_ENABLE_ECHO: {
+            serial_echo_enable(port);
+            return 1;
+        }
+        case SERIAL_DISABLE_ECHO: {
+            serial_echo_disable(port);
+            return 1;
+        }
         default:
             return 0;
     }

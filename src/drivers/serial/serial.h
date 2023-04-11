@@ -31,6 +31,7 @@ struct serial_device {
     int valid;
     int port;
     int irq;
+    int echo;
 
     void (*handler)(struct interrupt_frame *frame);
     struct serial_subscriber * read_subscribers;
@@ -55,6 +56,9 @@ volatile struct serial_device* get_last_interrupted_serial();
 
 void serial_get_ports(int * ports);
 int  serial_count_ports();
+
+void serial_echo_enable(int port);
+void serial_echo_disable(int port);
 
 void serial_read_event_add(int port, void (*handler)(char c, int port));
 void serial_read_event_remove(int port, void (*handler)(char c, int port));

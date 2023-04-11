@@ -109,7 +109,7 @@ void remove_subscriber(struct serial_device* device, uint8_t type, void* handler
    } else {
       return;
    }
-
+   
    while (subscriber->next) {
       if (subscriber->next->handler == handler) {
          struct serial_subscriber* to_remove = subscriber->next;
@@ -143,7 +143,8 @@ void write_inb(struct serial_device* device, char c) {
    if (device->inb_write == device->inb_read) {
       raise_interrupt(SERIAL_OF_IRQ);
    }
-   run_subscribers(device, SERIAL_WRITE, c);
+   if (device->echo) write_serial(device->port, c);
+   run_subscribers(device, SERIAL_READ, c);
 }
 
 char read_inb(struct serial_device* device) {
@@ -151,7 +152,7 @@ char read_inb(struct serial_device* device) {
    if (device->inb_read == device->inb_write) return 0; //No data available
    char c = device->inb[device->inb_read++];
    if (device->inb_read >= device->inb_size) device->inb_read = 0;
-   run_subscribers(device, SERIAL_READ, c);
+   //run_subscribers(device, SERIAL_WRITE, c);
    return c;
 }
 
@@ -161,14 +162,14 @@ void write_outb(struct serial_device* device, char c) {
    if (device->outb_write == device->outb_read) {
       raise_interrupt(SERIAL_OF_IRQ);
    }
-   run_subscribers(device, SERIAL_WRITE, c);
+   //run_subscribers(device, SERIAL_WRITE, c);
 }
 
 char read_outb(struct serial_device* device) {
    if (device->outb_read == device->outb_write) return 0; //No data available
    char c = device->outb[device->outb_read++];
    if (device->outb_read >= device->outb_size) device->outb_read = 0;
-   run_subscribers(device, SERIAL_READ, c);
+   run_subscribers(device, SERIAL_WRITE, c);
    return c;
 }
 
@@ -282,6 +283,7 @@ void init_serial(int inbs, int outbs) {
          memset(device->inb, 0, inbs);
          device->outb = (char*)calloc(1, outbs);
          memset(device->outb, 0, outbs);
+         device->echo = 0;
          device->inb_read = 0;
          device->outb_read = 0;
          device->inb_write = 0;
@@ -302,6 +304,24 @@ void init_serial(int inbs, int outbs) {
    }
    hook_interrupt(SERIAL_OF_IRQ, SERIAL_OF_HANDLER, 1);
    initialized = 1;
+}
+
+void serial_echo_enable(int port) {
+   if (!initialized) return;
+   struct serial_device* device = get_serial(port);
+   if (!device) return;
+
+   device->echo = 1;
+
+}
+
+void serial_echo_disable(int port) {
+   if (!initialized) return;
+   struct serial_device* device = get_serial(port);
+   if (!device) return;
+
+   device->echo = 0;
+
 }
 
 void serial_get_ports(int * ports) {

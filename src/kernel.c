@@ -70,16 +70,10 @@ void _start(void) {
     pseudo_ps();  
     device_list();
 
-    printf("KERNEL LOOPING\n");
+    serial_write_now("seriala", "tretorn@bloodmon:/$\n", 21);
+    serial_ioctl("seriala", SERIAL_SUBSCRIBE_READ, read_serial_cb1);
+    serial_ioctl("seriala", SERIAL_ENABLE_ECHO, 0);
 
-    serial_write_now("seriala", "Hello from COM1\n", 17);
-    halt_until_enter();
-    char buf[256];
-    
-    int res = serial_read("seriala", (uint8_t*)buf, 16);
-    for (int i = 0; i < res; i++) {
-        printf("%c", buf[i]);
-    }
     while(1) {
     }
 
