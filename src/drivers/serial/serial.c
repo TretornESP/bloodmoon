@@ -8,6 +8,10 @@
 
 #include <stdint.h>
 
+//Just for visibility
+void _serial_flush(int port);
+void serial_discard(int port);
+
 __attribute__((interrupt)) void COM1_HANDLER(struct interrupt_frame * frame);
 __attribute__((interrupt)) void COM2_HANDLER(struct interrupt_frame * frame);
 __attribute__((interrupt)) void COM3_HANDLER(struct interrupt_frame * frame);
@@ -15,11 +19,15 @@ __attribute__((interrupt)) void COM4_HANDLER(struct interrupt_frame * frame);
 
 volatile struct serial_device* interrupted_serial_device = 0;
 
-__attribute__((interrupt)) void SERIAL_OF_HANDLER(struct interrupt_frame * frame) {
+//The handler for a dynamic interrupt cannot have __attribute__((interrupt))
+void SERIAL_OF_HANDLER(struct interrupt_frame * frame) {
    (void)frame;
+   //Warning: Buffered input from serial device will be lost
    if (interrupted_serial_device) {
-      printf("PORT %d: Overflow detected!\n", interrupted_serial_device->port);
-      printf("Ignoring as this is not implemented...\n");
+      _serial_flush(interrupted_serial_device->port);
+      serial_discard(interrupted_serial_device->port);
+   } else {
+      printf("[WARNIG] Serial overflow interrupt, but cant find device to flush\n");
    }
 }
 
@@ -81,7 +89,7 @@ void write_serial(int port, char a) {
    outb(port,a);
 }
 
-void add_subscriber(struct serial_device* device, uint8_t type, void* handler) {
+void add_subscriber(struct serial_device* device, uint8_t type, void* parent, void* handler) {
    struct serial_subscriber* subscriber;
    if (type == SERIAL_READ) {
       subscriber = device->read_subscribers;
@@ -97,10 +105,11 @@ void add_subscriber(struct serial_device* device, uint8_t type, void* handler) {
 
    subscriber->next = malloc(sizeof(struct serial_subscriber));
    subscriber->next->handler = handler;
+   subscriber->next->parent = parent;
    subscriber->next->next = 0;
 }
 
-void remove_subscriber(struct serial_device* device, uint8_t type, void* handler) {
+void remove_subscriber(struct serial_device* device, uint8_t type, void* parent, void* handler) {
    struct serial_subscriber* subscriber;
    if (type == SERIAL_READ) {
       subscriber = device->read_subscribers;
@@ -111,7 +120,7 @@ void remove_subscriber(struct serial_device* device, uint8_t type, void* handler
    }
    
    while (subscriber->next) {
-      if (subscriber->next->handler == handler) {
+      if (subscriber->next->handler == handler && subscriber->next->parent == parent) {
          struct serial_subscriber* to_remove = subscriber->next;
          subscriber->next = subscriber->next->next;
          free(to_remove);
@@ -133,7 +142,7 @@ void run_subscribers(struct serial_device* device, uint8_t type, char c) {
 
    while (subscriber->next) {
       subscriber = subscriber->next;
-      subscriber->handler(c, device->port);
+      subscriber->handler(subscriber->parent, c, device->port);
    }
 }
 
@@ -299,6 +308,7 @@ void init_serial(int inbs, int outbs) {
             enable_serial_int(device);
             device->valid = 1;
             printf("Serial port %x initialized successfully\n", device->port);
+            serial_discard(device->port);
          }
       }
    }
@@ -313,6 +323,18 @@ void serial_echo_enable(int port) {
 
    device->echo = 1;
 
+}
+
+void serial_discard(int port) {
+   if (!initialized) return;
+   struct serial_device* device = get_serial(port);
+   if (!device) return;
+
+   memset(device->inb, 0, device->inb_size);
+   memset(device->outb, 0, device->outb_size);
+
+   device->inb_read = device->inb_write;
+   device->outb_read = device->outb_write;
 }
 
 void serial_echo_disable(int port) {
@@ -345,40 +367,40 @@ int serial_count_ports() {
    return valid;
 }
 
-void serial_read_event_add(int port, void (*handler)(char c, int port)) {
+void serial_read_event_add(int port, void* parent, void (*handler)(void* parent, char c, int port)) {
    if (!initialized) return;
 
    struct serial_device* device = get_serial(port);
    if (!device) return;
 
-   add_subscriber(device, SERIAL_READ, handler);
+   add_subscriber(device, SERIAL_READ, parent, handler);
 }
 
-void serial_read_event_remove(int port, void (*handler)(char c, int port)) {
+void serial_read_event_remove(int port, void* parent, void (*handler)(void* parent, char c, int port)) {
    if (!initialized) return;
 
    struct serial_device* device = get_serial(port);
    if (!device) return;
 
-   remove_subscriber(device, SERIAL_READ, handler);
+   remove_subscriber(device, SERIAL_READ, parent, handler);
 }
 
-void serial_write_event_add(int port, void (*handler)(char c, int port)) {
+void serial_write_event_add(int port, void* parent, void (*handler)(void* parent, char c, int port)) {
    if (!initialized) return;
 
    struct serial_device* device = get_serial(port);
    if (!device) return;
 
-   add_subscriber(device, SERIAL_WRITE, handler);
+   add_subscriber(device, SERIAL_WRITE, parent, handler);
 }
 
-void serial_write_event_remove(int port, void (*handler)(char c, int port)) {
+void serial_write_event_remove(int port, void* parent, void (*handler)(void* parent, char c, int port)) {
    if (!initialized) return;
 
    struct serial_device* device = get_serial(port);
    if (!device) return;
 
-   remove_subscriber(device, SERIAL_WRITE, handler);
+   remove_subscriber(device, SERIAL_WRITE, parent, handler);
 }
 
 void _serial_flush(int port) {

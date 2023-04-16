@@ -1,7 +1,12 @@
 #ifndef _GENERIC_F32_H
 #define _GENERIC_F32_H
+//Disable unused warnings 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 #include "../vfs_compat.h"
 #include "fat32.h"
+#include "../../../util/printf.h"
+
 #define MAX_OPEN_DIRS 256
 #define MAX_FILES_PER_DIR 4096
 #define MAX_FAT32_PARTITIONS 32
@@ -49,20 +54,20 @@ int f32_compat_file_open(int partno, const char* path, int flags, int mode) {
     printf("VFS REQUESTED FAT32 FILE OPEN [partno: %d path: %s flags: %d mode: %d]\n", partno, path, flags, mode);
     return -1;
 }
-int f32_compat_file_close(int partno, int fd) {return -1;}
-int f32_compat_file_creat(int partno, const char* path, int mode) {return -1;}
-uint64_t f32_compat_file_read(int partno, int fd, void* buffer, uint64_t size) {return 1;}
-uint64_t f32_compat_file_write(int partno, int fd, void* buffer, uint64_t size) {return 1;}
-uint64_t f32_compat_file_seek(int partno, int fd, uint64_t offset, int whence) {return 1;}
-int f32_compat_stat(int partno, int fd, stat_t* st) {return -1;}
-int f32_compat_dir_open(int partno, const char* path) {return -1;}
-int f32_compat_dir_close(int partno, int dir) {return -1;}
-int f32_compat_dir_load(int partno, int dir) {return -1;}
-int f32_compat_dir_read(int partno, int dir, char* path, uint32_t * name_len, uint32_t * type) {return -1;}
-int f32_compat_dir_creat(int partno, const char* path, int mode) {return -1;}
-int f32_compat_rename(int partno, const char* path, const char* newpath) {return -1;}
-int f32_compat_remove(int partno, const char* path) {return -1;}
-int f32_compat_chmod(int partno, const char* path, int mode) {return -1;}
+int f32_compat_file_close(int partno, int fd) {(void)partno; (void)fd; return -1;}
+int f32_compat_file_creat(int partno, const char* path, int mode) {(void)partno; (void)path; (void)mode; return -1;}
+uint64_t f32_compat_file_read(int partno, int fd, void* buffer, uint64_t size) {(void)partno; (void)fd; (void)buffer; (void)size; return 1;}
+uint64_t f32_compat_file_write(int partno, int fd, void* buffer, uint64_t size) {(void)partno; (void)fd; (void)buffer; (void)size; return 1;}
+uint64_t f32_compat_file_seek(int partno, int fd, uint64_t offset, int whence) {(void)partno; (void)fd; (void) offset; (void)whence; return 1;}
+int f32_compat_stat(int partno, int fd, stat_t* st) {(void)partno; (void)fd; (void)st; return -1;}
+int f32_compat_dir_open(int partno, const char* path) {(void)partno; (void)path; return -1;}
+int f32_compat_dir_close(int partno, int dir) {(void)partno; (void)dir; return -1;}
+int f32_compat_dir_load(int partno, int dir) {(void)partno; (void)dir; return -1;}
+int f32_compat_dir_read(int partno, int dir, char* path, uint32_t * name_len, uint32_t * type) {(void)partno; (void)path; (void) dir; (void)name_len; (void)type; return -1;}
+int f32_compat_dir_creat(int partno, const char* path, int mode) {(void)partno; (void)path; (void)mode; return -1;}
+int f32_compat_rename(int partno, const char* path, const char* newpath) {(void)partno; (void)path; (void)newpath; return -1;}
+int f32_compat_remove(int partno, const char* path) {(void)partno; (void)path; return -1;}
+int f32_compat_chmod(int partno, const char* path, int mode) {(void)partno; (void)path; (void)mode; return -1;}
 void f32_compat_debug(void) {}
 
 

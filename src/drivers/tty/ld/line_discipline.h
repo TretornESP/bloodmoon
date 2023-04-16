@@ -39,12 +39,44 @@
 #define LD_RECORD_SEPARATOR 30
 #define LD_UNIT_SEPARATOR 31
 #define LD_DEL 127
+#define LD_NEWLINE 10
 
-//Create the basic translation table for the line discipline
+#define LD_DEFAULT_TABLE 0
+ 
+#define LD_INSERT_SIZE 4
+#define LD_OUTPUT_SIZE 4
+
+struct line_discipline {
+    int mode;
+    int echo;
+    int valid;
+
+    char *buffer;
+    int size;
+    int head;
+    int tail;
+
+    struct line_discipline_action_table_entry *action_table;
+
+    void* parent;
+    void (*flush_cb)(void* parent, char* buffer, int size);
+    void (*echo_cb)(void* parent, char c);
+};
 
 struct line_discipline_action_table_entry {
-    char output;
-    int (*action)(char);
+    char output[LD_OUTPUT_SIZE];
+    char insert[LD_INSERT_SIZE];
+    int (*action)(struct line_discipline*, char);
 };
+
+struct line_discipline * line_discipline_create(int mode, int echo, int table, int buffer_size, void* parent, void (*flush_cb)(void* parent, char *buffer, int size), void (*echo_cb)(void* parent, char c));
+void line_discipline_destroy(struct line_discipline *ld);
+void line_discipline_set_mode(struct line_discipline *ld, int mode);
+void line_discipline_set_echo(struct line_discipline *ld, int echo);
+void line_discipline_debug();
+
+void line_discipline_read(struct line_discipline *ld, char character);
+char line_discipline_translate(struct line_discipline *ld, char original_character);
+void line_discipline_force_flush(struct line_discipline *ld);
 
 #endif

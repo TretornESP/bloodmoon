@@ -61,11 +61,10 @@ struct device {
     uint8_t minor;
     char name[DEVICE_NAME_SIZE];
     uint64_t internal_id;
-    struct pci_device_header *pci;
+    void * device_control_structure;
     struct device *next;
 };
 
-void register_device(struct pci_device_header*);
 void device_list();
 void register_char(uint8_t, const char*, struct file_operations*);
 void register_block(uint8_t, const char*, struct file_operations*);

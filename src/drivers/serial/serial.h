@@ -23,7 +23,8 @@
 //Outb: Buffer that hold what this computer is sending to the serial port
 
 struct serial_subscriber {
-    void (*handler)(char c, int port);
+    void* parent;
+    void (*handler)(void * parent, char c, int port);
     struct serial_subscriber * next;
 };
 
@@ -60,11 +61,13 @@ int  serial_count_ports();
 void serial_echo_enable(int port);
 void serial_echo_disable(int port);
 
-void serial_read_event_add(int port, void (*handler)(char c, int port));
-void serial_read_event_remove(int port, void (*handler)(char c, int port));
+void serial_read_event_add(int port, void* parent, void (*handler)(void* parent, char c, int port));
+void serial_read_event_remove(int port, void* parent, void (*handler)(void* parent, char c, int port));
 
-void serial_write_event_add(int port, void (*handler)(char c, int port));
-void serial_write_event_remove(int port, void (*handler)(char c, int port));
+void serial_write_event_add(int port, void* parent, void (*handler)(void* parent, char c, int port));
+void serial_write_event_remove(int port, void* parent, void (*handler)(void* parent, char c, int port));
+
+void serial_discard(int port);
 
 void _serial_flush(int port);
 void _serial_write(int port, char c);

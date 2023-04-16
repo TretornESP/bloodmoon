@@ -9,6 +9,12 @@
 #define SERIAL_UNSUBSCRIBE_WRITE    0x5
 #define SERIAL_ENABLE_ECHO          0x6
 #define SERIAL_DISABLE_ECHO         0x7
+#define SERIAL_DISCARD              0x8
+
+struct serial_ioctl_subscriptor {
+    void* parent;
+    void (*handler)(void * parent, char c, int port);
+} __attribute__((packed));
 
 void init_serial_dd();
 

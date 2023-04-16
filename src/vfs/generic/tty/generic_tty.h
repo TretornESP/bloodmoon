@@ -81,7 +81,7 @@ uint64_t tty_compat_file_read(int devno, int fd, void* buffer, uint64_t size) {
 
     struct device_descriptor_entry * entry = vfs_compat_get_device(fd);
     if (entry == 0 || entry->loaded == 0) return -1;
-    return tty_read(device, buffer, size, entry->offset);
+    return vfs_tty_read(device, buffer, size, entry->offset);
 }
 
 uint64_t tty_compat_file_write(int devno, int fd, void* buffer, uint64_t size) {
@@ -94,7 +94,7 @@ uint64_t tty_compat_file_write(int devno, int fd, void* buffer, uint64_t size) {
 
     struct device_descriptor_entry * entry = vfs_compat_get_device(fd);
     if (entry == 0 || entry->loaded == 0) return -1;
-    return tty_write(device, buffer, size, entry->offset);
+    return vfs_tty_write(device, buffer, size, entry->offset);
 }
 
 uint64_t tty_compat_file_seek(int devno, int fd, uint64_t offset, int whence) {
@@ -119,7 +119,7 @@ uint64_t tty_compat_file_seek(int devno, int fd, uint64_t offset, int whence) {
             break;
         }
         case SEEK_END: {
-            size = tty_get_size(device);
+            size = vfs_tty_get_size(device);
             entry->offset = size + offset;
             break;
         }

@@ -33,7 +33,7 @@ const char* device_identifiers[] = {
     [0x8d] = "serial", // 80
 };
 
-void insert_device(uint8_t major, struct pci_device_header* pci, const char * prefix, uint64_t id) {
+char* insert_device(uint8_t major, void* device_control_structure, const char * prefix, uint64_t id) {
     char name[32];
     memset(name, 0, 32);
 
@@ -48,7 +48,7 @@ void insert_device(uint8_t major, struct pci_device_header* pci, const char * pr
 
     snprintf(name, 32, "%s%x", prefix, minor+0xa);
 
-    printf("Registering device: %s [MAJ: %d MIN: %d ID: %d PCI: %p]\n", name, major, minor, id, pci);
+    printf("Registering device: %s [MAJ: %d MIN: %d ID: %d CTRL: %p]\n", name, major, minor, id, device_control_structure);
 
     device->next = (struct device*) request_page();
     memset(device->next, 0, sizeof(struct device));
@@ -57,16 +57,14 @@ void insert_device(uint8_t major, struct pci_device_header* pci, const char * pr
     device->major = major & 0x7f;
     device->minor = minor;
     strncpy(device->name, name, strlen(name));
-    device->pci = pci;
+    device->device_control_structure = device_control_structure;
     device->internal_id = id;
+
+    return device->name;
 }
 
-void insert_pci_device(struct pci_device_header* pci, uint8_t major, uint64_t id) {
-    insert_device(major, pci, device_identifiers[major], id);
-}
-
-void insert_comm_device(uint8_t major, uint64_t port) {
-    insert_device(major, 0, device_identifiers[major], port);
+char* insert_device_cb(void* device_control_structure, uint8_t major, uint64_t id) {
+    return insert_device(major, device_control_structure, device_identifiers[major], id);
 }
 
 void register_char(uint8_t major, const char* name, struct file_operations* fops) {
@@ -97,9 +95,9 @@ void init_devices() {
 
     struct mcfg_header* header = get_acpi_mcfg();
     if (header != 0) {
-        register_pci(header, insert_pci_device);
+        register_pci(header, insert_device_cb);
     }
-    register_comm(insert_comm_device);
+    register_comm(insert_device_cb);
 }
 
 void device_list() {

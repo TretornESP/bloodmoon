@@ -154,6 +154,7 @@ uint64_t ext2_compat_file_read(int partno, int fd, void* buffer, uint64_t size) 
 }
 
 int ext2_compat_dir_read(int partno, int fd, char* name, uint32_t * name_len, uint32_t * type) {
+    (void)partno;
     return read_dirfd(fd, name, name_len, type);
 }
 
@@ -223,8 +224,8 @@ uint64_t ext2_compat_file_seek(int partno, int fd, uint64_t offset, int whence) 
 
     return entry->offset;
 }
-int ext2_compat_stat(int partno, int fd, stat_t* st) {return -1;}
-int ext2_compat_rename(int partno, const char* path, const char* newpath) {return -1;}
+int ext2_compat_stat(int partno, int fd, stat_t* st) {(void)partno; (void)fd; (void)st;return -1;}
+int ext2_compat_rename(int partno, const char* path, const char* newpath) {(void)partno;(void)path;(void)newpath; return -1;}
 
 int ext2_compat_prepare_remove(int partno, const char* path) {
     if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
@@ -263,7 +264,7 @@ int ext2_compat_remove(int partno, const char* path) {
 
     return ext2_delete_file(partition, path);
 }
-int ext2_compat_chmod(int partno, const char* path, int mode) {return -1;}
+int ext2_compat_chmod(int partno, const char* path, int mode) {(void)partno;(void)path;(void)mode;return -1;}
 
 struct vfs_compatible ext2_register = {
     .name = "EXT2",

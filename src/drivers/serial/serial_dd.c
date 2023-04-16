@@ -18,7 +18,7 @@ uint64_t serial_dd_read_block(uint64_t port, uint64_t size, uint64_t skip, uint8
 }
 
 uint64_t serial_dd_write_block(uint64_t port, uint64_t size, uint64_t skip, uint8_t* buffer) {
-    printf("Writing to serial port %x (size: %d, skip: %d)\n", port, size, skip);
+    //printf("Writing to serial port %x (size: %d, skip: %d)\n", port, size, skip);
     struct serial_device* device = get_serial((int)port);
     if (!device) return 0;
 
@@ -40,19 +40,23 @@ uint64_t serial_dd_ioctl(uint64_t port, uint32_t op, void* data) {
             return 1;
         }
         case SERIAL_SUBSCRIBE_READ: {
-            serial_read_event_add(port, (void (*)(char c, int port))data);
+            struct serial_ioctl_subscriptor* subscriptor = (struct serial_ioctl_subscriptor*)data;
+            serial_read_event_add(port, subscriptor->parent, subscriptor->handler);
             return 1;
         }
         case SERIAL_UNSUBSCRIBE_READ: {
-            serial_read_event_remove(port, (void (*)(char c, int port))data);
+            struct serial_ioctl_subscriptor* subscriptor = (struct serial_ioctl_subscriptor*)data;
+            serial_read_event_remove(port, subscriptor->parent, subscriptor->handler);
             return 1;
         }
         case SERIAL_SUBSCRIBE_WRITE: {
-            serial_write_event_add(port, (void (*)(char c, int port))data);
+            struct serial_ioctl_subscriptor* subscriptor = (struct serial_ioctl_subscriptor*)data;
+            serial_write_event_add(port, subscriptor->parent, subscriptor->handler);
             return 1;
         }
         case SERIAL_UNSUBSCRIBE_WRITE: {
-            serial_write_event_remove(port, (void (*)(char c, int port))data);
+            struct serial_ioctl_subscriptor* subscriptor = (struct serial_ioctl_subscriptor*)data;
+            serial_write_event_remove(port, subscriptor->parent, subscriptor->handler);
             return 1;
         }
         case SERIAL_ENABLE_ECHO: {
@@ -61,6 +65,10 @@ uint64_t serial_dd_ioctl(uint64_t port, uint32_t op, void* data) {
         }
         case SERIAL_DISABLE_ECHO: {
             serial_echo_disable(port);
+            return 1;
+        }
+        case SERIAL_DISCARD: {
+            serial_discard(port);
             return 1;
         }
         default:

@@ -25,8 +25,8 @@ struct tty {
     void (*signal_handler)(int);
 };
 
-uint64_t tty_get_size(struct tty* device);
-uint8_t tty_read(struct tty * device, uint8_t * destination_buffer, uint64_t size, uint64_t skip);
-uint8_t tty_write(struct tty * device, uint8_t * source_buffer, uint64_t size, uint64_t skip);
+uint64_t vfs_tty_get_size(struct tty* device);
+uint8_t vfs_tty_read(struct tty * device, uint8_t * destination_buffer, uint64_t size, uint64_t skip);
+uint8_t vfs_tty_write(struct tty * device, uint8_t * source_buffer, uint64_t size, uint64_t skip);
 
 #endif
