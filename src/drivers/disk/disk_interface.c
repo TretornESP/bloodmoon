@@ -43,3 +43,11 @@ uint64_t disk_ioctl (const char * device, uint32_t op, void* buffer) {
 int ioctl_disk(const char * drive, int request, void *buffer) {
 	return (device_ioctl(drive, request, buffer) != 0);
 }
+uint64_t disk_identify(const char * device) {
+	uint8_t found = device_identify(device, DISK_ATA_DD_NAME);
+	if (found == 0) {
+		found = device_identify(device, DISK_ATAPI_DD_NAME);
+	}
+
+	return found;
+}

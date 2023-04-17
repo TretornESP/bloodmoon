@@ -8,6 +8,7 @@
 #define TTY_EVENT_INB 1
 #define TTY_EVENT_FLUSH_INB 2
 #define TTY_EVENT_FLUSH_OUTB 3
+
 #define TTY_FLUSH_CHAR 0xd
 
 #define _TTY_MODE_RAW 0x0
@@ -48,12 +49,13 @@ struct tty {
 int tty_init(char* device, int mode, int inbs, int outbs);
 void tty_destroy(struct tty* tty);
 struct tty* get_tty(int id);
-
 int is_valid_tty(struct tty* tty);
-void tty_add_subscriber(struct tty* tty, void (*handler)(void*, uint8_t));
-void tty_remove_subscriber(struct tty* tty, void (*handler)(void*, uint8_t));
+
+int _tty_get_size(struct tty* tty);
+void _tty_add_subscriber(struct tty* tty, void (*handler)(void*, uint8_t));
+void _tty_remove_subscriber(struct tty* tty, void (*handler)(void*, uint8_t));
 void _tty_read(struct tty* tty, char* buffer, int size);
 void _tty_write(struct tty* tty, char* buffer, int size);
-void tty_modes(struct tty* tty, int mode, int value);
-void tty_flush(struct tty* tty);
+void _tty_modes(struct tty* tty, int mode, int value);
+void _tty_flush(struct tty* tty);
 #endif

@@ -1,4 +1,4 @@
-#include "vfs_adapters.h"
+#include "vfs_interface.h"
 #include "vfs.h"
 #include "../memory/heap.h"
 #include "../util/printf.h"
@@ -132,6 +132,24 @@ int vfs_dir_close(int fd) {
     free(native_path_buffer);
     free(path);
     return res;
+}
+
+void vfs_file_flush(int fd) {
+    printf("vfs_file_flush(%d)\n", fd);
+
+    char * path = get_full_path_from_fd(fd);
+    if (path == 0) {
+        return;
+    }
+    char * native_path_buffer = malloc(strlen(path) + 1);
+    struct vfs_mount* mount = get_mount_from_path(path, native_path_buffer);
+
+    if (mount != 0) {
+        mount->fst->file_flush(mount->internal_index, fd);
+    }
+
+    free(native_path_buffer);
+    free(path);
 }
 
 int vfs_dir_load(int fd) {

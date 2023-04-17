@@ -8,6 +8,7 @@ uint64_t vfs_file_read(int, void*, uint64_t);
 uint64_t vfs_file_write(int, void*, uint64_t);
 uint64_t vfs_file_seek(int, uint64_t, int);
 int vfs_file_creat(const char*, int);
+void vfs_file_flush(int);
 
 int vfs_dir_open(const char*);
 int vfs_dir_close(int);

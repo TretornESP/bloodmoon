@@ -42,24 +42,30 @@ uint64_t tty_dd_ioctl(uint64_t port, uint32_t op, void* data) {
     
     switch (op) {
         case TTY_ADD_SUBSCRIBER: {
-            tty_add_subscriber(device, (void (*)(void*, uint8_t))data);
+            _tty_add_subscriber(device, (void (*)(void*, uint8_t))data);
             return 1;
         }
         case TTY_REMOVE_SUBSCRIBER: {
-            tty_remove_subscriber(device, (void (*)(void*, uint8_t))data);
+            _tty_remove_subscriber(device, (void (*)(void*, uint8_t))data);
             return 1;
         }
         case TTY_MODE_RAW: {
-            tty_modes(device, _TTY_MODE_RAW, *(int*)data);
+            _tty_modes(device, _TTY_MODE_RAW, *(int*)data);
             return 1;
         }
         case TTY_MODE_ECHO: {
-            tty_modes(device, _TTY_MODE_ECHO, *(int*)data);
+            _tty_modes(device, _TTY_MODE_ECHO, *(int*)data);
             return 1;
         }
         case TTY_FLUSH: {
-            tty_flush(device);
+            _tty_flush(device);
             return 1;
+        }
+        case TTY_VALIDATE: {
+            return is_valid_tty(device);
+        }
+        case TTY_GET_SIZE: {
+            return _tty_get_size(device);
         }
         default:
             return 0;
@@ -74,5 +80,5 @@ struct file_operations tty_fops = {
 };
 
 void init_tty_dd() {
-   register_block(DEVICE_TTY, "TTY DRIVER", &tty_fops);
+   register_block(DEVICE_TTY, TTY_DD_NAME, &tty_fops);
 }

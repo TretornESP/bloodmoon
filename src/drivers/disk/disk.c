@@ -1,5 +1,5 @@
 #include "disk.h"
-#include "../ahci/ahci.h"
+#include "ahci/ahci.h"
 #include "../../util/string.h"
 #include "../../util/printf.h"
 #include "../../util/dbgprinter.h"
@@ -100,8 +100,8 @@ struct file_operations atapi_fops = {
 
 void init_drive(void) {
     printf("### DRIVE STARTUP ###\n");
-    register_block(8, "ATA DRIVER", &ata_fops);
-    register_block(9, "ATAPI DRIVER", &atapi_fops);
+    register_block(8, DISK_ATA_DD_NAME, &ata_fops);
+    register_block(9, DISK_ATAPI_DD_NAME, &atapi_fops);
 }
 
 void exit_drive(void) {}

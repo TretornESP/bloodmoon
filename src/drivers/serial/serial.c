@@ -85,7 +85,6 @@ int is_transmit_empty(int port) {
  
 void write_serial(int port, char a) {
    while (is_transmit_empty(port) == 0);
- 
    outb(port,a);
 }
 
@@ -254,10 +253,10 @@ int init_serial_comm(int port) {
    outb(port + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
    outb(port + 4, 0x0B);    // IRQs enabled, RTS/DSR set
    outb(port + 4, 0x1E);    // Set in loopback mode, test the serial chip
-   outb(port + 0, 0xAE);    // Test serial chip (send byte 0xAE and check if serial returns same byte)
+   outb(port + 0, 0xAB);    // Test serial chip (send byte 0xAE and check if serial returns same byte)
  
    // Check if serial is faulty (i.e: not same byte as sent)
-   if(inb(port + 0) != 0xAE) {
+   if(inb(port + 0) != 0xAB) {
       return 0;
    }
  
@@ -409,11 +408,11 @@ void _serial_flush(int port) {
    struct serial_device* device = get_serial(port);
    if (!device) return;
 
-   char c = 0;
-   do {
-      c = read_outb(device);
+   char c = read_outb(device);
+   while (c != 0) {
       write_serial(port, c);
-   } while (c != 0);
+      c = read_outb(device);
+   }
 }
 
 void _serial_write(int port, char c) {
@@ -421,7 +420,6 @@ void _serial_write(int port, char c) {
 
    struct serial_device* device = get_serial(port);
    if (!device) return;
-
    write_outb(device, c);
 }
 

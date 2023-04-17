@@ -15,7 +15,6 @@
 #include "../dev/devices.h"
 
 #include "../drivers/disk/disk.h"
-#include "../drivers/ahci/ahci.h"
 #include "../drivers/serial/serial_dd.h"
 #include "../drivers/serial/serial_interface.h"
 #include "../drivers/tty/tty_dd.h"
@@ -23,11 +22,12 @@
 #include "../drivers/keyboard/keyboard.h"
 #include "../drivers/disk/disk_interface.h"
 
+
+#include "../vfs/vfs.h"
+#include "../vfs/vfs_interface.h"
 #include "../vfs/generic/fat32/generic_f32.h"
 #include "../vfs/generic/ext2/generic_ext2.h"
-#include "../vfs/vfs.h"
-#include "../vfs/vfs_adapters.h"
-
+#include "../vfs/generic/tty/generic_tty.h"
 
 #include "string.h"
 #include "printf.h"
@@ -35,14 +35,21 @@
 #include "rand.h"
 
 void print_prompt() {
-    serial_write_now("seriala", "    ____  __    ____  ____  ____  __  _______  ____  _   __\n", 60);
-    serial_write_now("seriala", "   / __ )/ /   / __ \\/ __ \\/ __ \\/  |/  / __ \\/ __ \\/ | / /\n", 60);
-    serial_write_now("seriala", "  / __  / /   / / / / / / / / / / /|_/ / / / / / / /  |/ / \n", 60);
-    serial_write_now("seriala", " / /_/ / /___/ /_/ / /_/ / /_/ / /  / / /_/ / /_/ / /|  /  \n", 60);
-    serial_write_now("seriala", "/_____/_____/\\____/\\____/_____/_/  /_/\\____/\\____/_/ |_/   \n", 60);
-    serial_write_now("seriala", "                                                           \n", 60);
-    serial_write_now("seriala", "rotero@bloodmon:/$ ", 21);
+    int fd = vfs_file_open("ttyap0/", 0, 0);
+    if (fd < 0) return;
+
+    vfs_file_write(fd, "    ____  __    ____  ____  ____  __  _______  ____  _   __\n", 60);
+    vfs_file_write(fd, "   / __ )/ /   / __ \\/ __ \\/ __ \\/  |/  / __ \\/ __ \\/ | / /\n", 60);
+    vfs_file_write(fd, "  / __  / /   / / / / / / / / / / /|_/ / / / / / / /  |/ / \n", 60);
+    vfs_file_write(fd, " / /_/ / /___/ /_/ / /_/ / /_/ / /  / / /_/ / /_/ / /|  /  \n", 60);
+    vfs_file_write(fd, "/_____/_____/\\____/\\____/_____/_/  /_/\\____/\\____/_/ |_/   \n", 60);
+    vfs_file_write(fd, "                                                           \n", 60);
+    vfs_file_write(fd, "rotero@bloodmon:/$ ", 19);
+    vfs_file_flush(fd);
+
+    vfs_file_close(fd);
 }
+
 void boot() {
     init_simd();
     init_memory();
@@ -58,7 +65,14 @@ void boot() {
     init_smbios_interface();
     register_filesystem(fat32_registrar);
     register_filesystem(ext2_registrar);
+    register_filesystem(tty_registrar);
     init_vfs();
 
     print_prompt();
 }
+
+void __attribute__((noreturn)) halt() {
+    while(1) {
+        __asm__ volatile("hlt");
+    }
+}	

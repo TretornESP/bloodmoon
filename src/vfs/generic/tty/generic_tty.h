@@ -7,29 +7,19 @@
 
 #include "../../../util/printf.h"
 #include "../../../util/dbgprinter.h"
+#include "../../../util/string.h"
 
-struct tty* tty_devices[MAX_TTY_DEVICES] = {0};
+#define MAX_TTY_DEVICES 32
+
+struct vfs_tty* tty_devices[MAX_TTY_DEVICES] = {0};
 //-1 cannot return the object
 // 0 all okey
 // 1 error
 
-void tty_read_callback(char c, int port) {
-    for (int i = 0; i < MAX_TTY_DEVICES; i++) {
-        if (tty_devices[i] != 0) {
-            if (tty_devices[i]->com_port == port) {
-                tty_buffer_write(tty_device // todo: 08/04/2023
-                if (tty_devices[i]->signal_handler != 0) {
-                    tty_devices[i]->signal_handler(TTY_SIGNAL_READ);
-                }
-            }
-        }
-    }
-}
-
 int tty_compat_register_device(const char* device, uint32_t mode, const char* mountpoint) {
     for (int i = 0; i < MAX_TTY_DEVICES; i++) {
         if (tty_devices[i] == 0) {
-            tty_devices[i] = tty_register_device(structdevice, mountpoint, mode);
+            tty_devices[i] = tty_register_device(device, mode, mountpoint);
             if (tty_devices[i] == 0) {
                 return -1;
             }
@@ -49,37 +39,30 @@ uint8_t tty_compat_unregister_device(int index) {
     return 1;
 }
 
-uint8_t tty_compat_detect(const char* dummy , uint32_t port) {
-    (void*)dummy;
-    return tty_search(port);
-}
-
-int tty_compat_flush(int index) {
-    if (index < 0 || index >= MAX_TTY_DEVICES)
-        return -1;
-
-    struct tty* device = tty_devices[index];
-    return (int)tty_sync(device);
+uint8_t tty_compat_detect(const char* name , uint32_t port) {
+    (void)port;
+    printf("tty_compat_detect: %s\n", name);
+    return tty_search(name);
 }
 
 void tty_compat_debug() {
     for (int i = 0; i < MAX_TTY_DEVICES; i++) {
         if (tty_devices[i] != 0) {
-            printf("Tty %d\n", i);
+            printf("TTY %d\n", i);
             tty_dump_device(tty_devices[i]);
         }
     }
 }
 
 uint64_t tty_compat_file_read(int devno, int fd, void* buffer, uint64_t size) {
-    if (partno < 0 || partno >= MAX_TTY_DEVICES) 
+    if (devno < 0 || devno >= MAX_TTY_DEVICES) 
         return -1;
 
-    struct tty * device = tty_devices[devno];
+    struct vfs_tty * device = tty_devices[devno];
     if (device == 0)
         return -1;
 
-    struct device_descriptor_entry * entry = vfs_compat_get_device(fd);
+    struct file_descriptor_entry * entry = vfs_compat_get_file_descriptor(fd);
     if (entry == 0 || entry->loaded == 0) return -1;
     return vfs_tty_read(device, buffer, size, entry->offset);
 }
@@ -88,11 +71,11 @@ uint64_t tty_compat_file_write(int devno, int fd, void* buffer, uint64_t size) {
     if (devno < 0 || devno >= MAX_TTY_DEVICES) 
         return -1;
 
-    struct tty * device = tty_devices[devno];
+    struct vfs_tty * device = tty_devices[devno];
     if (device == 0)
         return -1;
 
-    struct device_descriptor_entry * entry = vfs_compat_get_device(fd);
+    struct file_descriptor_entry * entry = vfs_compat_get_file_descriptor(fd);
     if (entry == 0 || entry->loaded == 0) return -1;
     return vfs_tty_write(device, buffer, size, entry->offset);
 }
@@ -101,11 +84,11 @@ uint64_t tty_compat_file_seek(int devno, int fd, uint64_t offset, int whence) {
     if (devno < 0 || devno >= MAX_TTY_DEVICES) 
         return -1;
 
-    struct tty * device = tty_devices[devno];
+    struct vfs_tty * device = tty_devices[devno];
     if (device == 0)
         return -1;
 
-    struct device_descriptor_entry * entry = vfs_compat_get_device(fd);
+    struct file_descriptor_entry * entry = vfs_compat_get_file_descriptor(fd);
     if (entry == 0 || entry->loaded == 0) return -1;
 
     uint64_t size = 0;
@@ -134,45 +117,57 @@ int tty_compat_file_open(int devno, const char* path, int flags, int mode) {
     if (devno < 0 || devno >= MAX_TTY_DEVICES) 
         return -1;
 
-    struct tty * device = tty_devices[devno];
+    struct vfs_tty * device = tty_devices[devno];
     if (device == 0)
         return -1;
 
-    if (!strcmp(path, "/"))
+    if (strlen(path) != 1 || strcmp(path, "/"))
         return -1;
 
-    return get_devfd(path, device->name, flags, mode);
+    return get_fd(path, device->name, flags, mode);
 }
 
 int tty_compat_file_close(int devno, int fd) {
-    if (partno < 0 || partno >= MAX_TTY_DEVICES) 
+    if (devno < 0 || devno >= MAX_TTY_DEVICES) 
         return -1;
 
-    struct tty * device = tty_devices[devno];
+    struct vfs_tty * device = tty_devices[devno];
     if (device == 0)
         return -1;
 
-    return release_devfd(fd);
+    return release_fd(fd);
 }
 
-int tty_compat_dir_open(int partno, const char* path) {return -1;}
-int tty_compat_dir_close(int partno, int fd) {return -1;}
-int tty_compat_file_creat(int partno, const char* path, int mode) {return -1;}
-int tty_compat_dir_creat(int partno, const char* path, int mode) {return -1;}
-int tty_compat_dir_read(int partno, int fd, char* name, uint32_t * name_len, uint32_t * type) {return -1;}
-int tty_compat_dir_load(int partno, int fd) {return -1;}
-int tty_compat_stat(int partno, int fd, stat_t* st) {return -1;}
-int tty_compat_rename(int partno, const char* path, const char* newpath) {return -1;}
-int tty_compat_prepare_remove(int partno, const char* path) {return -1;}
-int tty_compat_remove(int partno, const char* path) {return -1;}
-int tty_compat_chmod(int partno, const char* path, int mode) {return -1;}
+int tty_compat_file_flush(int devno, int fd) {
+    if (devno < 0 || devno >= MAX_TTY_DEVICES) 
+        return -1;
+
+    struct vfs_tty * device = tty_devices[devno];
+    return (int)tty_sync(device);
+}
+
+int tty_compat_flush(int partno) {(void)partno; return -1;}
+int tty_compat_dir_open(int partno, const char* path) {(void)partno; (void)path; return -1;}
+int tty_compat_dir_close(int partno, int fd) {(void)partno; (void)fd; return -1;}
+int tty_compat_file_creat(int partno, const char* path, int mode) {(void)partno; (void)path; (void)mode; return -1;}
+int tty_compat_dir_creat(int partno, const char* path, int mode) {(void)partno; (void)path; (void)mode; return -1;}
+int tty_compat_dir_read(int partno, int fd, char* name, uint32_t * name_len, uint32_t * type) {(void)partno; (void)fd; (void)name_len; (void)type; return -1;}
+int tty_compat_dir_load(int partno, int fd) {(void)partno; (void)fd; return -1;}
+int tty_compat_stat(int partno, int fd, stat_t* st) {(void)partno; (void)fd; (void)st; return -1;}
+int tty_compat_rename(int partno, const char* path, const char* newpath) {(void)partno; (void)path; (void)newpath; return -1;}
+int tty_compat_prepare_remove(int partno, const char* path) {(void)partno; (void)path; return -1;}
+int tty_compat_remove(int partno, const char* path) {(void)partno; (void)path; return -1;}
+int tty_compat_chmod(int partno, const char* path, int mode) {(void)partno; (void)path; (void)mode; return -1;}
 
 struct vfs_compatible tty_register = {
     .name = "TTY",
-    .register_partition = tty_compat_register_partition,
-    .unregister_partition = tty_compat_unregister_partition,
+    .majors = {0xE},
+    .major_no = 1,
+    .register_partition = tty_compat_register_device,
+    .unregister_partition = tty_compat_unregister_device,
     .detect = tty_compat_detect,
     .flush = tty_compat_flush,
+    .file_flush = tty_compat_file_flush,
     .debug = tty_compat_debug,
     .file_open = tty_compat_file_open,
     .file_close = tty_compat_file_close,

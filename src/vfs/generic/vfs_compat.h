@@ -4,7 +4,6 @@
 #define VFS_COMPAT_FS_NAME_MAX_LEN 32
 #define VFS_COMPAT_MAX_OPEN_FILES 65536
 #define VFS_COMPAT_MAX_OPEN_DIRECTORIES 4096
-#define VFS_COMPAT_MAX_OPEN_DEVICES 1024
 #define VFS_FDE_NAME_MAX_LEN 256
 
 #define O_RDONLY 0x0000
@@ -78,17 +77,6 @@ struct file_descriptor_entry {
     uint8_t loaded;
 };
 
-struct device_descriptor_entry {
-    char name[VFS_FDE_NAME_MAX_LEN];
-    char mount[VFS_FDE_NAME_MAX_LEN];
-    uint32_t flags;
-    uint32_t mode;
-    uint64_t offset;
-    uint8_t loaded;
-    void* buffer;
-    uint64_t size;
-};
-
 struct dentry {
     char name[VFS_FDE_NAME_MAX_LEN];
     uint32_t name_len;
@@ -115,6 +103,7 @@ struct vfs_compatible {
     uint8_t (*detect)(const char*, uint32_t);
     int (*flush)(int);
 
+    int (*file_flush)(int, int);
     int (*file_open)(int, const char*, int, int);
     int (*file_close)(int, int);
     int (*file_creat)(int, const char*, int);
@@ -142,16 +131,13 @@ struct vfs_compatible {
 };
 
 dir_t * vfs_compat_get_dir(int fd);
-struct device_descriptor_entry * vfs_compat_get_device(int fd);
 struct file_descriptor_entry * vfs_compat_get_file_descriptor(int fd);
 
 int get_fd(const char* path, const char* mount, int flags, int mode);
-int get_devfd(const char* path, const char* mount, int flags, int mode);
 int get_dirfd(const char* path, const char* mount, int flags, int mode);
 
 uint8_t add_file_to_dirfd(int fd, const char* name, uint32_t inode, uint32_t type, uint32_t name_len);
 int release_dirfd(int fd);
-int release_devfd(int fd);
 int release_fd(int fd);
 int force_release(const char * path);
 

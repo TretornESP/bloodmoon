@@ -78,6 +78,7 @@ uint32_t get_device_count_by_major(uint8_t);
 void init_devices();
 
 struct device* device_search(const char*);
+uint8_t device_identify(const char*, char*);
 uint64_t device_ioctl (const char *, uint32_t, void*);
 uint64_t device_read(const char *, uint64_t, uint64_t, uint8_t*);
 uint64_t device_write(const char *, uint64_t, uint64_t, uint8_t*);

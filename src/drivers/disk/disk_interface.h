@@ -44,4 +44,6 @@ int write_disk(const char * drive, void *buffer, int sector, int count);
 
 uint64_t disk_ioctl (const char * device, uint32_t op, void* buffer);
 int ioctl_disk(const char * drive, int request, void *buffer);
+
+uint64_t disk_identify(const char * device);
 #endif

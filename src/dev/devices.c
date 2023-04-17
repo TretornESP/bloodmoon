@@ -153,6 +153,26 @@ struct device* device_search(const char* device) {
     return (struct device*)0;
 }
 
+uint8_t device_identify(const char* device, char* driver_name) {
+    struct device* dev = devices;
+    while (dev->valid) {
+        if (memcmp((void*)dev->name, (void*)device, strlen(device)) == 0) {
+            if (dev->bc == 0) {
+                if (!block_device_drivers[dev->major].registered)
+                    return 0;
+                return !strcmp(block_device_drivers[dev->major].name, driver_name);
+            } else {
+                if (!char_device_drivers[dev->major].registered)
+                    return 0;
+                return !strcmp(char_device_drivers[dev->major].name, driver_name);
+            }
+        }
+        dev = dev->next;
+    }
+
+    return 0;
+}
+
 uint64_t device_read(const char * device, uint64_t size, uint64_t offset, uint8_t* buffer) {
     struct device* dev = devices;
     while (dev->valid) {

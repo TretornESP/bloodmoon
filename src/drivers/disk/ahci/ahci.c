@@ -1,9 +1,9 @@
 #include "ahci.h"
-#include "../../util/printf.h"
-#include "../../util/string.h"
-#include "../../memory/paging.h"
-#include "../../memory/memory.h"
-#include "../../util/dbgprinter.h"
+#include "../../../util/printf.h"
+#include "../../../util/string.h"
+#include "../../../memory/paging.h"
+#include "../../../memory/memory.h"
+#include "../../../util/dbgprinter.h"
 
 struct hba_memory* abar = 0;
 struct ahci_port ahci_ports[32];

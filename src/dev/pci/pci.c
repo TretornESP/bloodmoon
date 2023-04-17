@@ -2,7 +2,7 @@
 #include "../../memory/paging.h"
 #include "../../util/printf.h"
 #include "../../util/dbgprinter.h"
-#include "../../drivers/ahci/ahci.h"
+#include "../../drivers/disk/ahci/ahci.h"
 
 struct pci_device_header* global_device_header = {0};
 

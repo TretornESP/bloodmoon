@@ -27,6 +27,7 @@ struct vfs_file_system_type {
     uint8_t (*detect)(const char *, uint32_t);
     int (*flush)(int);
 
+    int (*file_flush)(int, int);
     int (*file_open)(int, const char*, int, int);
     int (*file_close)(int, int);
     int (*file_creat)(int, const char*, int);
@@ -78,6 +79,7 @@ struct vfs_mount {
 struct vfs_mount* get_mount_from_path(const char* path, char* native_path);
 char* get_full_path_from_fd(int fd);
 char* get_full_path_from_dir(int fd);
+char* get_full_path_from_dev(int fd);
 int is_safe_for_removing(const char* path, uint8_t force);
 void register_filesystem(struct vfs_compatible *);
 void init_vfs();

@@ -11,6 +11,8 @@
 #define SERIAL_DISABLE_ECHO         0x7
 #define SERIAL_DISCARD              0x8
 
+#define SERIAL_DD_NAME "SERIAL DRIVER\0"
+
 struct serial_ioctl_subscriptor {
     void* parent;
     void (*handler)(void * parent, char c, int port);

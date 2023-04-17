@@ -214,8 +214,9 @@ void line_discipline_apply(struct line_discipline *ld, char c) {
 
     if (c != LD_DEL && (c < 0 || c > 27)) {
         line_discipline_insert(ld, c);
-        if (ld->echo == LINE_DISCIPLINE_MODE_ECHO_ON && ld->echo_cb != 0)
+        if (ld->echo == LINE_DISCIPLINE_MODE_ECHO_ON && ld->echo_cb != 0) {
             ld->echo_cb(ld->parent, c);
+        }
         return;
     }
 
@@ -237,6 +238,7 @@ void line_discipline_read(struct line_discipline *ld, char character) {
     if (ld == 0 || ld->valid != 1) {
         return;
     }
+
     if (ld->mode == LINE_DISCIPLINE_MODE_RAW) {
         if (ld->echo == LINE_DISCIPLINE_MODE_ECHO_ON && ld->echo_cb != 0)
             ld->echo_cb(ld->parent, character);

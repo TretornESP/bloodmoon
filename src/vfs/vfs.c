@@ -78,7 +78,8 @@ void register_filesystem(struct vfs_compatible * registrar) {
     fst->unregister_partition = registrar->unregister_partition;
     fst->detect = registrar->detect;
     fst->flush = registrar->flush;
-
+    
+    fst->file_flush = registrar->file_flush;
     fst->file_open = registrar->file_open;
     fst->file_close = registrar->file_close;
     fst->file_creat = registrar->file_creat;

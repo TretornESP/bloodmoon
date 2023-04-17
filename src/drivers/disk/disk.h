@@ -11,6 +11,9 @@
 #define IOCTL_GET_SECTOR_COUNT 0x7
 #define IOCTL_GET_BLOCK_SIZE   0x8
 
+#define DISK_ATA_DD_NAME    "ATA DRIVER\0"
+#define DISK_ATAPI_DD_NAME  "ATAPI DRIVER\0"
+
 //https://forum.osdev.org/viewtopic.php?f=1&t=30118
 struct sata_ident_test
 {

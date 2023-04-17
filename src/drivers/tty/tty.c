@@ -29,7 +29,7 @@ void tty_run_subscribers(struct tty* tty, uint8_t event) {
     }
 }
 
-void tty_flush(struct tty* device) {
+void _tty_flush(struct tty* device) {
     if (device == 0) return;
     if (device->outb == 0) return;
 
@@ -85,7 +85,7 @@ void tty_write_outb(struct tty* device, char c) {
     }
 
     if (c == TTY_FLUSH_CHAR) {
-        tty_flush(device);
+        _tty_flush(device);
         tty_run_subscribers(device, TTY_EVENT_OUTB);
     }
 }
@@ -140,13 +140,12 @@ void flush_cb(void* ttyb, char* buffer, int size) {
 
 void echo_cb(void* ttyb, char c) {
     struct tty* tty = (struct tty*)ttyb;
-
     if (!tty->echo) return;
     device_write(tty->device, 1, 0, (uint8_t*)&c);
     device_ioctl(tty->device, SERIAL_FLUSH_TX, 0);
 }
 
-void tty_add_subscriber(struct tty* tty, void (*handler)(void*, uint8_t)) {
+void _tty_add_subscriber(struct tty* tty, void (*handler)(void*, uint8_t)) {
     if (tty == 0 || !tty->valid) return;
     if (tty->subscribers == 0) return;
 
@@ -161,7 +160,7 @@ void tty_add_subscriber(struct tty* tty, void (*handler)(void*, uint8_t)) {
     subscriber->next->handler = handler;
 }
 
-void tty_remove_subscriber(struct tty* tty, void (*handler)(void*, uint8_t)) {
+void _tty_remove_subscriber(struct tty* tty, void (*handler)(void*, uint8_t)) {
     if (tty == 0 || !tty->valid) return;
     if (tty->subscribers == 0) return;
 
@@ -284,7 +283,12 @@ int is_valid_tty(struct tty* tty) {
     return 1;
 }
 
-void tty_modes(struct tty* tty, int mode, int value) {
+int _tty_get_size(struct tty* tty) {
+    if (tty == 0 || !tty->valid) return 0;
+    return tty->inb_write - tty->inb_read;
+}
+
+void _tty_modes(struct tty* tty, int mode, int value) {
     if (tty == 0 || !tty->valid) return;
     if (tty->line_discipline == 0) return;
 

@@ -84,5 +84,5 @@ struct file_operations serial_fops = {
 };
 
 void init_serial_dd() {
-   register_char(DEVICE_SERIAL, "SERIAL DRIVER", &serial_fops);
+   register_char(DEVICE_SERIAL, SERIAL_DD_NAME, &serial_fops);
 }
