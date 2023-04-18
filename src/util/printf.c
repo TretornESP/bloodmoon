@@ -35,6 +35,9 @@
 
 #include "printf.h"
 #include "../bootservices/bootservices.h"
+#include "../dev/devices.h"
+#include "../scheduling/scheduler.h"
+#include "string.h"
 
 // define this globally (e.g. gcc -DPRINTF_INCLUDE_CONFIG_H ...) to include the
 // printf_config.h header file
@@ -149,9 +152,16 @@ static inline void _out_null(char character, void* buffer, size_t idx, size_t ma
 static inline void _out_char(char character, void* buffer, size_t idx, size_t maxlen)
 {
   (void)buffer; (void)idx; (void)maxlen;
+
   if (character) {
-    void (*writer)(const char*, uint64_t) = get_terminal_writer();
-    writer(&character, 1);
+    const char * ctty = get_current_tty();
+    if (ctty == 0 || !strcmp(ctty, "default")) {
+      void (*writer)(const char*, uint64_t) = get_terminal_writer();
+      writer(&character, 1);
+    } else {
+      device_write(ctty, 1, 0, (uint8_t*)&character);
+      device_ioctl(ctty, 0x5, 0); //TTY Flush
+    }
   }
 }
 

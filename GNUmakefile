@@ -1,9 +1,11 @@
 override KERNEL := kernel.elf
 override ISO := limine-cd.iso
 override IMG := limine-cd.img
+override VDI := limine-cd.vdi
 override IMG_RAW := raw.img
 override LIMINECFG := limine.cfg
 override GDBCFG := debug.gdb
+override VMNAME := bloodmoon
 
 # It is highly recommended to use a custom built cross toolchain to build a kernel.
 # We are only using "cc" as a placeholder here. It may work by using
@@ -23,6 +25,12 @@ QEMU := "/mnt/c/Program Files/qemu/qemu-system-x86_64.exe"
 #QEMU := qemu-system-x86_64
 GDB := gdb
 ###########################################################################
+VBOXMANAGE := "/mnt/c/Program Files/Oracle/VirtualBox/VBoxManage.exe"
+VBOXHEADLESS := "/mnt/c/Program Files/Oracle/VirtualBox/VBoxHeadless.exe"
+VBOXCOM1PORT := 4441
+VBOXCOM2PORT := 4442
+VBOXCOM3PORT := 4443
+VBOXCOM4PORT := 4444
 CMDNEWSCREEN := cmd.exe /c start cmd /c wsl -e
 MNTDIR := /mnt/bloodmoon
 
@@ -31,8 +39,10 @@ WSLHOSTIP := $(shell ipconfig.exe | grep 'vEthernet (WSL)' -a -A4 | tail -n1 | c
 KERNEL_ENTRY := _start
 
 BLOCKSIZE := 1024
-QFLAGS ?= -cpu qemu64 -d cpu_reset -machine q35 -m 512 -boot d -cdrom 
-QFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 -m 1024 -boot d -cdrom ./test/useless.iso -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -net none -serial stdio -serial telnet::1235,server,nowait -drive file=
+MEMSIZE := 1024
+VMEMSIZE := 128
+QFLAGS ?= -cpu qemu64 -d cpu_reset -machine q35 -m $(MEMSIZE) -boot d -serial stdio -serial telnet::4444,server,nowait -cdrom 
+QFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 -m $(MEMSIZE) -boot d -cdrom ./test/useless.iso -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -net none -serial stdio -serial telnet::4442,server,nowait -drive file=
 
 CFLAGS ?= -O2 -g -Wall -Wextra -pipe -std=c11
 NASMFLAGS ?= -F dwarf -g
@@ -123,6 +133,39 @@ all:
 	@make run
 	@echo "Done!"
 
+vbon:
+	@echo "Creating iso"
+	@make buildimg
+	@echo "Creating vdi"
+	@$(VBOXMANAGE) createhd --filename $(ISODIR)/$(VDI) --size 800 --format VDI
+	@echo "Creating virtual machine..."
+	@$(VBOXMANAGE) createvm --name $(VMNAME) --ostype "Linux_64" --register
+	@echo "Setting up virtual machine..."
+	@$(VBOXMANAGE) modifyvm $(VMNAME) --memory $(MEMSIZE) --vram $(VMEMSIZE) --chipset ich9
+	@$(VBOXMANAGE) modifyvm $(VMNAME) --uart1 0x3F8 1 --uartmode1 tcpserver $(VBOXCOM1PORT)
+	@$(VBOXMANAGE) modifyvm $(VMNAME) --uart2 0x2F8 2 --uartmode2 tcpserver $(VBOXCOM2PORT)
+	@$(VBOXMANAGE) storagectl $(VMNAME) --name "SATA Controller" --add sata --controller IntelAhci
+	@$(VBOXMANAGE) storageattach $(VMNAME) --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium $(ISODIR)/$(VDI)
+	@$(VBOXMANAGE) storagectl $(VMNAME) --name "IDE Controller" --add ide --controller PIIX4
+	@$(VBOXMANAGE) storageattach $(VMNAME) --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium $(ISODIR)/$(ISO)
+	@$(VBOXMANAGE) modifyvm $(VMNAME) --boot1 dvd --boot2 disk --boot3 none --boot4 none
+	@echo "Starting virtual machine..."
+	@$(VBOXMANAGE) startvm $(VMNAME)
+	@echo "Done!"
+
+vboff:
+	@echo "Stopping virtual machine..."
+
+	@if [ -z "$(shell $(VBOXMANAGE) list runningvms | grep $(VMNAME))" ]; then \
+		echo "Virtual machine is not running!"; \
+	else \
+		$(VBOXMANAGE) controlvm $(VMNAME) poweroff; \
+	fi
+	@sleep 1
+	@echo "Deleting virtual machine..."
+	@$(VBOXMANAGE) unregistervm $(VMNAME) --delete
+	@rm -f $(ISODIR)/$(VDI)
+
 kernel: $(OBJS) link
 
 $(OBJDIR)/io/interrupts.o: $(SRCDIR)/io/interrupts.c
@@ -160,7 +203,9 @@ clean:
 	@rm -f $(ISOBUILDDIR)/$(KERNEL)
 	@rm -f $(ISOBUILDDIR)/$(LIMINECFG)
 	@rm -f $(BUILDDIR)/$(KERNEL)
+	@rm -f $(ISODIR)/$(IMG)
 	@rm -f $(ISODIR)/$(ISO)
+	@rm -f $(ISODIR)/$(VDI)
 
 setup:
 	@mkdir -p $(BUILDDIR)

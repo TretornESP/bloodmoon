@@ -109,7 +109,7 @@ struct task {
     int16_t uid;
     int16_t gid;
 
-    //struct tty_struct *tty; TODO: Add tty support
+    char tty[32];
     unsigned int locks;
 
     int * open_files;

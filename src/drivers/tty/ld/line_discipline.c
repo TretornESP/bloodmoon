@@ -259,8 +259,10 @@ char line_discipline_translate(struct line_discipline *ld, char original_charact
     if (ld->mode == LINE_DISCIPLINE_MODE_RAW) {
         return original_character;
     } else if (ld->mode == LINE_DISCIPLINE_MODE_CANONICAL) {
-        //TODO: Implement this
-        return original_character;
+        if (original_character < 0 || original_character > 27)
+            return original_character;
+        
+        return original_character; //TODO: Implement this
     }
 
     return original_character;

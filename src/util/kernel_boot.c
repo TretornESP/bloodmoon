@@ -2,6 +2,8 @@
 
 #include "../arch/simd.h"
 
+#include "../debugger/debug.h"
+
 #include "../memory/memory.h"
 #include "../memory/paging.h"
 #include "../memory/heap.h"
@@ -50,6 +52,25 @@ void print_prompt() {
     vfs_file_close(fd);
 }
 
+//This searches for the first terminal and initializes the debugger on it
+void enable_debug(uint8_t reserved) {
+    uint32_t terminals = get_device_count_by_major(DEVICE_TTY);
+    if (terminals > reserved) {
+        uint8_t index = 0;
+        struct device* current = get_device_head();
+
+        while (current != 0) {
+            if (current->major == DEVICE_TTY) {
+                if (index++ >= reserved) {
+                    dbg_init(current->name);
+                    break;
+                }
+            }
+            current = get_next_device(current);
+        }
+    }
+}
+
 void boot() {
     init_simd();
     init_memory();
@@ -62,6 +83,7 @@ void boot() {
     init_serial_dd();
     init_tty_dd();
     init_devices();
+    enable_debug(1);
     init_smbios_interface();
     register_filesystem(fat32_registrar);
     register_filesystem(ext2_registrar);

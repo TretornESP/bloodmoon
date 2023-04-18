@@ -18,7 +18,7 @@ Current memory usage:
 - [x] Interface with limine
 - [x] Basic print functionality
 - [x] Page frame allocator
-- [x] CPU Structures (GDT, IDT, TSS, LDT) (needs improvements)
+- [x] CPU Structures (GDT, IDT, TSS, LDT) (needs improvements for multi ring)
 - [x] Paging and mappings
 - [x] Memory sectoring and protection
 - [x] Advanced print functionality
@@ -28,9 +28,12 @@ Current memory usage:
 - [x] ACPI structures
 - [x] Clocks and signal lines (signal lines moved forward)
 - [x] Proces structures
+- [x] EXT2 filesystem
+- [x] VFS
+- [x] Serial communication
+- [x] TTY
 - [ ] Task switching
 - [ ] Basic concurrency
-- [x] Basic FS (in process)
 - [ ] Process loading
 - [ ] Syscalls
 - [ ] Userspace

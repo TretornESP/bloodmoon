@@ -100,7 +100,7 @@ void pseudo_ps() {
     }
 
     while (current != 0) {
-        printf("PID: %d PPID: %d STATE: %d FLAGS: %d, ENTRY: %p\n", current->pid, current->ppid, current->state, current->flags, current->entry);
+        printf("PID: %d PPID: %d STATE: %d FLAGS: %d, ENTRY: %p TTY: %s\n", current->pid, current->ppid, current->state, current->flags, current->entry, current->tty);
         current = current->next;
     }
 
@@ -113,7 +113,8 @@ void spawn(
     unsigned long flags,
     void* entry_addr,
     long uid,
-    long gid
+    long gid,
+    const char * tty
 ) {
     struct task * task = malloc(sizeof(struct task));
     task->state = TASK_READY;
@@ -134,7 +135,8 @@ void spawn(
     task->locks = 0;
     task->open_files = 0;
     task->entry = entry_addr;
-    
+    strncpy(task->tty, tty, strlen(tty));
+
     CPU_CONTEXT * context = malloc(sizeof(CPU_CONTEXT));
     memset(context, 0, sizeof(CPU_CONTEXT));
     task->context = context;
@@ -165,14 +167,37 @@ struct task* get_current_task() {
     return current_task;
 }
 
+const char * get_current_tty() {
+    if (current_task == 0) {
+        return 0;
+    }
+    return current_task->tty;
+}
+
 void init_scheduler() {
     printf("### SCHEDULER STARTUP ###\n");
 
-    spawn(0, 0, 0, (void*)0x0, 0, 0); //Spawn kernel task
+    spawn(0, 0, 0, (void*)0x0, 0, 0, "default"); //Spawn kernel task
 
     current_task = task_head;
     current_task->state = TASK_EXECUTING;
     printf("### SCHEDULER STARTUP DONE ###\n");
+}
+
+void set_current_tty(const char * tty) {
+    if (current_task == 0) {
+        return;
+    }
+    memset(current_task->tty, 0, 32);
+    strncpy(current_task->tty, tty, strlen(tty));
+}
+
+void reset_current_tty() {
+    if (current_task == 0) {
+        return;
+    }
+    memset(current_task->tty, 0, 32);
+    strncpy(current_task->tty, "default\0", 8);
 }
 
 void kwrite(const char* chr) {
