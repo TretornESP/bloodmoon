@@ -8,6 +8,8 @@
 *.bin
 *.gdb
 *.out
+*.vdi
+*.vmdk
 
 limine/
 build/
