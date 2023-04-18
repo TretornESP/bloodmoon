@@ -40,7 +40,7 @@ char* insert_device(uint8_t major, void* device_control_structure, const char * 
     struct device* device = devices;
     uint8_t minor = 0;
     while (device->next != 0) {
-        if (device->major == major)
+        if (device->major == (major & 0x7f))
             minor++;
         device = device->next;
     }
