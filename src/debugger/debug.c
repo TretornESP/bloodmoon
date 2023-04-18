@@ -24,6 +24,8 @@ void add_message(char * msg) {
 
     if (dbg_buffer == 0) {
         dbg_buffer = allocate();
+        strncpy(dbg_buffer->data, "Starting debug session...\n", 26);
+        dbg_buffer->pos = 26;
     }
 
     struct buffer* current = dbg_buffer;
@@ -52,7 +54,20 @@ void clean() {
     dbg_buffer = 0;
 }
 
+void vdbg(const char* format, va_list va) {
+    if (!heap_safeguard()) return;
+    char* buffer = (char*)calloc(1, MSG_MAX_LEN);
+    if (!buffer) return;
+
+    vsnprintf(buffer, MSG_MAX_LEN, format, va);
+
+    add_message(buffer);
+
+    free(buffer);
+}
+
 void dbg(const char* format, ...) {
+    if (!heap_safeguard()) return;
     char* buffer = (char*)calloc(1, MSG_MAX_LEN);
     if (!buffer) return;
 
@@ -84,10 +99,13 @@ void dbg_init(const char* device) {
         return;
     }
     strncpy(dbg_device, device, 32);
+    
     started = 1;
 }
 
 void dbg_flush() {
+    if (!heap_safeguard()) return;
+
     if (dbg_buffer == 0) {
         return;
     }

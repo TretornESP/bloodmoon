@@ -1,5 +1,6 @@
 #include "dbgprinter.h"
 #include "../bootservices/bootservices.h"
+#include "../debugger/debug.h"
 #include "string.h"
 #define BUFFERSIZE 128
 
@@ -27,6 +28,21 @@ void panic(const char * str) {
     dbg_print(str);
     dbg_print("\n");
     dbg_print(dbgmsg);
+
+    if (!dbg_is_present()) {
+        dbg_print("Debugger not present\n");
+        
+    } else {
+        dbg_print("Debugger attached to ");
+        dbg_print(dbg_get_device());
+        dbg_print("\n");
+
+
+        dbg("[KERNEL PANIC!]\n");
+        dbg("[str: %s]\n", str);
+        dbg("[dbgmsg: %s]\n", dbgmsg);
+        dbg_flush();
+    }
     while(1);
 }
 

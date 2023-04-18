@@ -25,6 +25,7 @@ struct heap {
 extern struct heap globalHeap;
 
 void init_heap();
+int heap_safeguard();
 void* malloc(uint64_t size);
 void* realloc(void* buffer, uint64_t size);
 void free(void* address);

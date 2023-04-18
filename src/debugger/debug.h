@@ -13,6 +13,7 @@ struct buffer {
     struct buffer* next;
 };
 
+void vdbg(const char* format, va_list va);
 void dbg(const char* format, ...);
 void dbg_init(const char* device);
 int dbg_is_present();

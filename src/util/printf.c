@@ -37,6 +37,7 @@
 #include "../bootservices/bootservices.h"
 #include "../dev/devices.h"
 #include "../scheduling/scheduler.h"
+#include "../debugger/debug.h"
 #include "string.h"
 
 // define this globally (e.g. gcc -DPRINTF_INCLUDE_CONFIG_H ...) to include the
@@ -872,11 +873,14 @@ static int _vsnprintf(out_fct_type out, char* buffer, const size_t maxlen, const
 
 int printf_(const char* format, ...)
 {
-  va_list va;
+  va_list va, va2;
   va_start(va, format);
+  va_copy(va2, va);
   char buffer[1];
   const int ret = _vsnprintf(_out_char, buffer, (size_t)-1, format, va);
+  vdbg(format, va2);
   va_end(va);
+  va_end(va2);
   return ret;
 }
 

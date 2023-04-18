@@ -273,7 +273,11 @@ void _tty_write(struct tty* tty, char* buffer, int size) {
     if (tty->line_discipline == 0) return;
 
     for (int i = 0; i < size; i++) {
-        tty_write_outb(tty, line_discipline_translate(tty->line_discipline, buffer[i]));
+        char tbuffer[4];
+        int translation = line_discipline_translate(tty->line_discipline, buffer[i], tbuffer);
+        for (int j = 0; j < translation; j++) {
+            tty_write_outb(tty, tbuffer[j]);
+        }
     }
 }
 

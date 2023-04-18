@@ -8,6 +8,7 @@
 #include "vfs/vfs_interface.h"
 #include "util/printf.h"
 #include "debugger/debug.h"
+#include "util/dbgprinter.h"
 
 void intro_handler(void* ttyb, uint8_t event) {
     (void)ttyb;
@@ -35,26 +36,13 @@ void intro_handler(void* ttyb, uint8_t event) {
 
 void _start(void) {
     boot();
-    if (!dbg_is_present()) {
-        printf("Debugger not present\n");
-        halt();
-    } else {
-        printf("Debugger attached to %s\n", dbg_get_device());
-    }
 
-    dbg("This is a debug message\n");
-    dbg("This is a cuak message\n");
-    dbg("This is a potato %d message\n", 5);
-    dbg_flush();
-    dbg("This is not a debug message\n");
-    dbg("This is not a cuak message\n");
-    dbg("This is not a potato %d message\n", 5);
-    dbg_flush();
-    device_list();
     pseudo_ps();
+    panic("Dummy");
 
+    while(1);
     tty_add_subscriber("ttya", intro_handler);
-    
-    halt();
 
+
+    while(1);
 }

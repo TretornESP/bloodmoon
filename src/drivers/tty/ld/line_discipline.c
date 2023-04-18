@@ -102,34 +102,34 @@ int ld_del(struct line_discipline* ld, char c) {
 }
 
 struct line_discipline_action_table_entry default_ld_table[] = {
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //0
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //1 A
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //2 B 
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_sigint},   //3 C 
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_eof},      //4 D 
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //5 E 
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //6 F
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_bell},     //7 G
-    {.output = {'\b', ' ', '\b', LD_NULL},           .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_erase},   //8 H
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_htab},   //9 I
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_lfeed},   //10 J
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_vtab},   //11 K
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_newpage},   //12 L
-    {.output = {'\r', '\n', LD_NULL, LD_NULL},       .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_cret},   //13 M
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //14 N
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //15 O 
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //16 P
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_restart_out},   //17 Q 
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //18 R 
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_stop_out},   //19 S 
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //20 T
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //21 U
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //22 V
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //23 W 
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //24 X 
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //25 Y
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_sigstop},   //26 Z
-    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .insert = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_del},   //27
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //0
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //1 A
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //2 B 
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_sigint},   //3 C 
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_eof},      //4 D 
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //5 E 
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //6 F
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_bell},     //7 G
+    {.output = {'\b', ' ', '\b', LD_NULL},           .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_erase},   //8 H
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_htab},   //9 I
+    {.output = {'\n', LD_NULL, LD_NULL, LD_NULL},    .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {'\r', '\n', LD_NULL, LD_NULL},    .action = ld_lfeed},   //10 J
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_vtab},   //11 K
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_newpage},   //12 L
+    {.output = {'\r', '\n', LD_NULL, LD_NULL},    .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, '\n', LD_NULL, LD_NULL},    .action = ld_cret},   //13 M
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //14 N
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //15 O 
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //16 P
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_restart_out},   //17 Q 
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //18 R 
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_stop_out},   //19 S 
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //20 T
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //21 U
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //22 V
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //23 W 
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //24 X 
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_ignore},   //25 Y
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_sigstop},   //26 Z
+    {.output = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserti = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .inserto = {LD_NULL, LD_NULL, LD_NULL, LD_NULL}, .action = ld_del},   //27
 };
 
 struct line_discipline * line_discipline_create(int mode, int echo, int table, int buffer_size, void* parent, void (*flush_cb)(void* parent, char *buffer, int size), void (*echo_cb)(void* parent, char c)) {
@@ -221,7 +221,7 @@ void line_discipline_apply(struct line_discipline *ld, char c) {
     }
 
     for (int i = 0; i < LD_INSERT_SIZE; i++) {
-        line_discipline_insert(ld, ld->action_table[(uint8_t)c].insert[i]);
+        line_discipline_insert(ld, ld->action_table[(uint8_t)c].inserti[i]);
     }
 
     if (ld->echo == LINE_DISCIPLINE_MODE_ECHO_ON && ld->echo_cb != 0) {
@@ -249,24 +249,30 @@ void line_discipline_read(struct line_discipline *ld, char character) {
 }
 
 //TODO: Implement this
-char line_discipline_translate(struct line_discipline *ld, char original_character) {
+int line_discipline_translate(struct line_discipline *ld, char original_character, char* translated_characters) {
     if (ld == 0 || ld->valid != 1) {
-        return original_character;
+        goto same;
     }
 
-    printf("original_character = %x\n", original_character);
+    //printf("original_character = %x\n", original_character);
 
     if (ld->mode == LINE_DISCIPLINE_MODE_RAW) {
-        return original_character;
+        goto same;
     } else if (ld->mode == LINE_DISCIPLINE_MODE_CANONICAL) {
-        if (original_character < 0 || original_character > 27)
-            return original_character;
-        
-        return original_character; //TODO: Implement this
+        if (original_character != LD_DEL && (original_character < 0 || original_character > 27))
+            goto same;
+
+        int i = 0;
+        for (i = 0; i < LD_OUTPUT_SIZE; i++) {
+            if (ld->action_table[(uint8_t)original_character].inserto[i] == LD_NULL) break;
+            translated_characters[i] = ld->action_table[(uint8_t)original_character].inserto[i];
+        }
+        return i;
     }
 
-    return original_character;
-
+same:
+    translated_characters[0] = original_character;
+    return 1;
 }
 
 void line_discipline_debug() {

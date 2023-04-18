@@ -14,6 +14,7 @@
 #include "../util/dbgprinter.h"
 
 struct heap globalHeap;
+int ready = 0;
 
 void initHeap(void* heapAddress, uint64_t pageCount) {
     globalHeap.heapEnd = heapAddress;
@@ -39,7 +40,12 @@ void initHeap(void* heapAddress, uint64_t pageCount) {
     globalHeap.freeSize += PAGESIZE;
 }
 
+int heap_safeguard() {
+    return ready;
+}
+
 void *calloc (uint64_t num, uint64_t size) {
+    if (!ready) return 0;
     void *ptr = malloc(num * size);
     memset(ptr, 0, num * size);
     return ptr;
@@ -100,6 +106,7 @@ void walk_heap() {
 }
 
 void* malloc(uint64_t size) {
+    if (!ready) return 0;
     if (size == 0) return 0;
 
     if ((size % 0x10) > 0) {
@@ -161,6 +168,7 @@ void MergeLastAndThisToNext(struct heap_segment_header* header){
 }
 
 void free(void* address) {
+    if (!ready) return 0;
     if (address == 0) return;
 
     struct heap_segment_header* header = (struct heap_segment_header*)((uint64_t)address - sizeof(struct heap_segment_header));
@@ -192,6 +200,7 @@ void free(void* address) {
 }
 
 void* realloc(void* buffer, uint64_t size) {
+    if (!ready) return 0;
     void* newBuffer = malloc(size);
     if (newBuffer == 0) return 0;
     if (buffer == 0) return newBuffer;
@@ -252,4 +261,5 @@ void init_heap() {
     uint64_t pageCount = PAGE_COUNT;
 
     initHeap(heapAddress, pageCount);
+    ready = 1;
 }

@@ -83,7 +83,7 @@ void boot() {
     init_serial_dd();
     init_tty_dd();
     init_devices();
-    enable_debug(1);
+    enable_debug(0);
     init_smbios_interface();
     register_filesystem(fat32_registrar);
     register_filesystem(ext2_registrar);

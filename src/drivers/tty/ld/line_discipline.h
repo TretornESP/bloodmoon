@@ -65,7 +65,9 @@ struct line_discipline {
 
 struct line_discipline_action_table_entry {
     char output[LD_OUTPUT_SIZE];
-    char insert[LD_INSERT_SIZE];
+    char inserti[LD_INSERT_SIZE];
+    char inserto[LD_OUTPUT_SIZE];
+
     int (*action)(struct line_discipline*, char);
 };
 
@@ -76,7 +78,7 @@ void line_discipline_set_echo(struct line_discipline *ld, int echo);
 void line_discipline_debug();
 
 void line_discipline_read(struct line_discipline *ld, char character);
-char line_discipline_translate(struct line_discipline *ld, char original_character);
+int line_discipline_translate(struct line_discipline *ld, char original_character, char* translated_characters);
 void line_discipline_force_flush(struct line_discipline *ld);
 
 #endif
