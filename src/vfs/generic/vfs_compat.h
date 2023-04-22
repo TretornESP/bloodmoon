@@ -110,6 +110,8 @@ struct vfs_compatible {
     uint64_t (*file_read)(int, int, void*, uint64_t);
     uint64_t (*file_write)(int, int, void*, uint64_t);
     uint64_t (*file_seek)(int, int, uint64_t, int);
+    uint64_t (*file_tell)(int, int);
+
     int (*file_stat)(int, int, stat_t*);
 
     int (*dir_open)(int, const char*);

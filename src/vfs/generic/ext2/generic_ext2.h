@@ -224,6 +224,17 @@ uint64_t ext2_compat_file_seek(int partno, int fd, uint64_t offset, int whence) 
 
     return entry->offset;
 }
+
+uint64_t ext2_compat_file_tell(int partno, int fd) {
+    if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
+        return 0;
+    struct ext2_partition * partition = ext2_partitions[partno];
+    if (partition == 0)
+        return 0;
+    struct file_descriptor_entry * entry = vfs_compat_get_file_descriptor(fd);
+    return entry->offset;
+}
+
 int ext2_compat_stat(int partno, int fd, stat_t* st) {(void)partno; (void)fd; (void)st;return -1;}
 int ext2_compat_rename(int partno, const char* path, const char* newpath) {(void)partno;(void)path;(void)newpath; return -1;}
 
@@ -281,6 +292,7 @@ struct vfs_compatible ext2_register = {
     .file_read = ext2_compat_file_read,
     .file_write = ext2_compat_file_write,
     .file_seek = ext2_compat_file_seek,
+    .file_tell = ext2_compat_file_tell,
     .file_stat = ext2_compat_stat,
     .rename = ext2_compat_rename,
     .remove = ext2_compat_remove,

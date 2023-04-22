@@ -4,8 +4,6 @@
 #include "../util/printf.h"
 #include "../util/string.h"
 
-struct page_directory *pml4;
-
 void address_to_map(uint64_t address, struct page_map_index* map) {
     address >>= 12;
     map->P_i = address & 0x1ff;
@@ -33,7 +31,7 @@ void print_pte(struct page_table_entry * pte) {
     );
 }
 
-uint64_t virtual_to_physical(void* virtual_memory) {
+uint64_t virtual_to_physical(struct page_directory *pml4, void* virtual_memory) {
     struct page_map_index map;
     address_to_map((uint64_t)virtual_memory, &map);
 
@@ -53,7 +51,7 @@ uint64_t virtual_to_physical(void* virtual_memory) {
     return physical;
 }
 
-void debug_memory_map(void* virtual_memory, void* physical_memory) {
+void debug_memory_map(struct page_directory *pml4, void* virtual_memory, void* physical_memory) {
     struct page_map_index map;
     address_to_map((uint64_t)virtual_memory, &map);
 
@@ -85,8 +83,35 @@ void debug_memory_map(void* virtual_memory, void* physical_memory) {
 
 }
 
+struct page_directory* allocate_pml4() {
+    struct page_directory* pml = (struct page_directory*)request_page();
+    memset(pml, 0, PAGESIZE);
+    return pml;
+}
+
+struct page_directory* get_pml4() {
+    struct page_directory* pml4;
+    __asm__("movq %%cr3, %0" : "=r"(pml4));
+    return pml4;
+}
+
+struct page_directory* duplicate_current_pml4() {
+    struct page_directory* father = get_pml4();
+    struct page_directory* pml = (struct page_directory*)request_page();
+    memcpy(pml, father, PAGESIZE);
+    return pml;
+}
+
+void* swap_pml4(void* pml) {
+    void* old;
+    __asm__("movq %%cr3, %0" : "=r"(old));
+    __asm__("movq %0, %%cr3" : : "r" (pml)); //This should invalidate TLB
+    return old;
+}
+
 void init_paging() {
     printf("### PAGING STARTUP ###\n");
+    struct page_directory * pml4 = (struct page_directory*)allocate_pml4();
      __asm__("movq %%cr3, %0" : "=r"(pml4));
      __asm__("movq %0, %%cr3" : : "r" (pml4)); //This should invalidate TLB    
 
@@ -99,7 +124,13 @@ void init_paging() {
     }
 }
 
-void map_memory(void* virtual_memory, void* physical_memory) {
+void map_current_memory(void* virtual_memory, void* physical_memory) {
+    struct page_directory* pml4 = get_pml4();
+    map_memory(pml4, virtual_memory, physical_memory);
+}
+
+void map_memory(struct page_directory* pml4, void* virtual_memory, void* physical_memory) {
+
     if ((uint64_t)virtual_memory & 0xfff) {
         printf("Crashing: virtual_memory: %p\n", virtual_memory);
         panic("map_memory: virtual_memory must be aligned to 0x1000");
@@ -160,7 +191,7 @@ void map_memory(void* virtual_memory, void* physical_memory) {
     pt->entries[map.P_i] = pte;
 }
 
-void set_page_perms(void* address, uint8_t permissions) {
+void set_page_perms(struct page_directory *pml4, void* address, uint8_t permissions) {
     struct page_map_index map;
     address_to_map((uint64_t)address, &map);
 
@@ -182,7 +213,7 @@ void set_page_perms(void* address, uint8_t permissions) {
     pte->cache_disabled = ((permissions & 8) >> 3);
 }
 
-uint8_t get_page_perms(void* address) {
+uint8_t get_page_perms(struct page_directory *pml4, void* address) {
     struct page_map_index map;
     address_to_map((uint64_t)address, &map);
 
@@ -206,31 +237,64 @@ uint8_t get_page_perms(void* address) {
     return result;
 }
 
-void page_set(void* address, uint8_t field) {
-    uint8_t perms = get_page_perms(address);
+void page_set(struct page_directory *pml4, void* address, uint8_t field) {
+    uint8_t perms = get_page_perms(pml4, address);
     perms |= field;
-    set_page_perms(address, perms);
+    set_page_perms(pml4, address, perms);
 }
 
-void page_clear(void* address, uint8_t field) {
-    uint8_t perms = get_page_perms(address);
+void page_clear(struct page_directory *pml4, void* address, uint8_t field) {
+    uint8_t perms = get_page_perms(pml4, address);
     perms &= ~field;
-    set_page_perms(address, perms);
+    set_page_perms(pml4, address, perms);
 }
 
-void * request_page_identity() {
+void * request_page_identity(struct page_directory *pml4) {
     void * result = request_page();
-    map_memory(result, result);
+    map_memory(pml4, result, result);
     return result;
 }
 
-void mprotect(void* address, uint64_t size, uint8_t permissions) {
+void * request_current_page_identity() {
+    struct page_directory *pml4 = get_pml4();
+    return request_page_identity(pml4);
+}
+
+void * request_page_at(struct page_directory *pml4, void* vaddr) {
+    void * result = request_page();
+    map_memory(pml4, vaddr, result);
+    return vaddr;
+}
+
+void * request_current_page_at(void* vaddr) {
+    struct page_directory *pml4 = get_pml4();
+    return request_page_at(pml4, vaddr);
+}
+
+void * request_accessible_page_at(struct page_directory* pml4, void* vaddr, void * access_pointer) {
+    void * result = request_page();
+    map_memory(pml4, vaddr, result);
+    map_current_memory(access_pointer, result);
+
+    return access_pointer;
+}
+void * request_current_accessible_page_at(void* vaddr, void * access_pointer) {
+    struct page_directory *pml4 = get_pml4();
+    return request_accessible_page_at(pml4, vaddr, access_pointer);
+}
+
+void mprotect(struct page_directory *pml4, void* address, uint64_t size, uint8_t permissions) {
     uint64_t start = (uint64_t)address;
     uint64_t end = start + size;
     start = start & ~0xfff;
     end = (end + 0xfff) & ~0xfff;
 
     for (uint64_t i = start; i < end; i += 0x1000) {
-        set_page_perms((void*)i, permissions);
+        set_page_perms(pml4, (void*)i, permissions);
     }
+}
+
+void mprotect_current(void* address, uint64_t size, uint8_t permissions) {
+    struct page_directory *pml4 = get_pml4();
+    mprotect(pml4, address, size, permissions);
 }

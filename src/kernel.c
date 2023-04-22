@@ -8,41 +8,16 @@
 #include "vfs/vfs_interface.h"
 #include "util/printf.h"
 #include "debugger/debug.h"
+#include "debugger/dbgshell.h"
 #include "util/dbgprinter.h"
-
-void intro_handler(void* ttyb, uint8_t event) {
-    (void)ttyb;
-    switch (event) {
-        case TTY_SIGNAL_OUTB:
-            printf("TTY Outb\n");
-            break;
-        case TTY_SIGNAL_INB: {
-            printf("TTY Inb\n");
-            dbg("This is a debug message\n"); 
-            dbg_flush();    
-            break;
-        }
-        case TTY_SIGNAL_FLUSH_INB:
-            printf("TTY Flush Inb\n");
-            break;
-        case TTY_SIGNAL_FLUSH_OUTB:
-            printf("TTY Flush Outb\n");
-            break;
-        default:
-            printf("TTY Unknown Event\n");
-            break;
-    }
-}
+#include "memory/paging.h"
+#include "memory/memory.h"
 
 void _start(void) {
     boot();
 
     pseudo_ps();
-    panic("Dummy");
-
-    while(1);
-    tty_add_subscriber("ttya", intro_handler);
-
+    init_dbgshell("ttya");
 
     while(1);
 }

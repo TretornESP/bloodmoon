@@ -4,6 +4,10 @@
 #include "../util/printf.h"
 #include "../util/string.h"
 
+void vfs_lsdisk() {
+    dump_mounts();
+}
+
 int vfs_file_open(const char* path, int flags, int mode) {
     printf("vfs_file_open(%s, %d, %d)\n", path, flags, mode);
     char * native_path_buffer = malloc(strlen(path) + 1);
@@ -94,6 +98,24 @@ uint64_t vfs_file_seek(int fd, uint64_t offset, int whence) {
     uint64_t res = 0;
     if (mount != 0) {
         res = mount->fst->file_seek(mount->internal_index, fd, offset, whence);
+    }
+    free(native_path_buffer);
+    free(path);
+    return res;
+}
+
+uint64_t vfs_file_tell(int fd) {
+    printf("vfs_file_tell(%d)\n", fd);
+    char * path = get_full_path_from_fd(fd);
+    if (path == 0) {
+        return -1;
+    }
+    char * native_path_buffer = malloc(strlen(path) + 1);
+    struct vfs_mount* mount = get_mount_from_path(path, native_path_buffer);
+
+    uint64_t res = 0;
+    if (mount != 0) {
+        res = mount->fst->file_tell(mount->internal_index, fd);
     }
     free(native_path_buffer);
     free(path);

@@ -2,11 +2,14 @@
 #define _VFS_ADAPTERS_H
 #include <stdint.h>
 
+void vfs_lsdisk();
+
 int vfs_file_open(const char*, int, int);
 int vfs_file_close(int);
 uint64_t vfs_file_read(int, void*, uint64_t);
 uint64_t vfs_file_write(int, void*, uint64_t);
 uint64_t vfs_file_seek(int, uint64_t, int);
+uint64_t vfs_file_tell(int);
 int vfs_file_creat(const char*, int);
 void vfs_file_flush(int);
 

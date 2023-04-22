@@ -20,7 +20,7 @@ void initHeap(void* heapAddress, uint64_t pageCount) {
     globalHeap.heapEnd = heapAddress;
     void * newPhysicalAddress = request_page();
     globalHeap.heapEnd = (void*)((uint64_t)globalHeap.heapEnd - PAGESIZE);
-    map_memory(globalHeap.heapEnd, newPhysicalAddress);
+    map_current_memory(globalHeap.heapEnd, newPhysicalAddress);
 
     globalHeap.mainSegment = (struct heap_segment_header*)((uint64_t)globalHeap.heapEnd + ((uint64_t)PAGESIZE -sizeof(struct heap_segment_header)));
     globalHeap.mainSegment->length = 0;
@@ -228,7 +228,7 @@ void expand_heap(uint64_t length) {
     for (uint64_t i = 0; i < pages; i++) {
         void * newPage = request_page();
         globalHeap.heapEnd = (void*)((uint64_t)globalHeap.heapEnd - (uint64_t)PAGESIZE);
-        map_memory(globalHeap.heapEnd, newPage);
+        map_current_memory(globalHeap.heapEnd, newPage);
     }
 
     struct heap_segment_header* newSegment = (struct heap_segment_header*)globalHeap.heapEnd;

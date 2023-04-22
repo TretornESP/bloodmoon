@@ -67,12 +67,26 @@ struct page_map_index{
 };
 
 void init_paging();
-void address_to_map(uint64_t, struct page_map_index*);
-void map_memory(void*, void*);
-void debug_memory_map(void*, void*);
-uint64_t virtual_to_physical(void*);
-void * request_page_identity();
-void page_set(void*, uint8_t);
-void page_clear(void*, uint8_t);
-void mprotect(void*, uint64_t, uint8_t);
+//void debug_memory_map(void*, void*);
+uint64_t virtual_to_physical(struct page_directory *, void*);
+
+struct page_directory* allocate_pml4();
+struct page_directory* duplicate_current_pml4();
+void* swap_pml4(void*);
+
+void map_current_memory(void*, void*);
+void map_memory(struct page_directory*, void*, void*);
+
+
+void * request_page_identity(struct page_directory *);
+void * request_current_page_identity();
+
+void * request_page_at(struct page_directory *, void*);
+void * request_current_page_at(void*);
+
+void * request_accessible_page_at(struct page_directory*, void*, void *);
+void * request_current_accessible_page_at(void*, void *);
+
+void mprotect(struct page_directory *, void*, uint64_t, uint8_t);
+void mprotect_current(void*, uint64_t, uint8_t);
 #endif

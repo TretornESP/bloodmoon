@@ -42,7 +42,7 @@ BLOCKSIZE := 1024
 MEMSIZE := 1024
 VMEMSIZE := 128
 QFLAGS ?= -cpu qemu64 -d cpu_reset -machine q35 -m $(MEMSIZE) -boot d -serial stdio -serial telnet::4444,server,nowait -cdrom 
-QFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 -m $(MEMSIZE) -boot d -cdrom ./test/useless.iso -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -net none -serial stdio -serial telnet::4442,server -drive file=
+QFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 -m $(MEMSIZE) -boot d -cdrom ./test/useless.iso -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -net none -serial stdio -drive file=
 
 CFLAGS ?= -O2 -g -Wall -Wextra -pipe -std=c11
 NASMFLAGS ?= -F dwarf -g
@@ -313,7 +313,7 @@ gpt:
 # Due to eval weird behaviour
 	@make buildimggpt
 	@echo "Running GPT QEMU..."
-#	@make run_exp
+	@make run_exp
 	@echo "Done!"
 
 exp:

@@ -145,7 +145,7 @@ int release_dirfd(int fd) {
 }
 
 uint8_t add_file_to_dirfd(int fd, const char* name, uint32_t inode, uint32_t type, uint32_t name_len) {
-    printf("add_file_to_dirfd: %d, %s, %d, %d, %d\n", fd, name, inode, type, name_len);
+    //printf("add_file_to_dirfd: %d, %s, %d, %d, %d\n", fd, name, inode, type, name_len);
     if (fd >= VFS_COMPAT_MAX_OPEN_DIRECTORIES) return 0;
     if (strlen(name) > VFS_FDE_NAME_MAX_LEN) return 0;
     if (open_directory_table[fd].fd.loaded == 0) return 0;

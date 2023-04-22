@@ -34,6 +34,7 @@ struct vfs_file_system_type {
     uint64_t (*file_read)(int, int, void*, uint64_t);
     uint64_t (*file_write)(int, int, void*, uint64_t);
     uint64_t (*file_seek)(int, int, uint64_t, int);
+    uint64_t (*file_tell)(int, int);
     int (*file_stat)(int, int, stat_t*);
 
     int (*dir_read)(int, int, char*, uint32_t *, uint32_t *);
@@ -76,6 +77,7 @@ struct vfs_mount {
     struct vfs_mount * next;
 };
 
+void dump_mounts();
 struct vfs_mount* get_mount_from_path(const char* path, char* native_path);
 char* get_full_path_from_fd(int fd);
 char* get_full_path_from_dir(int fd);

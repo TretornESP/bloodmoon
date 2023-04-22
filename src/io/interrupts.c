@@ -276,7 +276,7 @@ void init_interrupts(uint8_t pit_disable) {
     dbg_print("### INTERRUPTS STARTUP ###\n");
     __asm__("cli");
     idtr.limit = 256 * sizeof(struct idtdescentry) - 1;
-    idtr.offset = (uint64_t)request_page_identity();
+    idtr.offset = (uint64_t)request_current_page_identity();
     memset((void*)idtr.offset, 0, 256 * sizeof(struct idtdescentry));
 
     for (int i = 0; i < 256; i++) {

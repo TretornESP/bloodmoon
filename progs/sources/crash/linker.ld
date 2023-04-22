@@ -12,30 +12,43 @@ PHDRS
 
 SECTIONS
 {
-    . = 0x0000000000000000;
+    . = 0x100000;
 
     PROG_START = .;
     TEXT_START = .;
     .text : {
         *(.text .text.*)
-    } :text
+    } : text
 
-    . += CONSTANT(MAXPAGESIZE);
-    TEST_END = .;
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
+    TEXT_END = .;
     DATA_START = .;
     .data : {
         *(.data .data.*)
-    } :data
+    } : data
+
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
     DATA_END = .;
     BSS_START = .;
     .bss : {
         *(COMMON)
         *(.bss .bss.*)
-    } :data
+    } : data
 
     /DISCARD/ : {
         *(.note .note.*)
     }
+
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
     BSS_END = .;
+    RODATA_START = .;
+    .rodata : {
+        *(.rodata .rodata.*)
+    } : rodata
+
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
+    RODATA_END = .;
+
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
     PROG_END = .;
 }

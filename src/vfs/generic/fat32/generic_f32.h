@@ -59,6 +59,7 @@ int f32_compat_file_creat(int partno, const char* path, int mode) {(void)partno;
 uint64_t f32_compat_file_read(int partno, int fd, void* buffer, uint64_t size) {(void)partno; (void)fd; (void)buffer; (void)size; return 1;}
 uint64_t f32_compat_file_write(int partno, int fd, void* buffer, uint64_t size) {(void)partno; (void)fd; (void)buffer; (void)size; return 1;}
 uint64_t f32_compat_file_seek(int partno, int fd, uint64_t offset, int whence) {(void)partno; (void)fd; (void) offset; (void)whence; return 1;}
+uint64_t f32_compat_file_tell(int partno, int fd) {(void)partno; (void)fd; return 1;}
 int f32_compat_stat(int partno, int fd, stat_t* st) {(void)partno; (void)fd; (void)st; return -1;}
 int f32_compat_dir_open(int partno, const char* path) {(void)partno; (void)path; return -1;}
 int f32_compat_dir_close(int partno, int dir) {(void)partno; (void)dir; return -1;}
@@ -90,6 +91,7 @@ struct vfs_compatible fat32_register = {
     .file_read = f32_compat_file_read,
     .file_write = f32_compat_file_write,
     .file_seek = f32_compat_file_seek,
+    .file_tell = f32_compat_file_tell,
     .file_stat = f32_compat_stat,
     .rename = f32_compat_rename,
     .remove = f32_compat_remove,
