@@ -4,6 +4,7 @@
 #include "../../memory/heap.h"
 
 #include "../../util/printf.h"
+#include "../../util/dbgprinter.h"
 #include "../../util/string.h"
 
 #include <stdint.h>

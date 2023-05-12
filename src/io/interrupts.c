@@ -7,6 +7,7 @@
 #include "../util/string.h"
 #include "../drivers/keyboard/keyboard.h"
 #include "../scheduling/pit.h"
+#include "../syscall/syscall.h"
 
 #define PIC1_COMMAND 0x20
 #define PIC1_DATA 0x21
@@ -167,6 +168,19 @@ __attribute__((interrupt)) void Security_Handler(struct interrupt_frame* frame) 
     __UNDEFINED_HANDLER
 }
 
+__attribute__((interrupt)) void Syscall_Handler(struct interrupt_frame* frame) {
+    uint64_t syscall_number, arg1, arg2, arg3, arg4, arg5, arg6;
+    __asm__ volatile("mov %%rax, %0" : "=r"(syscall_number));
+    __asm__ volatile("mov %%rdi, %0" : "=r"(arg1));
+    __asm__ volatile("mov %%rsi, %0" : "=r"(arg2));
+    __asm__ volatile("mov %%rdx, %0" : "=r"(arg3));
+    __asm__ volatile("mov %%r10, %0" : "=r"(arg4));
+    __asm__ volatile("mov %%r8, %0" : "=r"(arg5));
+    __asm__ volatile("mov %%r9, %0" : "=r"(arg6));
+    uint64_t ret = syscall(syscall_number, arg1, arg2, arg3, arg4, arg5, arg6);
+    __asm__ volatile("mov %0, %%rax" : : "r"(ret));
+}
+
 //you may need save_all here
 __attribute__((interrupt)) void PitInt_Handler(struct interrupt_frame * frame) {
     (void)frame;
@@ -307,6 +321,7 @@ void init_interrupts(uint8_t pit_disable) {
     set_idt_gate((uint64_t)SIMD_FPE_Handler,    0x13,   IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)Virtualization_Handler, 0x14, IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)Security_Handler,    0x1E,   IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)Syscall_Handler,     0x80,   IDT_TA_InterruptGate, 0x28);
     set_idt_gate((uint64_t)DynamicInt_Handler,  0x90,   IDT_TA_InterruptGate, 0x28);
     
     __asm__ volatile("lidt %0" : : "m"(idtr));

@@ -6,6 +6,7 @@
 #include "../vfs/vfs_interface.h"
 #include "../memory/heap.h"
 #include "../process/loader.h"
+#include "../process/raw.h"
 #include "debug.h"
 
 struct command {
@@ -28,6 +29,14 @@ void dump(int argc, char* argv[]) {
 
 void lsdsk(int argc, char* argv[]) {
     vfs_lsdisk();
+}
+
+void lsblk(int argc, char* argv[]) {
+    device_list(MODE_BLOCK);
+}
+
+void lschr(int argc, char* argv[]) {
+    device_list(MODE_CHAR);
 }
 
 void attach(int argc, char *argv[]) {
@@ -97,6 +106,34 @@ void loadelf(int argc, char* argv[]) {
     free(buf);
 }
 
+void loadraw(int argc, char* argv[]) {
+    if (argc < 3) {
+        printf("Loads raw shellcode file into memory at address\n");
+        printf("Usage: loadraw <file> <address:hex>\n");
+        return;
+    }
+
+    int fd = vfs_file_open(argv[1], 0, 0);
+    if (fd < 0) {
+        printf("Could not open file %s\n", argv[1]);
+        return;
+    }
+
+    vfs_file_seek(fd, 0, 0x2); //SEEK_END
+    uint64_t size = vfs_file_tell(fd);
+    vfs_file_seek(fd, 0, 0x0); //SEEK_SET
+
+    uint8_t* buf = malloc(size);
+    vfs_file_read(fd, buf, size);
+    vfs_file_close(fd);
+
+
+    uint64_t addr = atou64(argv[2]);
+
+    load_and_execute(buf, addr, size);
+    free(buf);
+}
+
 void ls(int argc, char*argv[]) {
     if (argc < 2) {
         printf("Lists the contents of a directory\n");
@@ -135,12 +172,24 @@ struct command cmdlist[] = {
         .handler = ls
     },
     {
+        .keyword = "lsblk",
+        .handler = lsblk
+    },
+    {
+        .keyword = "lschr",
+        .handler = lschr
+    },
+    {
         .keyword = "lsdsk",
         .handler = lsdsk
     },
     {
         .keyword = "loadelf",
         .handler = loadelf
+    },
+    {
+        .keyword = "loadraw",
+        .handler = loadraw
     },
     {
         .keyword = "d",
@@ -203,6 +252,7 @@ void init_dbgshell(const char* tty) {
     device_ioctl(tty, 0x1, handler); //ADD SUBSCRIBER
     set_current_tty(tty);
     printf("\n");
+    dbg_flush();
     promt();
 }
 

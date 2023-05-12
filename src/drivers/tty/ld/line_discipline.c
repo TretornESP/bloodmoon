@@ -211,7 +211,6 @@ void line_discipline_apply(struct line_discipline *ld, char c) {
     if (ld == 0 || ld->valid != 1) {
         return;
     }
-
     if (c != LD_DEL && (c < 0 || c > 27)) {
         line_discipline_insert(ld, c);
         if (ld->echo == LINE_DISCIPLINE_MODE_ECHO_ON && ld->echo_cb != 0) {

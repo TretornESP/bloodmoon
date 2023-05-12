@@ -8,6 +8,9 @@
 
 #define BLOCK_SCSI 0x8
 #define CHAR_SCSI 0x88
+#define MODE_CHAR 0x1
+#define MODE_BLOCK 0x2
+
 #define ABS_TO_PAGE(addr, page_size) (addr / page_size)
 
 struct file_operations {
@@ -65,7 +68,7 @@ struct device {
     struct device *next;
 };
 
-void device_list();
+void device_list(uint8_t);
 void register_char(uint8_t, const char*, struct file_operations*);
 void register_block(uint8_t, const char*, struct file_operations*);
 void unregister_char(uint8_t);

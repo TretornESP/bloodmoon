@@ -77,7 +77,6 @@ void* swap_pml4(void*);
 void map_current_memory(void*, void*);
 void map_memory(struct page_directory*, void*, void*);
 
-
 void * request_page_identity(struct page_directory *);
 void * request_current_page_identity();
 

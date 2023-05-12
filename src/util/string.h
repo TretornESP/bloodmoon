@@ -6,6 +6,7 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wreturn-type"
 #include <stdint.h>
+#include "printf.h"
 typedef uint64_t size_t;
 
 #ifndef __FUNCTION_NAME__
@@ -33,6 +34,7 @@ size_t strspn(const char *s, const char *accept);
 char *strstr(const char *haystack, const char *needle);
 char *strtok(char *s, const char *delim);
 size_t strxfrm(char *dest, const char *src, size_t n);
+uint64_t atou64(const char *nptr);
 
 uint64_t strlen(const char *str);
 void *memset(void *dest, int c, uint64_t n);

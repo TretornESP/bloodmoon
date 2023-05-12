@@ -100,10 +100,14 @@ void init_devices() {
     register_comm(insert_device_cb);
 }
 
-void device_list() {
+void device_list(uint8_t mode) {
     struct device* dev = devices;
     while (dev->valid) {
-        printf("Device: %s [MAJ: %d MIN: %d]\n", dev->name, dev->major, dev->minor);
+        if (mode == MODE_BLOCK && dev->bc == 0)
+            printf("Device: %s [MAJ: %d MIN: %d]\n", dev->name, dev->major, dev->minor);
+        else if (mode == MODE_CHAR && dev->bc == 1) {
+            printf("Device: %s [MAJ: %d MIN: %d]\n", dev->name, dev->major, dev->minor);
+        }
         dev = dev->next;
     }
 }

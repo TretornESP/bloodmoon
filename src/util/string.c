@@ -1,5 +1,5 @@
 #include "string.h"
-#include "printf.h"
+#include "ctype.h"
 
 void *memchr(const void *s, int c, size_t n) {__UNDEFINED();}
 void *memmove(void *dest, const void *src, size_t n) {__UNDEFINED();}
@@ -26,6 +26,36 @@ char *strrchr(const char *str, int ch) {
 size_t strspn(const char *s, const char *accept) {__UNDEFINED();}
 char *strstr(const char *haystack, const char *needle) {__UNDEFINED();}
 size_t strxfrm(char *dest, const char *src, size_t n) {__UNDEFINED();}
+
+uint64_t atou64(const char *nptr) {
+    
+    //Check if prefix is 0x or 0b for hex or binary
+    while (isspace(*nptr)) {
+        nptr++;
+    }
+    uint64_t base = 10;
+    if (nptr[0] == '0' && nptr[1] == 'x') {
+        base = 16;
+        nptr += 2;
+    } else if (nptr[0] == '0' && nptr[1] == 'b') {
+        base = 2;
+        nptr += 2;
+    }
+
+    while (!isdigit(*nptr)) {
+        nptr++;
+    }
+
+    uint64_t result = 0;
+    uint64_t multiplier = 1;
+    uint64_t len = strlen(nptr);
+    for (uint64_t i = 0; i < len; i++) {
+        uint64_t digit = nptr[len - i - 1] - '0';
+        result += digit * multiplier;
+        multiplier *= base;
+    }
+    return result;
+}
 
 char* strtok(char* s, const char* delim) {
     static char* lastToken = 0;
