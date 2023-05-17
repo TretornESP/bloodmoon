@@ -38,11 +38,24 @@ void panic(const char * str) {
         dbg_print("\n");
 
 
-        dbg("[KERNEL PANIC!]\n");
-        dbg("[str: %s]\n", str);
-        dbg("[dbgmsg: %s]\n", dbgmsg);
-        dbg_flush();
+        if (!dbg("[KERNEL PANIC!]\n")) {
+            goto fallback;
+        }
+        if (!dbg("[str: %s]\n", str)) {
+            goto fallback;
+        }
+        if (!dbg("[dbgmsg: %s]\n", dbgmsg)) {
+            goto fallback;
+        }
+        if (!dbg_flush()) {
+            goto fallback;
+        }
     }
+
+    while(1);
+
+    fallback:
+    dbg_print("Debugger failed to print panic message, probably the heap isn't working fine!\n");
     while(1);
 }
 
@@ -89,4 +102,10 @@ int64_t atoi(const char * str) {
 
     // return result.
     return res;
+}
+
+void dbg_printd(const char* str, int64_t num) {
+    dbg_print(str);
+    dbg_print(itoa(num, 16));
+    dbg_print("\n");
 }

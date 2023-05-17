@@ -90,12 +90,17 @@ void unregister_char(uint8_t major) {
 
 void init_devices() {
     printf("### DEVICES STARTUP ###\n");
+    init_acpi();
     devices = (struct device*)request_page();
     memset(devices, 0, sizeof(struct device));
 
-    struct mcfg_header* header = get_acpi_mcfg();
-    if (header != 0) {
-        register_pci(header, insert_device_cb);
+    struct mcfg_header* mcfg = get_acpi_mcfg();
+    if (mcfg != 0) {
+        register_pci(mcfg, insert_device_cb);
+    }
+    struct madt_header* madt = get_acpi_madt();
+    if (madt != 0) {
+        register_apic(madt, insert_device_cb);
     }
     register_comm(insert_device_cb);
 }

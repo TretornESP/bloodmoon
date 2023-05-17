@@ -241,7 +241,7 @@ const char* get_prog_interface(uint8_t class_code, uint8_t subclass_code, uint8_
 }
 
 void register_pci_device(struct pci_device_header* pci, char* (*cb)(void*, uint8_t, uint64_t)) {
-    printf("Device detected: %x, %x, %x\n", pci->class_code, pci->subclass, pci->prog_if);
+    printf("[PCI] Device detected: %x, %x, %x\n", pci->class_code, pci->subclass, pci->prog_if);
     switch (pci->class_code){
         case 0x01: {
             switch (pci->subclass){
@@ -270,7 +270,7 @@ void register_pci_device(struct pci_device_header* pci, char* (*cb)(void*, uint8
                             }
                             break;
                         default:
-                            printf("Unknown AHCI interface: %x\n", pci->prog_if);
+                            printf("[PCI] Unknown AHCI interface: %x\n", pci->prog_if);
                     }
                     break;
                 }
@@ -290,10 +290,10 @@ void enumerate_function(uint64_t device_address, uint64_t function, char* (*cb)(
     struct pci_device_header* pci_device_header = (struct pci_device_header*)function_address;
     global_device_header = pci_device_header;
 
-    if (pci_device_header->device_id == 0x0) return;
+    //if (pci_device_header->device_id == 0x0) return;
     if (pci_device_header->device_id == 0xFFFF) return;
 
-    printf("%s %s: %s %s / %s\n",
+    printf("[PCI] %s %s: %s %s / %s\n",
         get_device_class(pci_device_header->class_code),
         get_subclass_name(pci_device_header->class_code, pci_device_header->subclass),
         get_vendor_name(pci_device_header->vendor_id),
@@ -312,8 +312,10 @@ void enumerate_device(uint64_t bus_address, uint64_t device, char* (*cb)(void*, 
 
     struct pci_device_header* pci_device_header = (struct pci_device_header*)device_address;
 
-    if (pci_device_header->device_id == 0x0) return;
-    if (pci_device_header->device_id == 0xFFFF) return;
+    //if (pci_device_header->device_id == 0x0) return;
+    //if (pci_device_header->device_id == 0xFFFF) return;
+
+    //printf("[PCI] enumerating device %x:%x\n", bus_address, device_address);
 
     if (pci_device_header->header_type & 0x80) {
         for (uint64_t function = 0; function < 8; function++) {
@@ -329,11 +331,12 @@ void enumerate_bus(uint64_t base_address, uint64_t bus, char* (*cb)(void*, uint8
 
     uint64_t bus_address = base_address + offset;
     map_current_memory((void*)bus_address, (void*)bus_address);
-    struct pci_device_header* pci_device_header = (struct pci_device_header*)bus_address;
+    //struct pci_device_header* pci_device_header = (struct pci_device_header*)bus_address;
 
-    if (pci_device_header->device_id == 0x0) return;
-    if (pci_device_header->device_id == 0xFFFF) return;
+    //if (pci_device_header->device_id == 0x0) {printf("ig0:%ld|", bus); return;}
+    //if (pci_device_header->device_id == 0xFFFF) {printf("igf:%ld|", bus); return;}
 
+    //printf("\n[PCI] Enumerating bus %x\n", bus);
     for (uint64_t device = 0; device < 32; device++) {
         enumerate_device(bus_address, device, cb);
     }
@@ -342,8 +345,10 @@ void enumerate_bus(uint64_t base_address, uint64_t bus, char* (*cb)(void*, uint8
 void register_pci(struct mcfg_header *mcfg, char* (*cb)(void*, uint8_t, uint64_t)) {
     uint64_t entries = ((mcfg->header.length) - sizeof(struct mcfg_header)) / sizeof(struct device_config);
 
+    printf("[PCI] Registering pci devices... %ld entries\n", entries);
     for (uint64_t i = 0; i < entries; i++) {
         struct device_config * new_device_config = (struct device_config*)((uint64_t)mcfg + sizeof(struct mcfg_header) + (sizeof(struct device_config) * i));	
+        printf("[PCI] Enumerating buses %x:%x\n", new_device_config->start_bus, new_device_config->end_bus);
         for (uint64_t bus = new_device_config->start_bus; bus < new_device_config->end_bus; bus++) {
             enumerate_bus(new_device_config->base_address, bus, cb);
         }

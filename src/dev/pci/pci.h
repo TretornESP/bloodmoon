@@ -253,6 +253,14 @@ struct pci_device_header_0 {
     uint8_t max_latency;
 } __attribute__ ((packed));
 
+struct device_config {
+    uint64_t base_address;
+    uint16_t pci_sec_group;
+    uint8_t start_bus;
+    uint8_t end_bus;
+    uint32_t reserved;
+};
+
 const char* get_vendor_name(uint16_t);
 const char* get_device_name(uint16_t, uint16_t);
 const char* get_device_class(uint8_t);

@@ -1,6 +1,7 @@
 #include "interrupts.h"
 #include "io.h"
 
+#include "../arch/gdt.h"
 #include "../util/dbgprinter.h"
 #include "../memory/memory.h"
 #include "../memory/paging.h"
@@ -20,8 +21,9 @@
 
 #define PIC_EOI 0x20
 
-#define __UNDEFINED_HANDLER dbg_print(__func__); (void)frame; panic("Undefined interrupt handler");
+#define __UNDEFINED_HANDLER dbg_print(__func__); (void)frame; __asm__ ("cli"); panic("Undefined interrupt handler");
 
+struct idtr idtr;
 volatile int dynamic_interrupt = -1;
 
 void (*dynamic_interrupt_handlers[256])(struct interrupt_frame* frame) = {0};
@@ -57,7 +59,7 @@ void remap_pic() {
 
     outb(PIC1_DATA, 0x20);
     io_wait();
-    outb(PIC2_DATA, 0x28);
+    outb(PIC2_DATA, get_kernel_code_selector());
     io_wait();
 
     outb(PIC1_DATA, 4);
@@ -208,18 +210,6 @@ __attribute__((interrupt)) void Serial2Int_Handler(struct interrupt_frame * fram
 
 }
 
-struct idtr idtr;
-void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uint8_t selector) {
-    struct idtdescentry* interrupt = (struct idtdescentry*)(idtr.offset + (entry_offset * sizeof(struct idtdescentry)));
-    set_offset(interrupt, handler);
-    interrupt->type_attr = type_attr;
-    interrupt->selector = selector;
-}
-
-struct idtdescentry * get_idt_gate(uint8_t entry_offset) {
-    return (struct idtdescentry*)(idtr.offset + (entry_offset * sizeof(struct idtdescentry)));
-}
-
 __attribute__((interrupt)) void DynamicInt_Handler(struct interrupt_frame * frame) {
     (void)frame;
     if (dynamic_interrupt < 0) {
@@ -234,6 +224,18 @@ __attribute__((interrupt)) void DynamicInt_Handler(struct interrupt_frame * fram
     }
 
     handler(frame);
+}
+
+void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uint8_t ist, uint16_t selector) {
+    struct idtdescentry* interrupt = (struct idtdescentry*)(idtr.offset + (entry_offset * sizeof(struct idtdescentry)));
+    set_offset(interrupt, handler);
+    interrupt->type_attr.raw = type_attr;
+    interrupt->selector = selector;
+    interrupt->ist = ist;
+}
+
+struct idtdescentry * get_idt_gate(uint8_t entry_offset) {
+    return (struct idtdescentry*)(idtr.offset + (entry_offset * sizeof(struct idtdescentry)));
 }
 
 void irq_set_mask(unsigned char interrupt) {
@@ -269,7 +271,7 @@ void hook_interrupt(uint8_t interrupt, void* handler, uint8_t dynamic) {
     if (dynamic) {
         dynamic_interrupt_handlers[interrupt] = handler;
     } else {
-        set_idt_gate((uint64_t)handler, interrupt, IDT_TA_InterruptGate, 0x28);
+        set_idt_gate((uint64_t)handler, interrupt, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
         irq_clear_mask(interrupt);
     }
     __asm__("sti");
@@ -280,7 +282,7 @@ void unhook_interrupt(uint8_t interrupt, uint8_t dynamic) {
     if (dynamic) {
         dynamic_interrupt_handlers[interrupt] = (void*)0;
     } else {
-        set_idt_gate((uint64_t)UncaughtInt_Handler, interrupt, IDT_TA_InterruptGate, 0x28);
+        set_idt_gate((uint64_t)UncaughtInt_Handler, interrupt, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
         irq_set_mask(interrupt);
     }
     __asm__("sti");
@@ -294,35 +296,35 @@ void init_interrupts(uint8_t pit_disable) {
     memset((void*)idtr.offset, 0, 256 * sizeof(struct idtdescentry));
 
     for (int i = 0; i < 256; i++) {
-        set_idt_gate((uint64_t)UncaughtInt_Handler, i, IDT_TA_InterruptGate, 0x28);
+        set_idt_gate((uint64_t)UncaughtInt_Handler, i, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
     }
 
-    set_idt_gate((uint64_t)PageFault_Handler,   0xE,    IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)DoubleFault_Handler, 0x8,    IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)GPFault_Handler,     0xD,    IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)KeyboardInt_Handler, 0x21,   IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)MouseInt_Handler,    0x2C,   IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)Serial1Int_Handler,   0x24,   IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)Serial2Int_Handler,  0x23,   IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)PitInt_Handler,      0x20,   IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)DivByZero_Handler,   0x0,    IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)NMI_Handler,         0x2,    IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)Overflow_Handler,    0x4,    IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)BoundRangeExceeded_Handler, 0x5, IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)InvalidOpc_Handler,  0x6,    IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)NoCoproc_Handler,    0x7,    IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)CoprocSegmentOverrun_Handler, 0x9, IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)INVTSS_Handler,      0xA,    IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)SegNotPresent_Handler, 0xB,  IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)StackSegmentFault_Handler, 0xC, IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)x87FPE_Handler,      0x10,   IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)AlignCheck_Handler,  0x11,   IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)MachineCheck_Handler, 0x12,  IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)SIMD_FPE_Handler,    0x13,   IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)Virtualization_Handler, 0x14, IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)Security_Handler,    0x1E,   IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)Syscall_Handler,     0x80,   IDT_TA_InterruptGate, 0x28);
-    set_idt_gate((uint64_t)DynamicInt_Handler,  0x90,   IDT_TA_InterruptGate, 0x28);
+    set_idt_gate((uint64_t)PageFault_Handler,   0xE,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)DoubleFault_Handler, 0x8,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)GPFault_Handler,     0xD,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)KeyboardInt_Handler, 0x21,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)MouseInt_Handler,    0x2C,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)Serial1Int_Handler,   0x24,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)Serial2Int_Handler,  0x23,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)PitInt_Handler,      0x20,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)DivByZero_Handler,   0x0,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)NMI_Handler,         0x2,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)Overflow_Handler,    0x4,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)BoundRangeExceeded_Handler, 0x5, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)InvalidOpc_Handler,  0x6,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)NoCoproc_Handler,    0x7,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)CoprocSegmentOverrun_Handler, 0x9, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)INVTSS_Handler,      0xA,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)SegNotPresent_Handler, 0xB,  IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)StackSegmentFault_Handler, 0xC, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)x87FPE_Handler,      0x10,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)AlignCheck_Handler,  0x11,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)MachineCheck_Handler, 0x12,  IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)SIMD_FPE_Handler,    0x13,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)Virtualization_Handler, 0x14, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)Security_Handler,    0x1E,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)Syscall_Handler,     0x80,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)DynamicInt_Handler,  0x90,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
     
     __asm__ volatile("lidt %0" : : "m"(idtr));
 

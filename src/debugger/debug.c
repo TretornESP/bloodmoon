@@ -66,10 +66,10 @@ void vdbg(const char* format, va_list va) {
     free(buffer);
 }
 
-void dbg(const char* format, ...) {
-    if (!heap_safeguard()) return;
+uint8_t dbg(const char* format, ...) {
+    if (!heap_safeguard()) return 0;
     char* buffer = (char*)calloc(1, MSG_MAX_LEN);
-    if (!buffer) return;
+    if (!buffer) return 0;
 
     va_list va;
     va_start(va, format);
@@ -79,6 +79,7 @@ void dbg(const char* format, ...) {
     add_message(buffer);
 
     free(buffer);
+    return 1;
 }
 
 const char * dbg_get_device() {
@@ -103,11 +104,11 @@ void dbg_init(const char* device) {
     started = 1;
 }
 
-void dbg_flush() {
-    if (!heap_safeguard()) return;
+uint8_t dbg_flush() {
+    if (!heap_safeguard()) return 0;
 
     if (dbg_buffer == 0) {
-        return;
+        return 0;
     }
 
     struct buffer* current = dbg_buffer;
@@ -120,4 +121,5 @@ void dbg_flush() {
     }
 
     clean();
+    return 1;
 }

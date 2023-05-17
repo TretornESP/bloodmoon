@@ -186,6 +186,7 @@ __attribute__((interrupt)) void COM1_HANDLER(struct interrupt_frame * frame) {
    (void)frame;
    struct serial_device* device = &(serial_devices[0]);
    if (!device->valid) return;
+   dbg_print("COM1\n");
    interrupted_serial_device = device;
    char c = read_serial(device->port);
    write_inb(device, c);
@@ -258,7 +259,10 @@ int init_serial_comm(int port) {
  
    // Check if serial is faulty (i.e: not same byte as sent)
    if(inb(port + 0) != 0xAB) {
+      printf("Serial port %x seems to be down\n", port);
+      #ifndef _VBOX_COMPAT
       return 0;
+      #endif
    }
  
    // If serial is not faulty set it in normal operation mode
@@ -283,6 +287,7 @@ void disable_serial_int(struct serial_device* device) {
 
 void init_serial(int inbs, int outbs) {
    if (initialized) return;
+   printf("### Initializing serial devices ### \n");
    for (int i = 0; i < MAX_COM_DEVICES; i++) {
       struct serial_device* device = &(serial_devices[i]);
       if (init_serial_comm(device->port)) {

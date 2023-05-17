@@ -12,6 +12,7 @@
 #include "util/dbgprinter.h"
 #include "memory/paging.h"
 #include "memory/memory.h"
+#include "util/timeout.h"
 
 void _start(void) {
     boot();

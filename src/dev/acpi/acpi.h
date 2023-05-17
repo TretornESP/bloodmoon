@@ -1,7 +1,44 @@
 #ifndef _ACPI_H
 #define _ACPI_H
 
+//https://wiki.osdev.org/FADT
 #include <stdint.h>
+
+#define RSDP_SIGNATURE "RSD PTR "
+#define RSDP2_SIGNATURE "RSDP PTR "
+
+#define RSDT_SIGNATURE "RSDT"
+#define XSDT_SIGNATURE "XSDT"
+#define MCFG_SIGNATURE "MCFG"
+#define MADT_SIGNATURE "APIC"
+#define FADT_SIGNATURE "FACP"
+
+#define ADDRESS_SPACE_SYSTEM_MEMORY                     0
+#define ADDRESS_SPACE_SYSTEM_IO                         1
+#define ADDRESS_SPACE_PCI_CONFIGURATION_SPACE           2
+#define ADDRESS_SPACE_EMBEDDED_CONTROLLER               3
+#define ADDRESS_SPACE_SMBUS                             4
+#define ADDRESS_SPACE_CMOS                              5
+#define ADDRESS_SPACE_PCI_BAR_TARGET                    6
+#define ADDRESS_SPACE_IPMI                              7
+#define ADDRESS_SPACE_GENERAL_PURPOSE_IO                8
+#define ADDRESS_SPACE_GENERIC_SERIAL_BUS                9
+#define ADDRESS_SPACE_PLATFORM_COMMUNICATION_CHANNEL    10
+
+#define ACCESS_SIZE_UNDEFINED                           0
+#define ACCESS_SIZE_BYTE                                1
+#define ACCESS_SIZE_WORD                                2
+#define ACCESS_SIZE_DWORD                               3
+#define ACCESS_SIZE_QWORD                               4
+
+#define PM_PROFILE_UNSPECIFIED                          0
+#define PM_PROFILE_DESKTOP                              1
+#define PM_PROFILE_MOBILE                               2
+#define PM_PROFILE_WORKSTATION                          3
+#define PM_PROFILE_ENTERPRISE_SERVER                    4
+#define PM_PROFILE_SOHO_SERVER                          5
+#define PM_PROFILE_APPLIANCE_PC                         6
+#define PM_PROFILE_PERFORMANCE_SERVER                   7
 
 struct rsdp_descriptor {
     char signature[8];
@@ -47,13 +84,89 @@ struct mcfg_header {
     uint64_t reserved;
 } __attribute__ ((packed));
 
-struct device_config {
-    uint64_t base_address;
-    uint16_t pci_sec_group;
-    uint8_t start_bus;
-    uint8_t end_bus;
-    uint32_t reserved;
-};
+struct madt_header {
+    struct acpi_sdt_header header;
+    uint32_t local_apic_address;
+    uint32_t flags; //1 for dual 8259 PIC, 0 for single
+} __attribute__ ((packed));
+
+struct generic_address_structure {
+    uint8_t address_space;
+    uint8_t bit_width;
+    uint8_t bit_offset;
+    uint8_t access_size;
+    uint64_t address;
+} __attribute__ ((packed));
+
+struct fadt_header {
+    struct acpi_sdt_header header;
+    uint32_t firmware_control;
+    uint32_t dsdt;
+
+    // field used in ACPI 1.0; no longer in use, for compatibility only
+    uint8_t reserved;
+
+    uint8_t preferred_pm_profile;
+    uint16_t sci_interrupt;
+    uint32_t smi_command_port;
+    uint8_t acpi_enable;
+    uint8_t acpi_disable;
+    uint8_t s4bios_request;
+    uint8_t pstate_control;
+    uint32_t pm1a_event_block;
+    uint32_t pm1b_event_block;
+    uint32_t pm1a_control_block;
+    uint32_t pm1b_control_block;
+    uint32_t pm2_control_block;
+    uint32_t pm_timer_block;
+    uint32_t gpe0_block;
+    uint32_t gpe1_block;
+    uint8_t pm1_event_length;
+    uint8_t pm1_control_length;
+    uint8_t pm2_control_length;
+    uint8_t pm_timer_length;
+    uint8_t gpe0_length;
+    uint8_t gpe1_length;
+    uint8_t gpe1_base;
+    uint8_t cstate_control;
+    uint16_t worst_c2_latency;
+    uint16_t worst_c3_latency;
+    uint16_t flush_size;
+    uint16_t flush_stride;
+    uint8_t duty_offset;
+    uint8_t duty_width;
+    uint8_t day_alarm;
+    uint8_t month_alarm;
+    uint8_t century;
+
+    // reserved in ACPI 1.0; used since ACPI 2.0+
+    uint16_t boot_architecture_flags;
+
+    uint8_t reserved2;
+    uint32_t flags;
+
+    // 12 byte structure; see below for details
+    struct generic_address_structure reset_reg;
+
+    uint8_t reset_value;
+    uint8_t reserved3[3];
+
+    // 64bit pointers - Available on ACPI 2.0+
+    uint64_t x_firmware_control;
+    uint64_t x_dsdt;
+
+    struct generic_address_structure x_pm1a_event_block;
+    struct generic_address_structure x_pm1b_event_block;
+    struct generic_address_structure x_pm1a_control_block;
+    struct generic_address_structure x_pm1b_control_block;
+    struct generic_address_structure x_pm2_control_block;
+    struct generic_address_structure x_pm_timer_block;
+    struct generic_address_structure x_gpe0_block;
+    struct generic_address_structure x_gpe1_block;
+} __attribute__ ((packed));
 
 struct mcfg_header* get_acpi_mcfg();
+struct madt_header* get_acpi_madt();
+struct fadt_header* get_acpi_fadt();
+void init_acpi();
 #endif

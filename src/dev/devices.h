@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include "pci/pci.h"
 #include "acpi/acpi.h"
+#include "apic/apic.h"
 
 #define DEVICE_NAME_SIZE 32
 

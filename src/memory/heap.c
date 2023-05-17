@@ -78,7 +78,7 @@ void debug_heap() {
 
 struct heap_segment_header* splitSegment(struct heap_segment_header* segment, uint64_t size) {
     if (segment->length <= size + sizeof(struct heap_segment_header)) return 0;
-    if (segment->signature != HEAP_SIGNATURE) panic("Invalid heap segment signature split");
+    if (segment->signature != HEAP_SIGNATURE) {ready = 0; panic("Invalid heap segment signature split");}
     struct heap_segment_header* newSegment = (struct heap_segment_header*)(void*)((uint64_t)segment + segment->length - size);
     memset(newSegment, 0, sizeof(struct heap_segment_header));
     newSegment->free = 1;
@@ -98,7 +98,7 @@ struct heap_segment_header* splitSegment(struct heap_segment_header* segment, ui
 void walk_heap() {
     struct heap_segment_header* currentSegment = (struct heap_segment_header*)globalHeap.mainSegment;
     while(1) {
-        if (currentSegment->signature != HEAP_SIGNATURE) panic("Invalid heap segment signature debug");
+        if (currentSegment->signature != HEAP_SIGNATURE) {printf("***************** HEAP SIGNATURE INVALID BELOW *****************\n");}
         dump_segment(currentSegment);
         if (currentSegment->next == 0) break;
         currentSegment = currentSegment->next;
@@ -118,7 +118,7 @@ void* malloc(uint64_t size) {
     uint64_t sizeWithHeader = size + sizeof(struct heap_segment_header);
 
     while(1) {
-        if (currentSegment->signature != HEAP_SIGNATURE) walk_heap();
+        if (currentSegment->signature != HEAP_SIGNATURE) {ready = 0; walk_heap(); panic("Invalid heap segment signature malloc");}
         if (currentSegment->free) {
             if (currentSegment->length > sizeWithHeader) {
                 currentSegment = splitSegment(currentSegment, size);
@@ -134,7 +134,7 @@ void* malloc(uint64_t size) {
             }
         }
         if (currentSegment->next == 0) break;
-        if (currentSegment->next == currentSegment) panic("Current segment cycle\n");
+        if (currentSegment->next == currentSegment) {ready = 0; panic("Current segment cycle\n");}
         currentSegment = currentSegment->next;
     }
 
@@ -143,7 +143,7 @@ void* malloc(uint64_t size) {
 }
 
 void MergeThisToNext(struct heap_segment_header* header){
-    if (header->signature != HEAP_SIGNATURE) panic("Invalid MergeThisToNext");
+    if (header->signature != HEAP_SIGNATURE) {ready = 0; panic("Invalid MergeThisToNext");}
     struct heap_segment_header* next = header->next;
     next->length += header->length + sizeof(struct heap_segment_header);
     next->last = header->last;
@@ -153,7 +153,7 @@ void MergeThisToNext(struct heap_segment_header* header){
 }
 
 void MergeLastToThis(struct heap_segment_header* header){
-    if (header->signature != HEAP_SIGNATURE) panic("Invalid MergeLastToThis");
+    if (header->signature != HEAP_SIGNATURE) {ready = 0; panic("Invalid MergeLastToThis");}
     struct heap_segment_header* last = header->last;
     header->length += last->length + sizeof(struct heap_segment_header);
     header->last = last->last;
@@ -172,7 +172,7 @@ void free(void* address) {
     if (address == 0) return;
 
     struct heap_segment_header* header = (struct heap_segment_header*)((uint64_t)address - sizeof(struct heap_segment_header));
-    if (header->signature != HEAP_SIGNATURE || header->free) panic("Invalid free");
+    if (header->signature != HEAP_SIGNATURE || header->free) {ready = 0; panic("Invalid free");}
     header->free = 1;
     globalHeap.freeSize += header->length + sizeof(struct heap_segment_header);
     globalHeap.usedSize -= header->length + sizeof(struct heap_segment_header);

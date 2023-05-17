@@ -2,6 +2,7 @@
 #include "../dev/devices.h"
 #include "../util/printf.h"
 #include "../util/string.h"
+#include "../util/dbgprinter.h"
 #include "../scheduling/scheduler.h"
 #include "../vfs/vfs_interface.h"
 #include "../memory/heap.h"
@@ -215,6 +216,7 @@ void handler(void* ttyb, uint8_t event) {
     (void)ttyb;
     switch (event) {
         case 0x1: { //TTY_INB
+            dbg_print("TTY_INB\n");
             char cmd[1024] = {0};
             int read = device_read(devno, 1024, 0, (uint8_t*)cmd);
             if (read > 0) {
@@ -245,6 +247,11 @@ void handler(void* ttyb, uint8_t event) {
 
 void init_dbgshell(const char* tty) {
     if (tty == 0) {
+        return;
+    }
+
+    if (device_search(tty) == 0) {
+        printf("Could not find device %s\n", tty);
         return;
     }
 

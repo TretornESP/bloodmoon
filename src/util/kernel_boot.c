@@ -1,6 +1,7 @@
 #include "kernel_boot.h"
 
 #include "../arch/simd.h"
+#include "../arch/gdt.h"
 
 #include "../debugger/debug.h"
 
@@ -76,15 +77,17 @@ void boot() {
     init_memory();
     init_paging();
     init_heap();
+    init_gdt();
+    debug_gdt();
     init_pit(1678779503);
     init_interrupts(1);
     init_scheduler();
     init_drive();
     init_serial_dd();
     init_tty_dd();
+    init_smbios_interface();
     init_devices();
     enable_debug(0);
-    init_smbios_interface();
     register_filesystem(fat32_registrar);
     register_filesystem(ext2_registrar);
     register_filesystem(tty_registrar);

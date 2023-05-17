@@ -134,6 +134,8 @@ all:
 	@echo "Done!"
 
 vbon:
+	@make clean
+	@make kernel
 	@echo "Creating iso"
 	@cp $(ISODIR)/$(IMG_RAW) $(ISODIR)/$(IMG)
 	@sudo losetup -f $(ISODIR)/$(IMG)
@@ -141,11 +143,10 @@ vbon:
 	@echo "translating img to vdi"
 	@$(VBOXMANAGE) convertfromraw $(ISODIR)/$(IMG) $(ISODIR)/$(VDI) --format VDI
 	@echo "Creating virtual machine..."
-	@$(VBOXMANAGE) createvm --name $(VMNAME) --ostype "Linux_64" --register
+	@$(VBOXMANAGE) createvm --name $(VMNAME) --ostype "Other_64" --register
 	@echo "Setting up virtual machine..."
 	@$(VBOXMANAGE) modifyvm $(VMNAME) --memory $(MEMSIZE) --vram $(VMEMSIZE) --chipset ich9 --firmware efi
-	@$(VBOXMANAGE) modifyvm $(VMNAME) --uart1 0x3F8 1 --uartmode1 tcpserver $(VBOXCOM1PORT)
-	@$(VBOXMANAGE) modifyvm $(VMNAME) --uart2 0x2F8 2 --uartmode2 tcpserver $(VBOXCOM2PORT)
+	@$(VBOXMANAGE) modifyvm $(VMNAME) --uart1 0x3F8 1 --uartmode1 tcpserver $(VBOXCOM1PORT) --uarttype1 16450
 	@$(VBOXMANAGE) modifyvm $(VMNAME) --nic1 nat
 	@$(VBOXMANAGE) storagectl $(VMNAME) --name "SATA Controller" --add sata --controller IntelAhci
 	@$(VBOXMANAGE) storageattach $(VMNAME) --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium $(ISODIR)/$(VDI)
