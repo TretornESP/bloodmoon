@@ -2,6 +2,7 @@
 #define _APIC_H
 //https://wiki.osdev.org/MADT
 #include "../acpi/acpi.h"
+#include <stdint.h>
 
 #define MADT_RECORD_TYPE_LAPIC                  0
 #define MADT_RECORD_TYPE_IOAPIC                 1
@@ -13,8 +14,8 @@
 
 #define MADT_LAPIC_FLAGS_ENABLED                1
 
-#define MADT_IOAPIC_ISO_FLAGS_POLARITY          0x3
-#define MADT_IOAPIC_ISO_FLAGS_TRIGGER           0xC
+#define MADT_IOAPIC_ISO_FLAGS_ACTIVE_LOW        0x2
+#define MADT_IOAPIC_ISO_FLAGS_LEVEL_TRIGGERED   0x8        
 
 
 

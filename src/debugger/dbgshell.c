@@ -216,7 +216,6 @@ void handler(void* ttyb, uint8_t event) {
     (void)ttyb;
     switch (event) {
         case 0x1: { //TTY_INB
-            dbg_print("TTY_INB\n");
             char cmd[1024] = {0};
             int read = device_read(devno, 1024, 0, (uint8_t*)cmd);
             if (read > 0) {

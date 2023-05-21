@@ -93,7 +93,10 @@ void init_devices() {
     init_acpi();
     devices = (struct device*)request_page();
     memset(devices, 0, sizeof(struct device));
-
+    struct fadt_header* fadt = get_acpi_fadt();
+    if (fadt != 0) {
+        register_fadt(fadt, insert_device_cb);
+    }
     struct mcfg_header* mcfg = get_acpi_mcfg();
     if (mcfg != 0) {
         register_pci(mcfg, insert_device_cb);

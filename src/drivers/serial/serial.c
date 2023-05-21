@@ -186,7 +186,6 @@ __attribute__((interrupt)) void COM1_HANDLER(struct interrupt_frame * frame) {
    (void)frame;
    struct serial_device* device = &(serial_devices[0]);
    if (!device->valid) return;
-   dbg_print("COM1\n");
    interrupted_serial_device = device;
    char c = read_serial(device->port);
    write_inb(device, c);

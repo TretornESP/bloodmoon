@@ -61,7 +61,7 @@ void dump_segment(struct heap_segment_header* segment) {
     printf("Free: %d\n", segment->free);
     printf("Last: %p\n", segment->last);
     printf("Next: %p\n", segment->next);
-    printf("Signature: %x\n", segment->signature);
+    printf("Signature at: %p value: %x\n", &(segment->signature), segment->signature);
 }
 
 void debug_heap() {
