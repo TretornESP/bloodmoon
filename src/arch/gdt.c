@@ -61,8 +61,8 @@ uint16_t create_data_descriptor(uint8_t dpl) {
 }
 
 uint16_t create_tss_descriptor(uint64_t base, uint64_t limit) {
-    struct gdt_tss_entry *entry = (struct gdt_tss_entry *) &gdt[gdt_size++];
-    gdt_size++; // TSS takes 2 entries
+    struct gdt_tss_entry *entry = (struct gdt_tss_entry *) &gdt[gdt_size];
+
 
     entry->limit0 = limit & 0xFFFF;
     entry->base0 = base & 0xFFFF;
@@ -78,6 +78,8 @@ uint16_t create_tss_descriptor(uint64_t base, uint64_t limit) {
     entry->base2 = (base >> 24) & 0xFF;
     entry->base3 = (base >> 32) & 0xFFFFFFFF;
     entry->reserved = 0;
+
+    gdt_size+=2; // TSS takes 2 entries
     return (gdt_size - 2) * sizeof(struct gdt_entry);
 }
 
@@ -119,10 +121,8 @@ void init_gdt() {
     gdt_information[GDT_DPL_USER].data = create_data_descriptor(GDT_DPL_USER);
 
     tss_init();
-    struct tss* tss = get_default_tss();
-    prepare_tss(tss);
-    create_tss_descriptor((uint64_t) tss, sizeof(struct tss));
-    uint16_t tss_location = (uint16_t) (gdt_size - 2) * sizeof(struct gdt_entry);
+    uint16_t tss_location = tss_install(0);
+
     load_gdt(&gdt_desc);
     __asm__("movw %%ax, %w0\n\t" "ltr %%ax" :: "a" (tss_location));
 }

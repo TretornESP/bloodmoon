@@ -278,6 +278,7 @@ void * request_accessible_page_at(struct page_directory* pml4, void* vaddr, void
 
     return access_pointer;
 }
+
 void * request_current_accessible_page_at(void* vaddr, void * access_pointer) {
     struct page_directory *pml4 = get_pml4();
     return request_accessible_page_at(pml4, vaddr, access_pointer);

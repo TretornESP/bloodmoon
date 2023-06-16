@@ -73,6 +73,7 @@ struct gdt_tss_entry {
 void init_gdt();
 extern void load_gdt(struct gdt_descriptor *gdt);
 void debug_gdt();
+uint16_t create_tss_descriptor(uint64_t base, uint64_t limit);
 uint16_t get_kernel_code_selector();
 uint16_t get_kernel_data_selector();
 uint16_t get_user_code_selector();

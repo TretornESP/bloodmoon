@@ -3,7 +3,7 @@
 #define _SERIAL_H
 
 //VBox is fucking with the serial check, so we disable it here
-#define _VBOX_COMPAT
+//#define _VBOX_COMPAT
 
 #include "../../io/interrupts.h"
 

@@ -2,6 +2,8 @@
 #define _DEVICES_H
 #include <stdint.h>
 #include "pci/pci.h"
+#include "fadt/fadt.h"
+#include "comm/comm.h"
 #include "acpi/acpi.h"
 #include "apic/apic.h"
 

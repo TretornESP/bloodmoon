@@ -2,6 +2,7 @@
 #define _MEMORY_H
 #include "stdint.h"
 #define PAGESIZE 0x1000
+#define STACKSIZE (0x16 * PAGESIZE)
 
 struct system_memory {
     uint64_t total_available_pages;

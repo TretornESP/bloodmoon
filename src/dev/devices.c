@@ -3,7 +3,6 @@
 #include "../util/dbgprinter.h"
 #include "../util/string.h"
 #include "../util/printf.h"
-#include "comm/comm.h"
 
 struct device_driver char_device_drivers[256] = {0};
 struct device_driver block_device_drivers[256] = {0};

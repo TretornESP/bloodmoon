@@ -228,11 +228,9 @@ void allocate_segment(Elf64_Phdr * program_header, void* buffer) {
 
     memcpy((void*)vaddr, complete_buffer, total_size);
 
-    uint8_t flags = 0;
+    uint8_t flags = PAGE_USER_BIT;
     flags |= (program_header->p_flags & PF_X) ? 0 : PAGE_NX_BIT;
     flags |= (program_header->p_flags & PF_W) ? PAGE_WRITE_BIT : 0;
-    flags |= (program_header->p_flags & PF_R) ? PAGE_USER_BIT : 0;
-    flags &= ~(PAGE_NX_BIT | PAGE_WRITE_BIT | PAGE_USER_BIT);
 
     for (uint64_t i = 0; i < page_no; i++) {
         mprotect_current((void*)(vaddr + i*0x1000), 0x1000, flags);

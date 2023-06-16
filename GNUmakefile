@@ -42,7 +42,7 @@ BLOCKSIZE := 1024
 MEMSIZE := 1024
 VMEMSIZE := 128
 QFLAGS ?= -cpu qemu64 -d cpu_reset -machine q35 -m $(MEMSIZE) -boot d -serial stdio -serial telnet::4444,server,nowait -cdrom 
-QFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 -m $(MEMSIZE) -boot d -cdrom ./test/useless.iso -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -net none -serial stdio -drive file=
+QFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 -m $(MEMSIZE) -boot d -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -net none -serial stdio -drive file=
 
 CFLAGS ?= -O2 -g -Wall -Wextra -pipe -std=c11
 NASMFLAGS ?= -F dwarf -g
@@ -303,7 +303,7 @@ run:
 	$(QEMU) $(QFLAGS) $(ISODIR)/$(ISO)
 
 run_exp:
-	$(QEMU) $(QFLAGSEXP)$(ISODIR)/$(IMG) -drive file=./test/test.img -drive file=./test/extest.img
+	$(QEMU) $(QFLAGSEXP)$(ISODIR)/$(IMG)
 
 gpt:
 	@make kernel
@@ -345,7 +345,7 @@ debugpt:
 	@make buildimggpt
 	@echo "Running GPT QEMU..."
 	$(CMDNEWSCREEN) $(GDB) $(GDBFLAGS) &
-	$(QEMU) -S -s $(QFLAGSEXP)$(ISODIR)/$(IMG) -drive file=./test/test.img -drive file=./test/extest.img
+	$(QEMU) -S -s $(QFLAGSEXP)$(ISODIR)/$(IMG)
 
 debuge:
 	@make kernel

@@ -5,9 +5,10 @@
 //This code comes from https://github.com/kot-org/Kot/blob/main/Sources/Kernel/Src/heap/heap.cpp
 //Thank you Konect!!!
 
-#define HEAP_START 0x0000100000000000
-#define PAGE_COUNT 0x100
-#define HEAP_SIGNATURE 0xcafebabe
+#define HEAP_START      0x0000100000000000
+#define STACK_ADDRESS   0x0000200000000000
+#define PAGE_COUNT      0x100
+#define HEAP_SIGNATURE  0xcafebabe
 
 #include "../util/printf.h"
 #include "../util/string.h"
@@ -16,20 +17,23 @@
 struct heap globalHeap;
 int ready = 0;
 
-void initHeap(void* heapAddress, uint64_t pageCount) {
-    globalHeap.heapEnd = heapAddress;
+void initHeap(void* heapAddress, void* stackAddress, uint64_t pageCount) {
+    globalHeap.heapEnd = stackAddress;
     void * newPhysicalAddress = request_page();
     globalHeap.heapEnd = (void*)((uint64_t)globalHeap.heapEnd - PAGESIZE);
+    globalHeap.lastStack = 0x0;
     map_current_memory(globalHeap.heapEnd, newPhysicalAddress);
-
+    
     globalHeap.mainSegment = (struct heap_segment_header*)((uint64_t)globalHeap.heapEnd + ((uint64_t)PAGESIZE -sizeof(struct heap_segment_header)));
     globalHeap.mainSegment->length = 0;
     globalHeap.mainSegment->free = 0;
+    globalHeap.mainSegment->isStack = 0;
     globalHeap.mainSegment->last = 0;
     globalHeap.mainSegment->signature = HEAP_SIGNATURE;
     globalHeap.mainSegment->next = (struct heap_segment_header*)((uint64_t)globalHeap.mainSegment - (uint64_t)PAGESIZE + sizeof(struct heap_segment_header));
 
     globalHeap.mainSegment->next->free = 1;
+    globalHeap.mainSegment->next->isStack = 0;
     globalHeap.mainSegment->next->length = (uint64_t)PAGESIZE - sizeof(struct heap_segment_header) - sizeof(struct heap_segment_header);
     globalHeap.mainSegment->next->last = globalHeap.mainSegment;
     globalHeap.mainSegment->next->next = 0;
@@ -83,6 +87,7 @@ struct heap_segment_header* splitSegment(struct heap_segment_header* segment, ui
     memset(newSegment, 0, sizeof(struct heap_segment_header));
     newSegment->free = 1;
     newSegment->length = size;
+    newSegment->isStack = 0;
     newSegment->next = segment;
     newSegment->signature = HEAP_SIGNATURE;
     newSegment->last = segment->last;
@@ -237,6 +242,7 @@ void expand_heap(uint64_t length) {
         uint64_t size = globalHeap.lastSegment->length + length;
         newSegment->length = size - sizeof(struct heap_segment_header);
         newSegment->free = 1;
+        newSegment->isStack = 0;
         newSegment->signature = HEAP_SIGNATURE;
         newSegment->last = globalHeap.lastSegment->last;
         newSegment->last->next = newSegment;
@@ -245,6 +251,7 @@ void expand_heap(uint64_t length) {
     } else {
         newSegment->length = length - sizeof(struct heap_segment_header);
         newSegment->free = 1;
+        newSegment->isStack = 0;
         newSegment->signature = HEAP_SIGNATURE;
         newSegment->last = globalHeap.lastSegment;
         newSegment->next = 0;
@@ -256,10 +263,30 @@ void expand_heap(uint64_t length) {
     globalHeap.freeSize += (length + sizeof(struct heap_segment_header));
 }
 
+void* stackalloc(uint64_t length) {
+    uint64_t pages = length / PAGESIZE;
+    if (length % PAGESIZE) pages++;
+
+    globalHeap.lastStack = (void*)((uint64_t)globalHeap.lastStack - (uint64_t)(PAGESIZE));
+    
+    for (uint64_t i = 0; i < pages; i++) {
+        void * newPage = request_page();
+        globalHeap.lastStack = (void*)((uint64_t)globalHeap.lastStack - (uint64_t)PAGESIZE);
+        map_current_memory(globalHeap.lastStack, newPage);
+    }
+
+    void * address = globalHeap.lastStack;	
+
+    globalHeap.lastStack = (void*)((uint64_t)globalHeap.lastStack - (uint64_t)PAGESIZE);
+
+    return address;
+}
+
 void init_heap() {
     void * heapAddress = (void*)HEAP_START;
+    void * stackAddress = (void*)STACK_ADDRESS;
     uint64_t pageCount = PAGE_COUNT;
 
-    initHeap(heapAddress, pageCount);
+    initHeap(heapAddress, stackAddress, pageCount);
     ready = 1;
 }

@@ -19,7 +19,11 @@ struct tss {
 } __attribute__((packed));
 
 void tss_init();
+uint16_t tss_install(uint8_t cpu);
 struct tss * get_tss(uint8_t cpu);
-struct tss * get_default_tss();
-void prepare_tss(struct tss* tss);
+uint64_t tss_get_ist(uint8_t cpu, uint8_t ist);
+void tss_set_ist(uint8_t cpu, uint8_t ist, uint64_t stack);
+uint64_t tss_get_stack(uint8_t cpu);
+void tss_set_stack(uint8_t cpu, void* stack);
+
 #endif

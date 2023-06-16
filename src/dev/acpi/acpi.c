@@ -210,7 +210,9 @@ uint8_t is_enabled(struct fadt_header* fadt_header) {
 void init_acpi() {
     struct fadt_header* fadt_header = get_acpi_fadt();
     if (is_enabled(fadt_header)) {printf("ACPI is enabled\n"); return;}
+    printf("ACPI is not enabled, trying to enable...\n");
+    if (inw(fadt_header->pm1a_control_block) & 1) {printf("ACPI is enabled\n"); return;}
     outb(fadt_header->smi_command_port, fadt_header->acpi_enable);
-    timeout(3000);
+    printf("Waiting 3 seconds for ACPI to enable...\n");
     while (((inw(fadt_header->pm1a_control_block) & 1) == 0));
 }

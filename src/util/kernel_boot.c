@@ -78,7 +78,6 @@ void boot() {
     init_paging();
     init_heap();
     init_gdt();
-    debug_gdt();
     init_pit(1678779503);
     init_interrupts(1);
     init_scheduler();
