@@ -42,5 +42,17 @@ setContext:
     pop rbp
     ret
 
+;Swap context, save current context and restore new context
+;rdi = new context
+;rsi = old context
+swapContext:
+    push rsi
+    call getContext
+    push rax
+    call setContext
+    pop rax
+    ret
+
 GLOBAL getContext
 GLOBAL setContext
+GLOBAL swapContext

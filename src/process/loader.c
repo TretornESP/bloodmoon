@@ -1,4 +1,6 @@
 #include "loader.h"
+#include "process.h"
+#include "../scheduling/scheduler.h"
 #include "../util/string.h"
 #include "../memory/paging.h"
 #include "../memory/heap.h"
@@ -262,14 +264,13 @@ uint8_t elf_load_elf(uint8_t * buffer, uint64_t size, void* env) {
     }
 
     struct page_directory* pd = duplicate_current_pml4();
-    struct page_directory* old_pd = swap_pml4(pd);
+    struct task * father = get_current_task();
 
     //Load required segments
     Elf64_Phdr * program_header = (Elf64_Phdr *) (buffer + elf_header->e_phoff);
     for (int i = 0; i < elf_header->e_phnum; i++) {
         if (program_header[i].p_type == PT_LOAD) {
             allocate_segment(&program_header[i], buffer);
-
             printf("Loaded segment at 0x%x with size 0x%x and flags 0x%x\n", program_header[i].p_vaddr, program_header[i].p_memsz, program_header[i].p_flags);
         }
     }
@@ -277,14 +278,11 @@ uint8_t elf_load_elf(uint8_t * buffer, uint64_t size, void* env) {
     for (int i = 0; i < elf_header->e_phnum; i++) {
         if (program_header[i].p_type == PT_LOAD) {
             if (elf_header->e_entry >= program_header[i].p_vaddr && elf_header->e_entry < program_header[i].p_vaddr + program_header[i].p_memsz) {
-                void (*ptr)(int, char**) = (void (*)(int, char**)) elf_header->e_entry;
-                printf("Running entry point at 0x%x\n", elf_header->e_entry);
-                ptr(0, 0);
-                printf("Program exited\n");
+                printf("Spawning processs at 0x%x\n", elf_header->e_entry);
+                spawn(father->pid, 0, 0, (void*)elf_header->e_entry, 0, 0, father->tty, pd);
             }
         }
     }
 
-    swap_pml4(old_pd);
     return 1;
 }

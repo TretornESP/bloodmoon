@@ -1,6 +1,7 @@
 #ifndef _SCHEDULER_H
 #define _SCHEDULER_H
 #include <stdint.h>
+#include "../memory/paging.h"
 
 #define TASK_EXECUTING       0
 #define TASK_READY           1
@@ -12,13 +13,12 @@
 #define TASK_FREE            7
 
 void dump_processes();
-void kwrite(const char*);
 struct task* get_current_task();
 const char * get_current_tty();
 void set_current_tty(const char *);
 void reset_current_tty();
-void spawn(uint16_t, long, unsigned long, void*, long, long, const char *);
-void kyield();
+void spawn(uint16_t, long, unsigned long, void*, long, long, const char *, struct page_directory*);
+void yield();
 void init_scheduler();
 void pseudo_ps();
 #endif

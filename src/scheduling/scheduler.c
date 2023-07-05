@@ -1,6 +1,7 @@
 #include "scheduler.h"
 #include "../process/process.h"
 #include "../memory/heap.h"
+#include "../memory/paging.h"
 #include "../util/printf.h"
 #include "../util/dbgprinter.h"
 #include "../util/string.h"
@@ -11,7 +12,19 @@ struct task *task_head = 0;
 struct task * current_task = 0;
 
 //Returns the task that must enter cpu
-uint64_t schedule() {
+struct task* schedule() {
+    if (current_task == 0) {
+        current_task = task_head;
+        return current_task;
+    }
+
+    if (current_task->next == 0) {
+        current_task = task_head;
+        return current_task;
+    }
+
+    current_task = current_task->next;
+    return current_task;
 }
 
 void add_task(struct task* task) {
@@ -114,7 +127,8 @@ void spawn(
     void* entry_addr,
     long uid,
     long gid,
-    const char * tty
+    const char * tty,
+    struct page_directory* pd
 ) {
     struct task * task = malloc(sizeof(struct task));
     task->state = TASK_READY;
@@ -122,6 +136,7 @@ void spawn(
     task->sigpending = 0;
     task->nice = niceness;
     task->mm = 0;//TODO: struct mm
+    task->pd = pd; //TODO: pml4
     task->processor = 0;//TODO: smp
     task->sleep_time = 0;
     task->exit_code = 0;
@@ -146,20 +161,22 @@ void spawn(
     add_task(task); 
 }
 
-void kyield() {
-    /*printf("TASK %d YIELDING\n", current_task);
-    CPU_CONTEXT context;
-    getContext(&context);
-    dump_context(&context);
+void yield() {
+    printf("PROCESS %d YIELDING\n", current_task->pid);
+    SAVE_CONTEXT(current_task->context);
 
-    struct task * task = &kernel_tasks[current_task];
-    task->context = &context;
+    struct task * next_task = schedule();
     
-    task->status = TASK_READY;
-    task = &kernel_tasks[schedule()];
-    task->status = TASK_EXECUTING;
-    setContext(task->context);
-*/
+    current_task->state = TASK_READY;
+    next_task->state = TASK_EXECUTING;
+    current_task->pd = swap_pml4(next_task->pd);
+    printf("SOY %d\n", current_task->pid);
+    if (next_task->context == 0) {
+        panic("next_task->context == 0");
+    }
+    
+    SET_CONTEXT(next_task->context);
+
     panic("kyield!");
 }
 
@@ -177,7 +194,7 @@ const char * get_current_tty() {
 void init_scheduler() {
     printf("### SCHEDULER STARTUP ###\n");
 
-    spawn(0, 0, 0, (void*)0x0, 0, 0, "default"); //Spawn kernel task
+    spawn(0, 0, 0, (void*)0x0, 0, 0, "default", get_pml4()); //Spawn kernel task
 
     current_task = task_head;
     current_task->state = TASK_EXECUTING;
@@ -198,9 +215,4 @@ void reset_current_tty() {
     }
     memset(current_task->tty, 0, 32);
     strncpy(current_task->tty, "default\0", 8);
-}
-
-void kwrite(const char* chr) {
-    kyield();
-    printf(chr);
 }

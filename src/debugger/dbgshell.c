@@ -145,6 +145,26 @@ void ls(int argc, char*argv[]) {
     vfs_dir_list(argv[1]);
 }
 
+void sched(int argc, char* argv[]) {
+    if (argc < 1) {
+        printf("Calls the scheduler\n");
+        printf("Usage: sched\n");
+        return;
+    }
+
+    yield();
+}
+
+void ps(int argc, char* argv[]) {
+    if (argc < 1) {
+        printf("Lists processes\n");
+        printf("Usage: ps\n");
+        return;
+    }
+
+    pseudo_ps();
+}
+
 void dc(int argc, char* argv[]);
 
 struct command cmdlist[] = {
@@ -193,8 +213,16 @@ struct command cmdlist[] = {
         .handler = loadraw
     },
     {
+        .keyword = "ps",
+        .handler = ps
+    },
+    {
         .keyword = "d",
         .handler = dc
+    },
+    {
+        .keyword = "sched",
+        .handler = sched
     }
 };
 
@@ -203,7 +231,7 @@ void dc(int argc, char* argv[]) {
     char *av1[] = {"attach", "ttya"};
     int ac1 = 2;
     attach(ac1, av1);
-    char *av2[] = {"loadelf", "hdap2/export/loop.elf"};
+    char *av2[] = {"loadelf", "hdap2/export/main.elf"};
     int ac2 = 2;
     loadelf(ac2, av2);
 }

@@ -72,6 +72,8 @@ uint64_t virtual_to_physical(struct page_directory *, void*);
 
 struct page_directory* allocate_pml4();
 struct page_directory* duplicate_current_pml4();
+struct page_directory* get_pml4();
+
 void* swap_pml4(void*);
 
 void map_current_memory(void*, void*);

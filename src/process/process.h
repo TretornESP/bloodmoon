@@ -1,5 +1,7 @@
 #ifndef _PROCESS_H
 #define _PROCESS_H
+#include "../memory/paging.h"
+
 #include <stdint.h>
 
 #define SAVE_CONTEXT(a) __asm__("push %rdi\npush %rax"); getContext(a);
@@ -96,6 +98,8 @@ struct task {
     
     long nice;
     struct mm_struct *mm;
+    struct page_directory* pd;
+
     int processor;
     unsigned long sleep_time;
     int exit_code, exit_signal;

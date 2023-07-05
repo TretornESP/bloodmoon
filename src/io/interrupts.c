@@ -83,7 +83,7 @@ void remap_pic() {
 
 __attribute__((interrupt)) void PageFault_Handler(struct interrupt_frame * frame) {
    uint64_t faulting_address;
-   asm volatile("mov %%cr2, %0" : "=r" (faulting_address));
+   __asm__ volatile("mov %%cr2, %0" : "=r" (faulting_address));
    dbg_print("Page fault at address: 0x");
    dbg_print(itoa(faulting_address, 16));
    dbg_print("\n");
