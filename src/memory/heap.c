@@ -4,10 +4,6 @@
 
 //This code comes from https://github.com/kot-org/Kot/blob/main/Sources/Kernel/Src/heap/heap.cpp
 //Thank you Konect!!!
-
-#define HEAP_START      0x0000100000000000
-#define STACK_ADDRESS   0x0000200000000000
-#define PAGE_COUNT      0x100
 #define HEAP_SIGNATURE  0xcafebabe
 
 #include "../util/printf.h"
@@ -18,12 +14,17 @@ struct heap globalHeap;
 int ready = 0;
 
 void initHeap(void* heapAddress, void* stackAddress, uint64_t pageCount) {
-    globalHeap.heapEnd = stackAddress;
+    globalHeap.heapEnd = heapAddress;
+    globalHeap.lastStack = stackAddress;
+
     void * newPhysicalAddress = request_page();
+    if (!newPhysicalAddress) {
+        panic("Failed to allocate heap\n");
+    }
     globalHeap.heapEnd = (void*)((uint64_t)globalHeap.heapEnd - PAGESIZE);
-    globalHeap.lastStack = 0x0;
     map_current_memory(globalHeap.heapEnd, newPhysicalAddress);
-    
+    mprotect_current(globalHeap.heapEnd, PAGESIZE, PAGE_WRITE_BIT);
+
     globalHeap.mainSegment = (struct heap_segment_header*)((uint64_t)globalHeap.heapEnd + ((uint64_t)PAGESIZE -sizeof(struct heap_segment_header)));
     globalHeap.mainSegment->length = 0;
     globalHeap.mainSegment->free = 0;
@@ -232,6 +233,7 @@ void expand_heap(uint64_t length) {
 
     for (uint64_t i = 0; i < pages; i++) {
         void * newPage = request_page();
+        if (newPage == 0) {ready = 0; panic("Failed to expand heap");}
         globalHeap.heapEnd = (void*)((uint64_t)globalHeap.heapEnd - (uint64_t)PAGESIZE);
         map_current_memory(globalHeap.heapEnd, newPage);
     }
@@ -267,12 +269,14 @@ void* stackalloc(uint64_t length) {
     uint64_t pages = length / PAGESIZE;
     if (length % PAGESIZE) pages++;
 
-    globalHeap.lastStack = (void*)((uint64_t)globalHeap.lastStack - (uint64_t)(PAGESIZE));
+    globalHeap.lastStack = (void*)((uint64_t)globalHeap.lastStack - (uint64_t)PAGESIZE);
     
     for (uint64_t i = 0; i < pages; i++) {
         void * newPage = request_page();
+        if (newPage == 0) panic("Out of memory");
         globalHeap.lastStack = (void*)((uint64_t)globalHeap.lastStack - (uint64_t)PAGESIZE);
         map_current_memory(globalHeap.lastStack, newPage);
+        mprotect_current(globalHeap.lastStack, PAGESIZE, PAGE_WRITE_BIT);
     }
 
     void * address = globalHeap.lastStack;	
@@ -283,10 +287,10 @@ void* stackalloc(uint64_t length) {
 }
 
 void init_heap() {
-    void * heapAddress = (void*)HEAP_START;
-    void * stackAddress = (void*)STACK_ADDRESS;
-    uint64_t pageCount = PAGE_COUNT;
-
+    void * heapAddress = (void*)0xffffffff60000000;
+    void * stackAddress = (void*)0xffffffff70000000;
+    uint64_t pageCount = 0x0; //Unused
+ 
     initHeap(heapAddress, stackAddress, pageCount);
     ready = 1;
 }

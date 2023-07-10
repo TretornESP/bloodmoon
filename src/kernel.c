@@ -17,8 +17,5 @@
 void _start(void) {
     boot();
 
-    pseudo_ps();
-    init_dbgshell("ttya");
-
-    while(1);
+    panic("Kernel panic: _start() reached");
 }

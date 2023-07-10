@@ -1,16 +1,14 @@
 #ifndef _PROCESS_H
 #define _PROCESS_H
 #include "../memory/paging.h"
-
 #include <stdint.h>
+#define STACK_SIZE 0x1000
 
 typedef struct __attribute__((packed)){
     uint64_t rax;
     uint64_t rbx;
     uint64_t rcx;
     uint64_t rdx;
-    uint64_t rsi;
-    uint64_t rdi;
     uint64_t r8;
     uint64_t r9;
     uint64_t r10;
@@ -19,9 +17,8 @@ typedef struct __attribute__((packed)){
     uint64_t r13;
     uint64_t r14;
     uint64_t r15;
-    uint64_t rsp;
     uint64_t rbp;
-    uint64_t rip;
+    uint64_t rsp;
 } CPU_CONTEXT ;
 
 struct descriptors {
@@ -98,11 +95,7 @@ struct task {
 
 };
 
-void kyieldtest();
-void kwritest(const char);
+extern void set_rip(CPU_CONTEXT *context, uint64_t rip);
+CPU_CONTEXT* allocate_process(void* init);
 void dump_context(CPU_CONTEXT*);
-void swap_test();
-extern void save_context(CPU_CONTEXT* ctx);
-extern void swap_context(CPU_CONTEXT* old, CPU_CONTEXT* new);
-
 #endif

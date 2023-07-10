@@ -1,9 +1,9 @@
 #include "scheduler.h"
-#include "../process/process.h"
+#include "pit.h"
 #include "../memory/heap.h"
 #include "../memory/paging.h"
+#include "../debugger/dbgshell.h"
 #include "../util/printf.h"
-#include "pit.h"
 #include "../util/dbgprinter.h"
 #include "../util/string.h"
 
@@ -14,18 +14,28 @@ struct task * current_task = 0;
 
 //Returns the task that must enter cpu
 struct task* schedule() {
-    if (current_task == 0) {
-        current_task = task_head;
-        return current_task;
+    struct task* current = current_task;
+    if (current == 0) {
+        current = task_head;
     }
 
-    if (current_task->next == 0) {
-        current_task = task_head;
-        return current_task;
+    //Try to advance to the next task
+    if (current->next != 0) {
+        current = current->next;
+    } else {
+        current = task_head;
     }
 
-    current_task = current_task->next;
-    return current_task;
+    //If the next task is not runnable, try to find a runnable task
+    while (current->state != TASK_READY && current->state != TASK_EXECUTING) {
+        if (current->next != 0) {
+            current = current->next;
+        } else {
+            current = task_head;
+        }
+    }
+
+    return current;
 }
 
 void add_task(struct task* task) {
@@ -121,65 +131,21 @@ void pseudo_ps() {
     return;
 }
 
-void pinit() {
-
-}
-
-int16_t fork(
-    long niceness,
-    unsigned long flags,
-    long uid,
-    long gid
-) {
-    struct task * father = get_current_task();
-    struct task * task = malloc(sizeof(struct task));
-    task->state = TASK_CREATED;
-    task->flags = flags;
-    task->sigpending = 0;
-    task->nice = niceness;
-    task->mm = 0;//TODO: struct mm
-    task->pd = duplicate_current_pml4();
-    task->processor = 0;//TODO: smp
-    task->sleep_time = 0;
-    task->exit_code = 0;
-    task->exit_signal = 0;
-    task->pdeath_signal = 0;
-    task->pid = get_free_pid();
-    task->ppid = father->pid;
-    task->parent = father;
-    task->uid = uid;
-    task->gid = gid;
-    task->locks = 0;
-    task->open_files = 0;
-    task->entry = pinit;
-    strncpy(task->tty, father->tty, strlen(father->tty));
-
-    CPU_CONTEXT * context = malloc(sizeof(CPU_CONTEXT));
-    memset(context, 0, sizeof(CPU_CONTEXT));
-    task->context = context;
-    task->descriptors = 0;//TODO: struct descriptors
-    task->next = 0;
-    task->prev = 0;
-    add_task(task);
-}
-
 void yield() {
-    printf("PROCESS %d YIELDING\n", current_task->pid);
-    //SAVE_CONTEXT(current_task->context);
+    //printf("PROCESS %d YIELDING\n", current_task->pid);
 
-    //struct task * next_task = schedule();
+    struct task * next_task = schedule();
     
-    //current_task->state = TASK_READY;
-    //next_task->state = TASK_EXECUTING;
-    //current_task->pd = swap_pml4(next_task->pd);
-    //printf("SOY %d\n", current_task->pid);
-    //if (next_task->context == 0) {
-    //    panic("next_task->context == 0");
-    //}
-    //
-    ////SET_CONTEXT(next_task->context);
-//
-    //panic("kyield!");
+    current_task->state = TASK_READY;
+    next_task->state = TASK_EXECUTING;
+    current_task->pd = swap_pml4(next_task->pd);
+    printf("SOY %d\n", current_task->pid);
+    if (next_task->context == 0) {
+        panic("next_task->context == 0");
+    }
+    
+    swap_context(current_task->context, next_task->context);
+    panic("yield() returned");
 }
 
 struct task* get_current_task() {
@@ -194,31 +160,23 @@ const char * get_current_tty() {
 }
 
 void init() {
+    //TODO: Changeme to a real init process
     while (1) {
-        printf("INIT\n");
-        panic("INIT");
+        printf("a");
     }
-}
 
-CPU_CONTEXT* exec(void (*entry)()) {
-    CPU_CONTEXT* context = malloc(sizeof(CPU_CONTEXT));
-    memset(context, 0, sizeof(CPU_CONTEXT));
-    //context->rip = (uint64_t)entry;
-    //context->rsp = (uint64_t)malloc(4096) + 4096;
-    //context->rflags = 0x202;
-    return context;
+    pseudo_ps();
+    init_dbgshell("ttya");
 }
 
 void zero() {
     struct task * task = malloc(sizeof(struct task));
-    task->state = TASK_EXECUTING;
+    task->state = TASK_READY;
     task->flags = 0;
     task->sigpending = 0;
 
     task->nice = 0;
     task->mm = 0;
-    task->pd = get_pml4();
-
     task->processor = 0;
     task->sleep_time = 0;
     task->exit_code = 0;
@@ -237,7 +195,51 @@ void zero() {
     task->open_files = 0;
 
     task->entry = init;
-    //task->context = create_context(init);
+    task->context = allocate_process(init);
+    task->pd = duplicate_current_pml4();
+    strncpy(task->tty, "default\0", 8);
+    task->descriptors = 0;
+    task->next = 0;
+    task->prev = 0;
+
+    add_task(task);
+}
+
+void _idle() {
+    while (1) {
+        printf("b");
+    }
+}
+
+void idle() {
+    struct task * task = malloc(sizeof(struct task));
+    task->state = TASK_READY;
+    task->flags = 0;
+    task->sigpending = 0;
+
+    task->nice = 0;
+    task->mm = 0;
+
+    task->processor = 0;
+    task->sleep_time = 0;
+    task->exit_code = 0;
+    task->exit_signal = 0;
+    task->pdeath_signal = 0;
+
+    task->pid = 1;
+    task->ppid = 0;
+    
+    task->parent = 0;
+
+    task->uid = 0;
+    task->gid = 0;
+
+    task->locks = 0;
+    task->open_files = 0;
+
+    task->entry = _idle;
+    task->context = allocate_process(_idle);
+    task->pd = duplicate_current_pml4();
     strncpy(task->tty, "default\0", 8);
     task->descriptors = 0;
     task->next = 0;
@@ -250,6 +252,7 @@ void init_scheduler() {
     printf("### SCHEDULER STARTUP ###\n");
 
     zero(); //Spawn kernel task
+    idle(); //Spawn idle task
 
     current_task = task_head;
     current_task->state = TASK_EXECUTING;

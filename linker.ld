@@ -13,10 +13,9 @@ PHDRS
 SECTIONS
 {
     USER_START = 0x0000000000000000;
-    USER_END = 0x008fffffffffffff;
+    USER_END = 0x00007fffffffffff;
 
     . = 0xffffffff80000000;
-
     KERNEL_START = .;
 
     .text : ALIGN(CONSTANT(MAXPAGESIZE)) {
@@ -36,5 +35,6 @@ SECTIONS
         *(.note .note.*)
     }
 
+    . = ALIGN(CONSTANT(MAXPAGESIZE));
     KERNEL_END = .;
 }

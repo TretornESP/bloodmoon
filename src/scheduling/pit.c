@@ -12,7 +12,7 @@ void init_pit(uint64_t start_epoch) {
     pit.divisor = 20; //1 KHz measured by trial-and-error
     pit.base_frequency = 1193182;
     pit.ticks_since_boot = 0;
-    pit.preemption_frequency = 5000;
+    pit.preemption_frequency = 500;
     pit.preemption_enabled = 0;
     pit.boot_epoch = start_epoch;
     outb(0x40, (uint8_t)(pit.divisor & 0x00ff));

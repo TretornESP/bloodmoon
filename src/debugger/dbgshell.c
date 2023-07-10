@@ -157,10 +157,6 @@ void sched(int argc, char* argv[]) {
     yield();
 }
 
-void ro(int argc, char* argv[]) {
-    swap_test();
-}
-
 void ps(int argc, char* argv[]) {
     if (argc < 1) {
         printf("Lists processes\n");
@@ -245,10 +241,6 @@ struct command cmdlist[] = {
     {
         .keyword = "d",
         .handler = dc
-    },
-    {
-        .keyword = "ro",
-        .handler = ro
     },
     {
         .keyword = "sched",

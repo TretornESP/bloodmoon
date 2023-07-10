@@ -85,6 +85,9 @@ void debug_memory_map(struct page_directory *pml4, void* virtual_memory, void* p
 
 struct page_directory* allocate_pml4() {
     struct page_directory* pml = (struct page_directory*)request_page();
+    if (pml == NULL) {
+        panic("ERROR: Could not allocate page for new PML4\n");
+    }
     memset(pml, 0, PAGESIZE);
     return pml;
 }
@@ -98,6 +101,9 @@ struct page_directory* get_pml4() {
 struct page_directory* duplicate_current_pml4() {
     struct page_directory* father = get_pml4();
     struct page_directory* pml = (struct page_directory*)request_page();
+    if (pml == NULL) {
+        panic("ERROR: Could not allocate page for new PML4\n");
+    }
     memcpy(pml, father, PAGESIZE);
     return pml;
 }
@@ -149,6 +155,9 @@ void map_memory(struct page_directory* pml4, void* virtual_memory, void* physica
     struct page_directory* pdp;
     if (!pde.present) {
         pdp = (struct page_directory*)request_page();
+        if (pdp == NULL) {
+            panic("ERROR: Could not allocate page for new PDP\n");
+        }
         memset(pdp, 0, PAGESIZE);
         pde.page_ppn = (uint64_t) pdp >> 12;
         pde.present = 1;
@@ -162,6 +171,9 @@ void map_memory(struct page_directory* pml4, void* virtual_memory, void* physica
     struct page_directory* pd;
     if (!pde.present) {
         pd = (struct page_directory*)request_page();
+        if (pd == NULL) {
+            panic("ERROR: Could not allocate page for new PD\n");
+        }
         memset(pd, 0, PAGESIZE);
         pde.page_ppn = (uint64_t) pd >> 12;
         pde.present = 1;
@@ -175,6 +187,9 @@ void map_memory(struct page_directory* pml4, void* virtual_memory, void* physica
     struct page_table* pt;
     if (!pde.present) {
         pt = (struct page_table*)request_page();
+        if (pt == NULL) {
+            panic("ERROR: Could not allocate page for new PT\n");
+        }
         memset(pt, 0, PAGESIZE);
         pde.page_ppn = (uint64_t) pt >> 12;
         pde.present = 1;
@@ -251,6 +266,9 @@ void page_clear(struct page_directory *pml4, void* address, uint8_t field) {
 
 void * request_page_identity(struct page_directory *pml4) {
     void * result = request_page();
+    if (result == NULL) {
+        panic("ERROR: Could not allocate page for identity mapping\n");
+    }
     map_memory(pml4, result, result);
     return result;
 }
@@ -262,6 +280,9 @@ void * request_current_page_identity() {
 
 void * request_page_at(struct page_directory *pml4, void* vaddr) {
     void * result = request_page();
+    if (result == NULL) {
+        panic("ERROR: Could not allocate page for mapping\n");
+    }
     map_memory(pml4, vaddr, result);
     return vaddr;
 }
@@ -273,6 +294,9 @@ void * request_current_page_at(void* vaddr) {
 
 void * request_accessible_page_at(struct page_directory* pml4, void* vaddr, void * access_pointer) {
     void * result = request_page();
+    if (result == NULL) {
+        panic("ERROR: Could not allocate page for mapping\n");
+    }
     map_memory(pml4, vaddr, result);
     map_current_memory(access_pointer, result);
 
