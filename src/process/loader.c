@@ -263,9 +263,6 @@ uint8_t elf_load_elf(uint8_t * buffer, uint64_t size, void* env) {
         return 0;
     }
 
-    struct page_directory* pd = duplicate_current_pml4();
-    struct task * father = get_current_task();
-
     //Load required segments
     Elf64_Phdr * program_header = (Elf64_Phdr *) (buffer + elf_header->e_phoff);
     for (int i = 0; i < elf_header->e_phnum; i++) {
@@ -279,7 +276,7 @@ uint8_t elf_load_elf(uint8_t * buffer, uint64_t size, void* env) {
         if (program_header[i].p_type == PT_LOAD) {
             if (elf_header->e_entry >= program_header[i].p_vaddr && elf_header->e_entry < program_header[i].p_vaddr + program_header[i].p_memsz) {
                 printf("Spawning processs at 0x%x\n", elf_header->e_entry);
-                spawn(father->pid, 0, 0, (void*)elf_header->e_entry, 0, 0, father->tty, pd);
+                //spawn(father->pid, 0, 0, (void*)elf_header->e_entry, 0, 0, father->tty, pd);
             }
         }
     }

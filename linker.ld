@@ -12,7 +12,9 @@ PHDRS
 
 SECTIONS
 {
-    
+    USER_START = 0x0000000000000000;
+    USER_END = 0x008fffffffffffff;
+
     . = 0xffffffff80000000;
 
     KERNEL_START = .;

@@ -4,9 +4,11 @@
 #include "../util/string.h"
 #include "../util/dbgprinter.h"
 #include "../scheduling/scheduler.h"
+#include "../scheduling/pit.h"
 #include "../vfs/vfs_interface.h"
 #include "../memory/heap.h"
 #include "../process/loader.h"
+#include "../process/process.h"
 #include "../process/raw.h"
 #include "debug.h"
 
@@ -155,6 +157,10 @@ void sched(int argc, char* argv[]) {
     yield();
 }
 
+void ro(int argc, char* argv[]) {
+    swap_test();
+}
+
 void ps(int argc, char* argv[]) {
     if (argc < 1) {
         printf("Lists processes\n");
@@ -163,6 +169,26 @@ void ps(int argc, char* argv[]) {
     }
 
     pseudo_ps();
+}
+
+void ptoggle(int argc, char* argv[]) {
+    if (argc < 1) {
+        printf("Toggles preemption\n");
+        printf("Usage: preempt\n");
+        return;
+    }
+
+    preempt_toggle();
+}
+
+void ticks(int argc, char* argv[]) {
+    if (argc < 1) {
+        printf("Prints the number of ticks since boot\n");
+        printf("Usage: ticks\n");
+        return;
+    }
+
+    printf("Ticks: %ld\n", get_ticks_since_boot());
 }
 
 void dc(int argc, char* argv[]);
@@ -221,8 +247,20 @@ struct command cmdlist[] = {
         .handler = dc
     },
     {
+        .keyword = "ro",
+        .handler = ro
+    },
+    {
         .keyword = "sched",
         .handler = sched
+    },
+    {
+        .keyword = "preempt",
+        .handler = ptoggle
+    },
+    {
+        .keyword = "ticks",
+        .handler = ticks
     }
 };
 

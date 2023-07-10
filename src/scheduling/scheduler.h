@@ -17,7 +17,7 @@ struct task* get_current_task();
 const char * get_current_tty();
 void set_current_tty(const char *);
 void reset_current_tty();
-void spawn(uint16_t, long, unsigned long, void*, long, long, const char *, struct page_directory*);
+void spawn(long, unsigned long, long, long);
 void yield();
 void init_scheduler();
 void pseudo_ps();

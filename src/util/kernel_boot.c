@@ -79,7 +79,7 @@ void boot() {
     init_heap();
     init_gdt();
     init_pit(1678779503);
-    init_interrupts(1);
+    init_interrupts(0); //Zero disables pit
     init_scheduler();
     init_drive();
     init_serial_dd();

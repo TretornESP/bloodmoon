@@ -1,6 +1,7 @@
 #include "pit.h"
 #include "../util/printf.h"
 #include "../io/io.h"
+#include "scheduler.h"
 
 struct pit pit;
 
@@ -11,14 +12,27 @@ void init_pit(uint64_t start_epoch) {
     pit.divisor = 20; //1 KHz measured by trial-and-error
     pit.base_frequency = 1193182;
     pit.ticks_since_boot = 0;
+    pit.preemption_frequency = 5000;
+    pit.preemption_enabled = 0;
     pit.boot_epoch = start_epoch;
     outb(0x40, (uint8_t)(pit.divisor & 0x00ff));
     io_wait();
     outb(0x40, (uint8_t)((pit.divisor & 0xff00) >> 8));
 }
 
+void preempt_toggle() {
+    pit.preemption_enabled = !pit.preemption_enabled;
+}
+
 void tick() {
     pit.ticks_since_boot += 1;
+    if ((pit.ticks_since_boot % pit.preemption_frequency == 0) && pit.preemption_enabled) {
+        yield();
+    }
+}
+
+void enable_preemption() {
+    pit.preemption_enabled = 1;
 }
 
 void sleep_millis(uint64_t millis) {
