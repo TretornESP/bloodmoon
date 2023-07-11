@@ -19,6 +19,7 @@ void sleep_millis(uint64_t);
 void preempt(uint64_t);
 void tick();
 void preempt_toggle();
+uint8_t requires_preemption();
 uint64_t get_ticks_since_boot();
 uint64_t get_epoch();
 #endif

@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include "../memory/paging.h"
 #include "../process/process.h"
+#include "../io/interrupts.h"
 
 #define TASK_EXECUTING       0
 #define TASK_READY           1
@@ -22,5 +23,11 @@ void reset_current_tty();
 void spawn(long, unsigned long, long, long);
 void yield();
 void init_scheduler();
+void go();
+void save_current_context_error(struct interrupt_frame_error * frame);
+void swap_to_kernel_error(struct interrupt_frame_error * frame);
+void save_current_context(struct interrupt_frame * frame);
+void swap_to_kernel(struct interrupt_frame * frame);
+void return_from_kernel(struct interrupt_frame_error* frame);
 void pseudo_ps();
 #endif

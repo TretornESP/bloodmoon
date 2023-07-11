@@ -79,8 +79,8 @@ void boot() {
     init_heap();
     init_gdt();
     init_pit(1678779503);
-    init_interrupts(0); //Zero disables pit
     init_scheduler();
+    init_interrupts(0); //One disables pit
     init_drive();
     init_serial_dd();
     init_tty_dd();
@@ -93,6 +93,8 @@ void boot() {
     init_vfs();
 
     print_prompt();
+
+    go();
 }
 
 void __attribute__((noreturn)) halt() {

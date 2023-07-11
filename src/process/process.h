@@ -1,6 +1,7 @@
 #ifndef _PROCESS_H
 #define _PROCESS_H
 #include "../memory/paging.h"
+#include "../io/interrupts.h"
 #include <stdint.h>
 #define STACK_SIZE 0x1000
 
@@ -69,6 +70,7 @@ struct task {
     long nice;
     struct mm_struct *mm;
     struct page_directory* pd;
+    struct interrupt_frame_error *frame;
 
     int processor;
     unsigned long sleep_time;

@@ -31,12 +31,6 @@ CPU_CONTEXT* allocate_process(void* init) {
     printf("Process stack allocated at 0x%llx\n", physaddr);
     //Set up the stack, idk if this is correct
     uint64_t* stack = (uint64_t*)context->rsp;
-    stack[0] = 0x10; //SS
-    stack[1] = context->rsp; //RSP
-    stack[2] = 0x200; //RFLAGS
-    stack[3] = 0x08; //CS
-    stack[4] = (uint64_t)init; //RIP
-
-    context->rsp -= sizeof(uint64_t) * 5;
+    stack[0] = (uint64_t)init;
     return context;
 }

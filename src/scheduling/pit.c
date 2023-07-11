@@ -26,9 +26,10 @@ void preempt_toggle() {
 
 void tick() {
     pit.ticks_since_boot += 1;
-    if ((pit.ticks_since_boot % pit.preemption_frequency == 0) && pit.preemption_enabled) {
-        yield();
-    }
+}
+
+uint8_t requires_preemption() {
+    return pit.preemption_enabled && (pit.ticks_since_boot % pit.preemption_frequency == 0);
 }
 
 void enable_preemption() {

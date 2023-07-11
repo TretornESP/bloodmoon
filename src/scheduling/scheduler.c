@@ -3,6 +3,7 @@
 #include "../memory/heap.h"
 #include "../memory/paging.h"
 #include "../debugger/dbgshell.h"
+#include "../arch/gdt.h"
 #include "../util/printf.h"
 #include "../util/dbgprinter.h"
 #include "../util/string.h"
@@ -11,6 +12,8 @@
 
 struct task *task_head = 0;
 struct task * current_task = 0;
+struct task * kernel_task = 0;
+struct interrupt_frame_error return_frame_error = {0};
 
 //Returns the task that must enter cpu
 struct task* schedule() {
@@ -132,8 +135,6 @@ void pseudo_ps() {
 }
 
 void yield() {
-    //printf("PROCESS %d YIELDING\n", current_task->pid);
-
     struct task * next_task = schedule();
     
     current_task->state = TASK_READY;
@@ -160,20 +161,33 @@ const char * get_current_tty() {
 }
 
 void init() {
-    //TODO: Changeme to a real init process
-    while (1) {
-        printf("a");
+    if (requires_preemption()) {
+        yield();
     }
+    __asm__ __volatile__("int $0x8A"); //Return from kernel
+}
 
-    pseudo_ps();
-    init_dbgshell("ttya");
+void zero_panic() {
+    panic("ZERO PANIC");
 }
 
 void zero() {
     struct task * task = malloc(sizeof(struct task));
-    task->state = TASK_READY;
+    task->state = TASK_EXECUTING;
     task->flags = 0;
     task->sigpending = 0;
+
+    task->frame = malloc(sizeof(struct interrupt_frame));
+    memset(task->frame, 0, sizeof(struct interrupt_frame));
+    task->frame->rip = (uint64_t)init;
+    task->frame->cs = get_kernel_code_selector();
+    task->frame->rsp = (uint64_t)stackalloc(STACK_SIZE);
+    task->frame->ss = get_kernel_data_selector();
+
+    struct page_directory* pd = get_pml4();
+    uint64_t physaddr = virtual_to_physical(pd, (void*)task->frame->rsp);
+
+    printf("Process stack allocated at 0x%llx\n", physaddr);
 
     task->nice = 0;
     task->mm = 0;
@@ -194,15 +208,15 @@ void zero() {
     task->locks = 0;
     task->open_files = 0;
 
-    task->entry = init;
-    task->context = allocate_process(init);
+    task->entry = zero_panic;
+    task->context = allocate_process(zero_panic);
     task->pd = duplicate_current_pml4();
     strncpy(task->tty, "default\0", 8);
     task->descriptors = 0;
     task->next = 0;
     task->prev = 0;
 
-    add_task(task);
+    kernel_task = task;
 }
 
 void _idle() {
@@ -219,6 +233,8 @@ void idle() {
 
     task->nice = 0;
     task->mm = 0;
+
+    task->frame = 0;
 
     task->processor = 0;
     task->sleep_time = 0;
@@ -248,15 +264,18 @@ void idle() {
     add_task(task);
 }
 
+void kernel_loop() {
+    while (1) {
+        printf("c");
+    }
+}
+
 void init_scheduler() {
     printf("### SCHEDULER STARTUP ###\n");
 
     zero(); //Spawn kernel task
     idle(); //Spawn idle task
 
-    current_task = task_head;
-    current_task->state = TASK_EXECUTING;
-    enable_preemption();
     printf("### SCHEDULER STARTUP DONE ###\n");
 }
 
@@ -274,4 +293,62 @@ void reset_current_tty() {
     }
     memset(current_task->tty, 0, 32);
     strncpy(current_task->tty, "default\0", 8);
+}
+
+void go() {
+    current_task = task_head;
+    enable_preemption();
+    while (1)
+        __asm__ __volatile__("hlt");
+}
+
+void save_current_context(struct interrupt_frame * frame) {
+    if (kernel_task == 0) {
+        panic("kernel_task == 0");
+    }
+    return_frame_error.error_code = 0x0;
+    return_frame_error.cs = frame->cs;
+    return_frame_error.ss = frame->ss;
+    return_frame_error.rsp = frame->rsp;
+    return_frame_error.rip = frame->rip;
+    return_frame_error.rflags = frame->rflags;
+}
+
+void swap_to_kernel(struct interrupt_frame * frame) {
+    if (kernel_task == 0) {
+        panic("kernel_task == 0");
+    }
+    frame->cs = kernel_task->frame->cs;
+    frame->ss = kernel_task->frame->ss;
+    frame->rsp = kernel_task->frame->rsp;
+    frame->rip = kernel_task->frame->rip;
+    frame->rflags = kernel_task->frame->rflags;
+}
+
+void return_from_kernel(struct interrupt_frame_error* frame) {
+    frame->cs = return_frame_error.cs;
+    frame->ss = return_frame_error.ss;
+    frame->rsp = return_frame_error.rsp;
+    frame->rip = return_frame_error.rip;   
+    frame->rflags = return_frame_error.rflags;
+    frame->error_code = return_frame_error.error_code;
+}
+
+void save_current_context_error(struct interrupt_frame_error * frame) {
+    if (kernel_task == 0) {
+        panic("kernel_task == 0");
+    }
+    return_frame_error.error_code = frame->error_code;
+    return_frame_error.cs = frame->cs;
+    return_frame_error.ss = frame->ss;
+    return_frame_error.rsp = frame->rsp;
+    return_frame_error.rip = frame->rip;
+    return_frame_error.rflags = frame->rflags;
+}
+
+void swap_to_kernel_error(struct interrupt_frame_error * frame) {
+    if (kernel_task == 0) {
+        panic("kernel_task == 0");
+    }
+    memcpy(frame, kernel_task->frame, sizeof(struct interrupt_frame_error));
 }

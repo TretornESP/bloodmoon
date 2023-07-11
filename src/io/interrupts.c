@@ -9,6 +9,7 @@
 #include "../memory/paging.h"
 #include "../util/string.h"
 #include "../drivers/keyboard/keyboard.h"
+#include "../scheduling/scheduler.h"
 #include "../scheduling/pit.h"
 #include "../syscall/syscall.h"
 
@@ -191,9 +192,12 @@ __attribute__((interrupt)) void Syscall_Handler(struct interrupt_frame* frame) {
 
 //you may need save_all here
 __attribute__((interrupt)) void PitInt_Handler(struct interrupt_frame * frame) {
-    (void)frame;
+    __asm__ volatile("cli");
+    save_current_context(frame);
     tick();
     pic_end_master();
+    swap_to_kernel(frame);
+    __asm__ volatile("sti");
 }
 
 __attribute__((interrupt)) void Serial1Int_Handler(struct interrupt_frame * frame) {
@@ -214,6 +218,12 @@ __attribute__((interrupt)) void Serial2Int_Handler(struct interrupt_frame * fram
     dbg_print("\n");
     pic_end_master();
 
+}
+
+__attribute__((interrupt)) void KReturn_Handler(struct interrupt_frame_error * frame) {
+    __asm__ volatile("cli");
+    return_from_kernel(frame);
+    __asm__ volatile("sti");
 }
 
 __attribute__((interrupt)) void DynamicInt_Handler(struct interrupt_frame * frame) {
@@ -331,6 +341,7 @@ void init_interrupts(uint8_t pit_disable) {
     set_idt_gate((uint64_t)Security_Handler,    0x1E,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
     set_idt_gate((uint64_t)Syscall_Handler,     0x80,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
     set_idt_gate((uint64_t)DynamicInt_Handler,  0x90,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)KReturn_Handler,  0x8A,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
     
 
     uint64_t stackinterrupts = (uint64_t)stackalloc(STACKSIZE) + STACKSIZE;
