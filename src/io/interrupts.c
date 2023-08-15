@@ -192,12 +192,12 @@ __attribute__((interrupt)) void Syscall_Handler(struct interrupt_frame* frame) {
 
 //you may need save_all here
 __attribute__((interrupt)) void PitInt_Handler(struct interrupt_frame * frame) {
-    __asm__ volatile("cli");
-    save_current_context(frame);
-    tick();
+    //__asm__ volatile("cli");
+    //save_current_context(frame);
+    //tick();
     pic_end_master();
-    swap_to_kernel(frame);
-    __asm__ volatile("sti");
+    //swap_to_kernel(frame);
+    //__asm__ volatile("sti");
 }
 
 __attribute__((interrupt)) void Serial1Int_Handler(struct interrupt_frame * frame) {

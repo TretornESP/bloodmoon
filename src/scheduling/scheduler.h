@@ -17,8 +17,8 @@
 extern void swap_context(CPU_CONTEXT* old, CPU_CONTEXT* new);
 void dump_processes();
 struct task* get_current_task();
-const char * get_current_tty();
-void set_current_tty(const char *);
+char * get_current_tty();
+void set_current_tty(char *);
 void reset_current_tty();
 void spawn(long, unsigned long, long, long);
 void yield();

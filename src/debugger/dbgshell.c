@@ -302,7 +302,8 @@ void handler(void* ttyb, uint8_t event) {
     }
 }
 
-void init_dbgshell(const char* tty) {
+void init_dbgshell() {
+    char* tty = get_current_tty();
     if (tty == 0) {
         return;
     }
@@ -312,9 +313,8 @@ void init_dbgshell(const char* tty) {
         return;
     }
 
-    strncpy(devno, tty, 32);
+    strncpy(devno, tty, strlen(tty));
     device_ioctl(tty, 0x1, handler); //ADD SUBSCRIBER
-    set_current_tty(tty);
     printf("\n");
     dbg_flush();
     promt();

@@ -47,17 +47,27 @@ Current memory usage:
 
 ## Requirements
 
-- **binutils** and **gcc** default toolchain stuff
+- **binutils**, **gcc** and **nasm** default toolchain stuff
 
 - **xorriso**
 
+- **gdisk**
+
+- **fdisk**
+
+- **mtools**
+
+- **dosfstools**
+
+- **tree**
+
 - **qemu** (optional)
 
+- **virtuabox** (optional)
 
 - **Limine**. Inside the folder:
 
       git clone https://github.com/limine-bootloader/limine.git --branch=v3.0-branch-binary --depth=1
-
 
 ## How to configure
 

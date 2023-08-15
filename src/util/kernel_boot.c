@@ -4,6 +4,7 @@
 #include "../arch/gdt.h"
 
 #include "../debugger/debug.h"
+#include "../debugger/dbgshell.h"
 
 #include "../memory/memory.h"
 #include "../memory/paging.h"
@@ -63,7 +64,10 @@ void enable_debug(uint8_t reserved) {
         while (current != 0) {
             if (current->major == DEVICE_TTY) {
                 if (index++ >= reserved) {
+                    printf("Enabling debugger on %s\n", current->name);
                     dbg_init(current->name);
+                    set_current_tty(current->name);
+                    init_dbgshell();
                     break;
                 }
             }
@@ -80,7 +84,7 @@ void boot() {
     init_gdt();
     init_pit(1678779503);
     init_scheduler();
-    init_interrupts(0); //One disables pit
+    init_interrupts(1); //One disables pit
     init_drive();
     init_serial_dd();
     init_tty_dd();
@@ -91,10 +95,8 @@ void boot() {
     register_filesystem(ext2_registrar);
     register_filesystem(tty_registrar);
     init_vfs();
-
     print_prompt();
-
-    go();
+    while(1) {}
 }
 
 void __attribute__((noreturn)) halt() {

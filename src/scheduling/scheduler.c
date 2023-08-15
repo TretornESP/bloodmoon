@@ -2,7 +2,6 @@
 #include "pit.h"
 #include "../memory/heap.h"
 #include "../memory/paging.h"
-#include "../debugger/dbgshell.h"
 #include "../arch/gdt.h"
 #include "../util/printf.h"
 #include "../util/dbgprinter.h"
@@ -153,7 +152,7 @@ struct task* get_current_task() {
     return current_task;
 }
 
-const char * get_current_tty() {
+char * get_current_tty() {
     if (current_task == 0) {
         return 0;
     }
@@ -276,15 +275,19 @@ void init_scheduler() {
     zero(); //Spawn kernel task
     idle(); //Spawn idle task
 
+    current_task = kernel_task;
+
     printf("### SCHEDULER STARTUP DONE ###\n");
 }
 
-void set_current_tty(const char * tty) {
+void set_current_tty(char * tty) {
     if (current_task == 0) {
         return;
     }
     memset(current_task->tty, 0, 32);
     strncpy(current_task->tty, tty, strlen(tty));
+    //Make sure it's null terminated
+    current_task->tty[strlen(tty)] = '\0';
 }
 
 void reset_current_tty() {
@@ -296,10 +299,9 @@ void reset_current_tty() {
 }
 
 void go() {
-    current_task = task_head;
-    enable_preemption();
-    while (1)
-        __asm__ __volatile__("hlt");
+    //enable_preemption();
+    //while (1)
+    //    __asm__ __volatile__("hlt");
 }
 
 void save_current_context(struct interrupt_frame * frame) {
