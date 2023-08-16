@@ -6,38 +6,75 @@
 #include "../util/printf.h"
 #include "../util/dbgprinter.h"
 #include "../util/string.h"
+#include "../arch/tss.h"
 
 #define MAX_TASKS 255
 
 struct task *task_head = 0;
 struct task * current_task = 0;
-struct task * kernel_task = 0;
+
 struct interrupt_frame_error return_frame_error = {0};
 
 //Returns the task that must enter cpu
-struct task* schedule() {
+
+void __attribute__((optimize("omit-frame-pointer"))) schedule() {
+
+    __asm__ volatile("cli");
+    __asm__ volatile("pushq %rbx");
+    __asm__ volatile("pushq %r12");
+    __asm__ volatile("pushq %r13");
+    __asm__ volatile("pushq %r14");
+    __asm__ volatile("pushq %r15");
+    
+    __asm__ volatile("movq %%rsp, %0" : "=r"(current_task->rsp_top));
+
+    struct task * next_task = 0;
     struct task* current = current_task;
+    struct task* original = current_task;
+
     if (current == 0) {
-        current = task_head;
+        next_task = task_head;
     }
-
-    //Try to advance to the next task
-    if (current->next != 0) {
-        current = current->next;
-    } else {
-        current = task_head;
-    }
-
-    //If the next task is not runnable, try to find a runnable task
-    while (current->state != TASK_READY && current->state != TASK_EXECUTING) {
-        if (current->next != 0) {
-            current = current->next;
-        } else {
+    
+    //Find the next task
+    while (next_task == 0) {
+        if (current->next == 0) {
             current = task_head;
+        } else {
+            current = current->next;
+        }
+
+        if (current->state == TASK_READY) {
+            next_task = current;
+        }
+
+        if (current == original) {
+            break;
         }
     }
 
-    return current;
+    if (next_task == 0) {
+        return;
+    }
+
+    struct task current_task_copy;
+    memcpy(&current_task_copy, current_task, sizeof(struct task));
+
+    current_task->state = TASK_READY;
+    current_task = next_task;
+    current_task->state = TASK_EXECUTING;
+
+    swap_pml4(current_task->pd);
+    tss_set_stack(current_task->processor, (void*)current_task->rsp_top, 0);
+    __asm__ volatile("movq %0, %%rsp" : : "r"(current_task->rsp_top));
+
+    __asm__ volatile("popq %r15");
+    __asm__ volatile("popq %r14");
+    __asm__ volatile("popq %r13");
+    __asm__ volatile("popq %r12");
+    __asm__ volatile("popq %rbx");
+    
+    __asm__ volatile("sti");
 }
 
 void add_task(struct task* task) {
@@ -133,23 +170,26 @@ void pseudo_ps() {
     return;
 }
 
-void yield() {
-    struct task * next_task = schedule();
-    
-    current_task->state = TASK_READY;
-    next_task->state = TASK_EXECUTING;
-    current_task->pd = swap_pml4(next_task->pd);
-    printf("SOY %d\n", current_task->pid);
-    if (next_task->context == 0) {
-        panic("next_task->context == 0");
-    }
-    
-    swap_context(current_task->context, next_task->context);
-    panic("yield() returned");
-}
-
 struct task* get_current_task() {
     return current_task;
+}
+
+void go() {
+    struct task* current = get_current_task();
+    __asm__ volatile("cli");
+    current->state = TASK_EXECUTING;
+
+    swap_pml4(current->pd);
+    tss_set_stack(current->processor, (void*)current->rsp_top, 0);
+    __asm__ volatile("movq %0, %%rsp" : : "r"(current->rsp_top));
+
+    __asm__ volatile("popq %r15");
+    __asm__ volatile("popq %r14");
+    __asm__ volatile("popq %r13");
+    __asm__ volatile("popq %r12");
+    __asm__ volatile("popq %rbx");
+
+    __asm__ volatile("sti");
 }
 
 char * get_current_tty() {
@@ -159,72 +199,32 @@ char * get_current_tty() {
     return current_task->tty;
 }
 
-void init() {
-    if (requires_preemption()) {
-        yield();
-    }
-    __asm__ __volatile__("int $0x8A"); //Return from kernel
-}
-
-void zero_panic() {
-    panic("ZERO PANIC");
-}
-
-void zero() {
-    struct task * task = malloc(sizeof(struct task));
-    task->state = TASK_EXECUTING;
-    task->flags = 0;
-    task->sigpending = 0;
-
-    task->frame = malloc(sizeof(struct interrupt_frame));
-    memset(task->frame, 0, sizeof(struct interrupt_frame));
-    task->frame->rip = (uint64_t)init;
-    task->frame->cs = get_kernel_code_selector();
-    task->frame->rsp = (uint64_t)stackalloc(STACK_SIZE);
-    task->frame->ss = get_kernel_data_selector();
-
-    struct page_directory* pd = get_pml4();
-    uint64_t physaddr = virtual_to_physical(pd, (void*)task->frame->rsp);
-
-    printf("Process stack allocated at 0x%llx\n", physaddr);
-
-    task->nice = 0;
-    task->mm = 0;
-    task->processor = 0;
-    task->sleep_time = 0;
-    task->exit_code = 0;
-    task->exit_signal = 0;
-    task->pdeath_signal = 0;
-
-    task->pid = 0;
-    task->ppid = 0;
-
-    task->parent = 0;
-
-    task->uid = 0;
-    task->gid = 0;
-
-    task->locks = 0;
-    task->open_files = 0;
-
-    task->entry = zero_panic;
-    task->context = allocate_process(zero_panic);
-    task->pd = duplicate_current_pml4();
-    strncpy(task->tty, "default\0", 8);
-    task->descriptors = 0;
-    task->next = 0;
-    task->prev = 0;
-
-    kernel_task = task;
-}
-
-void _idle() {
+void atask() {
     while (1) {
-        printf("b");
+        printf("a");
+        //Set r12-r15 to 0x12, 0x13, 0x14, 0x15
+        __asm__ volatile("movq $0x12, %r12");
+        __asm__ volatile("movq $0x13, %r13");
+        __asm__ volatile("movq $0x14, %r14");
+        __asm__ volatile("movq $0x15, %r15");
+        __asm__ volatile("movq $0x69, %rbx");
+        schedule();
     }
 }
 
-void idle() {
+void btask() {
+    while (1) {
+        __asm__ volatile("movq $0x21, %r12");
+        __asm__ volatile("movq $0x31, %r13");
+        __asm__ volatile("movq $0x41, %r14");
+        __asm__ volatile("movq $0x51, %r15");
+        __asm__ volatile("movq $0x96, %rbx");
+        printf("b");
+        schedule();
+    }
+}
+
+void spawn_task(void * init_func) {
     struct task * task = malloc(sizeof(struct task));
     task->state = TASK_READY;
     task->flags = 0;
@@ -237,14 +237,20 @@ void idle() {
 
     task->processor = 0;
     task->sleep_time = 0;
-    task->exit_code = 0;
+    task->exit_code = 0;    
     task->exit_signal = 0;
     task->pdeath_signal = 0;
 
-    task->pid = 1;
-    task->ppid = 0;
-    
-    task->parent = 0;
+    struct task * parent = get_current_task();
+    if (parent == 0) {
+        parent = task;
+        task->ppid = 0;
+    } else {
+        task->ppid = parent->pid;
+    }
+
+    task->parent = parent;
+    task->pid = get_free_pid();
 
     task->uid = 0;
     task->gid = 0;
@@ -252,8 +258,42 @@ void idle() {
     task->locks = 0;
     task->open_files = 0;
 
-    task->entry = _idle;
-    task->context = allocate_process(_idle);
+    task->entry = init_func;
+    task->rsp = (uint64_t)stackalloc(STACK_SIZE);
+    task->rsp_top = task->rsp + STACK_SIZE;
+
+    //Create a stack frame (do not use structs)
+    //Set r12-r15 to 0, rbx to 0
+    //Set rbp to 0
+    //Set rip to init_func
+
+    uint64_t zero = 0;
+
+    uint64_t * saved_rsp;
+    //Save current rsp
+    __asm__ volatile("movq %%rsp, %0" : "=r"(saved_rsp));
+
+    //Set rsp to the top of the stack
+    __asm__ volatile("movq %0, %%rsp" : : "r"(task->rsp_top));
+
+    //Push the return address
+    __asm__ volatile("pushq %0" : : "r"(init_func));
+
+    //Push rbp
+    __asm__ volatile("pushq %0" : : "r"(zero));
+
+    __asm__ volatile("pushq $0x99"); //RBX
+    __asm__ volatile("pushq $0x92"); //R12
+    __asm__ volatile("pushq $0x93"); //R13
+    __asm__ volatile("pushq $0x94"); //R14
+    __asm__ volatile("pushq $0x95"); //R15
+
+    //Set rsp to the saved rsp
+    __asm__ volatile("movq %0, %%rsp" : : "r"(saved_rsp));
+    
+    //Update rsp_top to account for all the pushes
+    task->rsp_top = task->rsp_top - 0x8 * 7;
+
     task->pd = duplicate_current_pml4();
     strncpy(task->tty, "default\0", 8);
     task->descriptors = 0;
@@ -263,19 +303,13 @@ void idle() {
     add_task(task);
 }
 
-void kernel_loop() {
-    while (1) {
-        printf("c");
-    }
-}
-
 void init_scheduler() {
     printf("### SCHEDULER STARTUP ###\n");
 
-    zero(); //Spawn kernel task
-    idle(); //Spawn idle task
+    spawn_task(atask); //Spawn idle task
+    spawn_task(btask); //Spawn idle task
 
-    current_task = kernel_task;
+    current_task = task_head;
 
     printf("### SCHEDULER STARTUP DONE ###\n");
 }
@@ -296,61 +330,4 @@ void reset_current_tty() {
     }
     memset(current_task->tty, 0, 32);
     strncpy(current_task->tty, "default\0", 8);
-}
-
-void go() {
-    //enable_preemption();
-    //while (1)
-    //    __asm__ __volatile__("hlt");
-}
-
-void save_current_context(struct interrupt_frame * frame) {
-    if (kernel_task == 0) {
-        panic("kernel_task == 0");
-    }
-    return_frame_error.error_code = 0x0;
-    return_frame_error.cs = frame->cs;
-    return_frame_error.ss = frame->ss;
-    return_frame_error.rsp = frame->rsp;
-    return_frame_error.rip = frame->rip;
-    return_frame_error.rflags = frame->rflags;
-}
-
-void swap_to_kernel(struct interrupt_frame * frame) {
-    if (kernel_task == 0) {
-        panic("kernel_task == 0");
-    }
-    frame->cs = kernel_task->frame->cs;
-    frame->ss = kernel_task->frame->ss;
-    frame->rsp = kernel_task->frame->rsp;
-    frame->rip = kernel_task->frame->rip;
-    frame->rflags = kernel_task->frame->rflags;
-}
-
-void return_from_kernel(struct interrupt_frame_error* frame) {
-    frame->cs = return_frame_error.cs;
-    frame->ss = return_frame_error.ss;
-    frame->rsp = return_frame_error.rsp;
-    frame->rip = return_frame_error.rip;   
-    frame->rflags = return_frame_error.rflags;
-    frame->error_code = return_frame_error.error_code;
-}
-
-void save_current_context_error(struct interrupt_frame_error * frame) {
-    if (kernel_task == 0) {
-        panic("kernel_task == 0");
-    }
-    return_frame_error.error_code = frame->error_code;
-    return_frame_error.cs = frame->cs;
-    return_frame_error.ss = frame->ss;
-    return_frame_error.rsp = frame->rsp;
-    return_frame_error.rip = frame->rip;
-    return_frame_error.rflags = frame->rflags;
-}
-
-void swap_to_kernel_error(struct interrupt_frame_error * frame) {
-    if (kernel_task == 0) {
-        panic("kernel_task == 0");
-    }
-    memcpy(frame, kernel_task->frame, sizeof(struct interrupt_frame_error));
 }

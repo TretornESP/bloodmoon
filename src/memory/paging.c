@@ -111,6 +111,13 @@ struct page_directory* duplicate_current_pml4() {
 void* swap_pml4(void* pml) {
     void* old;
     __asm__("movq %%cr3, %0" : "=r"(old));
+    if (pml == NULL) {
+        panic("ERROR: Tried to swap to NULL PML4\n");
+    }
+    //Check if pml is different from current
+    if (old == pml) {
+        return old;
+    }
     __asm__("movq %0, %%cr3" : : "r" (pml)); //This should invalidate TLB
     return old;
 }

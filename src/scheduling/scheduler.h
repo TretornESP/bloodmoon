@@ -14,20 +14,39 @@
 #define TASK_CREATED         6
 #define TASK_FREE            7
 
-extern void swap_context(CPU_CONTEXT* old, CPU_CONTEXT* new);
+//x86_64 system v abi calling convention stack frame
+struct stack_frame {
+    uint64_t r15;
+    uint64_t r14;
+    uint64_t r13;
+    uint64_t r12; 
+    uint64_t r11; 
+    uint64_t r10; 
+    uint64_t r9; 
+    uint64_t r8; 
+    uint64_t rbp;
+    uint64_t rdi; 
+    uint64_t rsi; 
+    uint64_t rdx; 
+    uint64_t rcx; 
+    uint64_t rbx; 
+    uint64_t rax;
+    uint64_t rip;
+    uint64_t cs;
+    uint64_t rflags;
+    uint64_t rsp;
+    uint64_t ss;
+} __attribute__((packed));
+
+extern void save_context(struct task* task);
+
 void dump_processes();
 struct task* get_current_task();
 char * get_current_tty();
 void set_current_tty(char *);
 void reset_current_tty();
-void spawn(long, unsigned long, long, long);
-void yield();
 void init_scheduler();
-void go();
-void save_current_context_error(struct interrupt_frame_error * frame);
-void swap_to_kernel_error(struct interrupt_frame_error * frame);
-void save_current_context(struct interrupt_frame * frame);
-void swap_to_kernel(struct interrupt_frame * frame);
-void return_from_kernel(struct interrupt_frame_error* frame);
 void pseudo_ps();
+void go();
+void schedule();
 #endif

@@ -5,23 +5,6 @@
 #include <stdint.h>
 #define STACK_SIZE 0x1000
 
-typedef struct __attribute__((packed)){
-    uint64_t rax;
-    uint64_t rbx;
-    uint64_t rcx;
-    uint64_t rdx;
-    uint64_t r8;
-    uint64_t r9;
-    uint64_t r10;
-    uint64_t r11;
-    uint64_t r12;
-    uint64_t r13;
-    uint64_t r14;
-    uint64_t r15;
-    uint64_t rbp;
-    uint64_t rsp;
-} CPU_CONTEXT ;
-
 struct descriptors {
     uint8_t stdin;
     uint8_t stdout;
@@ -63,16 +46,19 @@ struct mm_struct {
 };
 
 struct task {
+    uint64_t rsp;
+    uint64_t rsp_top;
+    struct page_directory* pd;
+    int processor;
+
     volatile long state;
     unsigned long flags;
     int sigpending;
     
     long nice;
     struct mm_struct *mm;
-    struct page_directory* pd;
     struct interrupt_frame_error *frame;
 
-    int processor;
     unsigned long sleep_time;
     int exit_code, exit_signal;
     int pdeath_signal;
@@ -91,13 +77,9 @@ struct task {
     int * open_files;
 
     void * entry;
-    CPU_CONTEXT* context;
     struct descriptors* descriptors;
     struct task *next, *prev;
 
-};
+} __attribute__((packed));
 
-extern void set_rip(CPU_CONTEXT *context, uint64_t rip);
-CPU_CONTEXT* allocate_process(void* init);
-void dump_context(CPU_CONTEXT*);
 #endif

@@ -20,12 +20,12 @@ uint16_t tss_install(uint8_t cpu) {
     return location;
 }
 
-void tss_set_stack(uint8_t cpu, void* stack) {
-    tss[cpu].rsp[0] = (uint64_t) stack;
+void tss_set_stack(uint8_t cpu, void* stack, uint8_t dpl) {
+    tss[cpu].rsp[dpl] = (uint64_t) stack;
 }
 
-uint64_t tss_get_stack(uint8_t cpu) {
-    return tss[cpu].rsp[0];
+uint64_t tss_get_stack(uint8_t cpu, uint8_t dpl) {
+    return tss[cpu].rsp[dpl];
 }
 
 void tss_set_ist(uint8_t cpu, uint8_t ist, uint64_t stack) {

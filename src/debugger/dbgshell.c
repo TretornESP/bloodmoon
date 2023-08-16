@@ -154,7 +154,7 @@ void sched(int argc, char* argv[]) {
         return;
     }
 
-    yield();
+    schedule();
 }
 
 void ps(int argc, char* argv[]) {

@@ -222,7 +222,8 @@ __attribute__((interrupt)) void Serial2Int_Handler(struct interrupt_frame * fram
 
 __attribute__((interrupt)) void KReturn_Handler(struct interrupt_frame_error * frame) {
     __asm__ volatile("cli");
-    return_from_kernel(frame);
+    panic("NOT IMPLEMENTED");
+    //return_from_kernel(frame);
     __asm__ volatile("sti");
 }
 

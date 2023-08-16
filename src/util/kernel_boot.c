@@ -67,7 +67,6 @@ void enable_debug(uint8_t reserved) {
                     printf("Enabling debugger on %s\n", current->name);
                     dbg_init(current->name);
                     set_current_tty(current->name);
-                    init_dbgshell();
                     break;
                 }
             }
@@ -96,6 +95,9 @@ void boot() {
     register_filesystem(tty_registrar);
     init_vfs();
     print_prompt();
+    //init_dbgshell();    
+    set_current_tty("default");
+    go();
     while(1) {}
 }
 
