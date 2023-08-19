@@ -38,8 +38,7 @@ struct stack_frame {
     uint64_t ss;
 } __attribute__((packed));
 
-extern void save_context(struct task* task);
-
+extern void ctxswtch(struct task * old_task, struct task* new_task);
 void dump_processes();
 struct task* get_current_task();
 char * get_current_tty();
@@ -48,5 +47,4 @@ void reset_current_tty();
 void init_scheduler();
 void pseudo_ps();
 void go();
-void schedule();
 #endif

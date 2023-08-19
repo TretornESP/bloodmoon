@@ -154,7 +154,7 @@ void sched(int argc, char* argv[]) {
         return;
     }
 
-    schedule();
+    //go();
 }
 
 void ps(int argc, char* argv[]) {

@@ -12,31 +12,18 @@
 
 struct task *task_head = 0;
 struct task * current_task = 0;
-
-struct interrupt_frame_error return_frame_error = {0};
+struct task * shithole_task = 0;
+struct task * idle_task = 0;
 
 //Returns the task that must enter cpu
 
-void __attribute__((optimize("omit-frame-pointer"))) schedule() {
-
-    __asm__ volatile("cli");
-    __asm__ volatile("pushq %rbx");
-    __asm__ volatile("pushq %r12");
-    __asm__ volatile("pushq %r13");
-    __asm__ volatile("pushq %r14");
-    __asm__ volatile("pushq %r15");
-    
-    __asm__ volatile("movq %%rsp, %0" : "=r"(current_task->rsp_top));
+struct task * schedule() {
 
     struct task * next_task = 0;
     struct task* current = current_task;
     struct task* original = current_task;
 
-    if (current == 0) {
-        next_task = task_head;
-    }
-    
-    //Find the next task
+    //Find a task that is ready to run TASK_READY, if not found, run idle task
     while (next_task == 0) {
         if (current->next == 0) {
             current = task_head;
@@ -44,7 +31,7 @@ void __attribute__((optimize("omit-frame-pointer"))) schedule() {
             current = current->next;
         }
 
-        if (current->state == TASK_READY) {
+        if (current->state == TASK_READY || current->state == TASK_EXECUTING) {
             next_task = current;
         }
 
@@ -54,30 +41,37 @@ void __attribute__((optimize("omit-frame-pointer"))) schedule() {
     }
 
     if (next_task == 0) {
-        return;
+        printf("No tasks found, running idle task\n");
+        next_task = idle_task;
     }
 
-    struct task current_task_copy;
-    memcpy(&current_task_copy, current_task, sizeof(struct task));
+    if (next_task == 0) {
+        panic("No tasks found, not even idle!!!\n");
+    }
 
-    current_task->state = TASK_READY;
+    struct task * prev_task = current_task;  
+    if (current_task->state == TASK_EXECUTING)  
+        current_task->state = TASK_READY;
     current_task = next_task;
     current_task->state = TASK_EXECUTING;
 
-    swap_pml4(current_task->pd);
-    tss_set_stack(current_task->processor, (void*)current_task->rsp_top, 0);
-    __asm__ volatile("movq %0, %%rsp" : : "r"(current_task->rsp_top));
+    printf("Switching from task %d to %d\n", prev_task->pid, current_task->pid);
 
-    __asm__ volatile("popq %r15");
-    __asm__ volatile("popq %r14");
-    __asm__ volatile("popq %r13");
-    __asm__ volatile("popq %r12");
-    __asm__ volatile("popq %rbx");
-    
-    __asm__ volatile("sti");
+    return prev_task;
+}
+
+void __attribute__((noinline)) yield() {
+    struct task * prev = schedule();
+    tss_set_stack(current_task->processor, (void*)current_task->rsp, 0);
+    ctxswtch(
+        prev,
+        current_task
+    );
 }
 
 void add_task(struct task* task) {
+    printf("Adding task %d\n", task->pid);
+
     if (task_head == 0) {
         task_head = task;
         return;
@@ -148,7 +142,7 @@ struct task* get_status(long state) {
 }
 
 int16_t get_free_pid() {
-    int16_t pid = 0;
+    int16_t pid = 1;
     while (get_task(pid) != 0) {
         pid++;
     }
@@ -175,21 +169,15 @@ struct task* get_current_task() {
 }
 
 void go() {
-    struct task* current = get_current_task();
-    __asm__ volatile("cli");
-    current->state = TASK_EXECUTING;
-
-    swap_pml4(current->pd);
-    tss_set_stack(current->processor, (void*)current->rsp_top, 0);
-    __asm__ volatile("movq %0, %%rsp" : : "r"(current->rsp_top));
-
-    __asm__ volatile("popq %r15");
-    __asm__ volatile("popq %r14");
-    __asm__ volatile("popq %r13");
-    __asm__ volatile("popq %r12");
-    __asm__ volatile("popq %rbx");
-
-    __asm__ volatile("sti");
+    shithole_task = malloc(sizeof(struct task));
+    memset(shithole_task, 0, sizeof(struct task));
+    current_task->state = TASK_EXECUTING;
+    tss_set_stack(current_task->processor, (void*)current_task->rsp, 0);
+    ctxswtch(
+        shithole_task,
+        current_task
+    );
+    panic("go returned you melon!");
 }
 
 char * get_current_tty() {
@@ -199,32 +187,38 @@ char * get_current_tty() {
     return current_task->tty;
 }
 
-void atask() {
+void idle() {
     while (1) {
-        printf("a");
-        //Set r12-r15 to 0x12, 0x13, 0x14, 0x15
-        __asm__ volatile("movq $0x12, %r12");
-        __asm__ volatile("movq $0x13, %r13");
-        __asm__ volatile("movq $0x14, %r14");
-        __asm__ volatile("movq $0x15, %r15");
-        __asm__ volatile("movq $0x69, %rbx");
-        schedule();
+        __asm__ volatile("hlt");
     }
+}
+
+void exit() {
+    printf("Exiting task %d\n", current_task->pid);
+    current_task->state = TASK_ZOMBIE;
+    yield();
+}
+
+void atask() {
+    int i = 10;
+    while (i--) {
+        printf("atask: %d\n", i);
+        //Set r12-r15 to 0x12, 0x13, 0x14, 0x15
+        yield();
+    }
+    exit();
 }
 
 void btask() {
-    while (1) {
-        __asm__ volatile("movq $0x21, %r12");
-        __asm__ volatile("movq $0x31, %r13");
-        __asm__ volatile("movq $0x41, %r14");
-        __asm__ volatile("movq $0x51, %r15");
-        __asm__ volatile("movq $0x96, %rbx");
-        printf("b");
-        schedule();
+    int i = 20;
+    while (i--) {
+        printf("btask: %d\n", i);
+        yield();
     }
+    exit();
 }
 
-void spawn_task(void * init_func) {
+struct task* create_task(void * init_func) {
     struct task * task = malloc(sizeof(struct task));
     task->state = TASK_READY;
     task->flags = 0;
@@ -264,10 +258,7 @@ void spawn_task(void * init_func) {
 
     //Create a stack frame (do not use structs)
     //Set r12-r15 to 0, rbx to 0
-    //Set rbp to 0
     //Set rip to init_func
-
-    uint64_t zero = 0;
 
     uint64_t * saved_rsp;
     //Save current rsp
@@ -279,8 +270,8 @@ void spawn_task(void * init_func) {
     //Push the return address
     __asm__ volatile("pushq %0" : : "r"(init_func));
 
-    //Push rbp
-    __asm__ volatile("pushq %0" : : "r"(zero));
+    //Push the rsp_top
+    __asm__ volatile("pushq %0" : : "r"(task->rsp_top));
 
     __asm__ volatile("pushq $0x99"); //RBX
     __asm__ volatile("pushq $0x92"); //R12
@@ -288,11 +279,10 @@ void spawn_task(void * init_func) {
     __asm__ volatile("pushq $0x94"); //R14
     __asm__ volatile("pushq $0x95"); //R15
 
+    //Save rsp to the task struct
+    __asm__ volatile("movq %%rsp, %0" : "=r"(task->rsp_top));
     //Set rsp to the saved rsp
     __asm__ volatile("movq %0, %%rsp" : : "r"(saved_rsp));
-    
-    //Update rsp_top to account for all the pushes
-    task->rsp_top = task->rsp_top - 0x8 * 7;
 
     task->pd = duplicate_current_pml4();
     strncpy(task->tty, "default\0", 8);
@@ -300,14 +290,18 @@ void spawn_task(void * init_func) {
     task->next = 0;
     task->prev = 0;
 
-    add_task(task);
+    printf("Created task %d\n", task->pid);
+
+    return task;
 }
 
 void init_scheduler() {
     printf("### SCHEDULER STARTUP ###\n");
+    idle_task = create_task(idle); //Spawn idle task
+    idle_task->pid = 0;
 
-    spawn_task(atask); //Spawn idle task
-    spawn_task(btask); //Spawn idle task
+    add_task(create_task(atask)); //Spawn idle task
+    add_task(create_task(btask)); //Spawn idle task
 
     current_task = task_head;
 
