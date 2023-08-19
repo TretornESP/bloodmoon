@@ -154,7 +154,31 @@ void sched(int argc, char* argv[]) {
         return;
     }
 
-    //go();
+    yield();
+}
+
+void spawn(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Spawns a process\n");
+        printf("Usage: spawn <addr of init>\n");
+        return;
+    }
+
+    //convert string to uint64_t
+    char* endptr;
+    uint64_t addr = strtoull(argv[1], &endptr, 16);
+    add_task(create_task((void*)addr, get_current_tty()));
+}
+
+void kill(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Kills a process\n");
+        printf("Usage: kill <pid>\n");
+        return;
+    }
+
+    int16_t pid = atoi(argv[1]);
+    kill_task(pid);
 }
 
 void ps(int argc, char* argv[]) {
@@ -175,6 +199,16 @@ void ptoggle(int argc, char* argv[]) {
     }
 
     preempt_toggle();
+}
+
+void ptasks(int argc, char* argv[]) {
+    if (argc < 1) {
+        printf("Prints the task list\n");
+        printf("Usage: ptasks\n");
+        return;
+    }
+
+    task_test();
 }
 
 void ticks(int argc, char* argv[]) {
@@ -243,8 +277,20 @@ struct command cmdlist[] = {
         .handler = dc
     },
     {
+        .keyword = "spawn",
+        .handler = spawn
+    },
+    {
         .keyword = "sched",
         .handler = sched
+    },
+    {
+        .keyword = "kill",
+        .handler = kill
+    },
+    {
+        .keyword = "ptasks",
+        .handler = ptasks
     },
     {
         .keyword = "preempt",
@@ -318,6 +364,8 @@ void init_dbgshell() {
     printf("\n");
     dbg_flush();
     promt();
+
+    while(1);
 }
 
 void kill_dbgshell() {

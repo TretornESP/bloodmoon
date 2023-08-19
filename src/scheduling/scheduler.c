@@ -13,7 +13,6 @@
 struct task *task_head = 0;
 struct task * current_task = 0;
 struct task * shithole_task = 0;
-struct task * idle_task = 0;
 
 //Returns the task that must enter cpu
 
@@ -42,7 +41,10 @@ struct task * schedule() {
 
     if (next_task == 0) {
         printf("No tasks found, running idle task\n");
-        next_task = idle_task;
+        next_task = task_head;
+        if (next_task->state != TASK_IDLE) {
+            panic("Idle task is not valid or at head\n");
+        }
     }
 
     if (next_task == 0) {
@@ -50,12 +52,16 @@ struct task * schedule() {
     }
 
     struct task * prev_task = current_task;  
+
     if (current_task->state == TASK_EXECUTING)  
         current_task->state = TASK_READY;
+    
     current_task = next_task;
-    current_task->state = TASK_EXECUTING;
 
-    printf("Switching from task %d to %d\n", prev_task->pid, current_task->pid);
+    if (current_task->state == TASK_READY)
+        current_task->state = TASK_EXECUTING;
+
+    //printf("Switching from task %d to %d\n", prev_task->pid, current_task->pid);
 
     return prev_task;
 }
@@ -171,7 +177,7 @@ struct task* get_current_task() {
 void go() {
     shithole_task = malloc(sizeof(struct task));
     memset(shithole_task, 0, sizeof(struct task));
-    current_task->state = TASK_EXECUTING;
+    schedule();
     tss_set_stack(current_task->processor, (void*)current_task->rsp, 0);
     ctxswtch(
         shithole_task,
@@ -194,16 +200,28 @@ void idle() {
 }
 
 void exit() {
-    printf("Exiting task %d\n", current_task->pid);
+    //printf("Exiting task %d\n", current_task->pid);
     current_task->state = TASK_ZOMBIE;
     yield();
+}
+
+void kill_task(int16_t pid) {
+    struct task* task = get_task(pid);
+    if (task == 0) {
+        printf("No such task\n");
+        return;
+    }
+
+    printf("Killing task %d\n", pid);
+    task->exit_code = 0;
+    task->exit_signal = SIGKILL;
+    task->state = TASK_ZOMBIE;
 }
 
 void atask() {
     int i = 10;
     while (i--) {
         printf("atask: %d\n", i);
-        //Set r12-r15 to 0x12, 0x13, 0x14, 0x15
         yield();
     }
     exit();
@@ -218,7 +236,7 @@ void btask() {
     exit();
 }
 
-struct task* create_task(void * init_func) {
+struct task* create_task(void * init_func, const char * tty) {
     struct task * task = malloc(sizeof(struct task));
     task->state = TASK_READY;
     task->flags = 0;
@@ -285,23 +303,23 @@ struct task* create_task(void * init_func) {
     __asm__ volatile("movq %0, %%rsp" : : "r"(saved_rsp));
 
     task->pd = duplicate_current_pml4();
-    strncpy(task->tty, "default\0", 8);
+    strncpy(task->tty, tty, strlen(tty));
     task->descriptors = 0;
     task->next = 0;
     task->prev = 0;
 
-    printf("Created task %d\n", task->pid);
+    printf("Created task for address %p\n", init_func);
 
     return task;
 }
 
 void init_scheduler() {
     printf("### SCHEDULER STARTUP ###\n");
-    idle_task = create_task(idle); //Spawn idle task
+    struct task * idle_task = create_task(idle, "default"); //Spawn idle task
     idle_task->pid = 0;
+    idle_task->state = TASK_IDLE;
 
-    add_task(create_task(atask)); //Spawn idle task
-    add_task(create_task(btask)); //Spawn idle task
+    add_task(idle_task);
 
     current_task = task_head;
 
@@ -316,6 +334,11 @@ void set_current_tty(char * tty) {
     strncpy(current_task->tty, tty, strlen(tty));
     //Make sure it's null terminated
     current_task->tty[strlen(tty)] = '\0';
+}
+
+void task_test() {
+    printf("Task a is at: %p\n", &atask);
+    printf("Task b is at: %p\n", &btask);
 }
 
 void reset_current_tty() {

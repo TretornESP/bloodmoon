@@ -13,6 +13,9 @@
 #define TASK_ZOMBIE          5
 #define TASK_CREATED         6
 #define TASK_FREE            7
+#define TASK_IDLE            8
+
+#define SIGKILL 9
 
 //x86_64 system v abi calling convention stack frame
 struct stack_frame {
@@ -44,7 +47,12 @@ struct task* get_current_task();
 char * get_current_tty();
 void set_current_tty(char *);
 void reset_current_tty();
+void add_task(struct task* task);
+struct task* create_task(void * init_func, const char* tty);
+void kill_task(int16_t pid);
 void init_scheduler();
 void pseudo_ps();
+void yield();
+void task_test();
 void go();
 #endif

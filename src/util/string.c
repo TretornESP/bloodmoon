@@ -50,11 +50,78 @@ uint64_t atou64(const char *nptr) {
     uint64_t multiplier = 1;
     uint64_t len = strlen(nptr);
     for (uint64_t i = 0; i < len; i++) {
-        uint64_t digit = nptr[len - i - 1] - '0';
+        char c = nptr[len - i - 1];
+        uint64_t digit = 0;
+
+        if (isdigit(c)) {
+            digit = c - '0'; // Convert decimal digit
+        } else if (isxdigit(c)) {
+            if (c >= 'a' && c <= 'f') {
+                digit = c - 'a' + 10; // Convert lowercase hex digit
+            } else if (c >= 'A' && c <= 'F') {
+                digit = c - 'A' + 10; // Convert uppercase hex digit
+            }
+        }
+
         result += digit * multiplier;
         multiplier *= base;
     }
     return result;
+}
+
+uint64_t strtoull(const char *nptr, char **endptr, register int base)
+{
+	register const char *s = nptr;
+	register uint64_t acc;
+	register int c;
+	register uint64_t cutoff;
+	register int neg = 0, any, cutlim;
+
+	/*
+	 * See strtol for comments as to the logic used.
+	 */
+	do {
+		c = *s++;
+	} while (isspace(c));
+	if (c == '-') {
+		neg = 1;
+		c = *s++;
+	} else if (c == '+')
+		c = *s++;
+	if ((base == 0 || base == 16) &&
+	    c == '0' && (*s == 'x' || *s == 'X')) {
+		c = s[1];
+		s += 2;
+		base = 16;
+	}
+	if (base == 0)
+		base = c == '0' ? 8 : 10;
+	cutoff = (uint64_t)ULLONG_MAX / (uint64_t)base;
+	cutlim = (uint64_t)ULLONG_MAX % (uint64_t)base;
+	for (acc = 0, any = 0;; c = *s++) {
+		if (isdigit(c))
+			c -= '0';
+		else if (isalpha(c))
+			c -= isupper(c) ? 'A' - 10 : 'a' - 10;
+		else
+			break;
+		if (c >= base)
+			break;
+		if (any < 0 || acc > cutoff || (acc == cutoff && c > cutlim))
+			any = -1;
+		else {
+			any = 1;
+			acc *= base;
+			acc += c;
+		}
+	}
+	if (any < 0) {
+		acc = ULLONG_MAX;
+	} else if (neg)
+		acc = -acc;
+	if (endptr != 0)
+		*endptr = (char *) (any ? s - 1 : nptr);
+	return (acc);
 }
 
 char* strtok(char* s, const char* delim) {

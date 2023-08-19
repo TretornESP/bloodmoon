@@ -96,8 +96,10 @@ void boot() {
     init_vfs();
     print_prompt();
     //init_dbgshell();    
-    set_current_tty("default");
+    add_task(create_task((void*)init_dbgshell, "ttya"));
     go();
+
+    panic("Kernel returned to boot() (this should never happen!)\n");
     while(1) {}
 }
 
