@@ -80,6 +80,7 @@ void readelf(int argc, char* argv[]) {
     vfs_file_seek(fd, 0, 0x0); //SEEK_SET
 
     uint8_t* buf = malloc(size);
+    memset(buf, 0, size);
     vfs_file_read(fd, buf, size);
     vfs_file_close(fd);
 
@@ -105,6 +106,7 @@ void loadelf(int argc, char* argv[]) {
     vfs_file_seek(fd, 0, 0x0); //SEEK_SET
 
     uint8_t* buf = malloc(size);
+    memset(buf, 0, size);
     vfs_file_read(fd, buf, size);
     vfs_file_close(fd);
 
@@ -130,6 +132,7 @@ void loadraw(int argc, char* argv[]) {
     vfs_file_seek(fd, 0, 0x0); //SEEK_SET
 
     uint8_t* buf = malloc(size);
+    memset(buf, 0, size);
     vfs_file_read(fd, buf, size);
     vfs_file_close(fd);
 
@@ -261,6 +264,7 @@ void read(int argc, char* argv[]) {
 
     vfs_file_seek(fd, offset, 0x0); //SEEK_SET
     uint8_t* buf = malloc(size);
+    memset(buf, 0, size);
     vfs_file_read(fd, buf, size);
     vfs_file_close(fd);
 
@@ -305,8 +309,6 @@ void write(int argc, char* argv[]) {
         vfs_file_write(fd, argv[i], strlen(argv[i]));
         vfs_file_write(fd, " ", 1);
     }
-
-    vfs_file_flush(fd);
 
     vfs_file_close(fd);
 }
