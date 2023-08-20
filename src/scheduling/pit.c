@@ -2,56 +2,83 @@
 #include "../util/printf.h"
 #include "../io/io.h"
 #include "scheduler.h"
+#include "../bootservices/bootservices.h"
 
 struct pit pit;
 
-void init_pit(uint64_t start_epoch) {
+#define PIT_A 0x40
+#define PIT_B 0x41
+#define PIT_C 0x42
+#define PIT_CONTROL 0x43
+
+#define PIT_MASK 0xFF
+#define PIT_SCALE 1193180
+#define PIT_SET 0x36
+
+#define TIMER_IRQ 0
+
+#define SUBTICKS_PER_TICK 100
+
+void timer_phase(int hz) {
+	int divisor = PIT_SCALE / hz;
+	outb(PIT_CONTROL, PIT_SET);
+	outb(PIT_A, divisor & PIT_MASK);
+	outb(PIT_A, (divisor >> 8) & PIT_MASK);
+}
+
+void init_pit(int hertz) {
     printf("### PIT STARTUP ###\n");
-    printf("WARNING: PIT TIMER CALIBRATION IS NOT IMPLEMENTED\n");
-    printf("!!!DONT RELY ON PRECISE TIMING!!!\n");
-    pit.divisor = 20; //1 KHz measured by trial-and-error
-    pit.base_frequency = 1193182;
-    pit.ticks_since_boot = 0;
-    pit.preemption_frequency = 500;
+    pit.boot_epoch = get_boot_time();
+    pit.timer_ticks = 0;
+    pit.timer_subticks = 0;
+    pit.preemption_ticks = 0;
     pit.preemption_enabled = 0;
-    pit.boot_epoch = start_epoch;
-    outb(0x40, (uint8_t)(pit.divisor & 0x00ff));
-    io_wait();
-    outb(0x40, (uint8_t)((pit.divisor & 0xff00) >> 8));
+    pit.ticks_per_second = hertz;
+    
+    timer_phase(hertz);
+}
+
+void tick() {
+    //printf("Tick %d\n", pit.timer_ticks);
+    if (++pit.timer_subticks == SUBTICKS_PER_TICK) {
+        pit.timer_ticks++;
+        pit.timer_subticks = 0;
+    }
+}
+
+void set_preeption_ticks(uint64_t ticks) {
+    pit.preemption_ticks = ticks;
 }
 
 void preempt_toggle() {
     pit.preemption_enabled = !pit.preemption_enabled;
 }
 
-void tick() {
-    pit.ticks_since_boot += 1;
-}
-
 uint8_t requires_preemption() {
-    return pit.preemption_enabled && (pit.ticks_since_boot % pit.preemption_frequency == 0);
+    if (!pit.preemption_enabled || !pit.preemption_ticks) return 0;
+    return pit.timer_ticks % pit.preemption_ticks == 0;
 }
 
 void enable_preemption() {
     pit.preemption_enabled = 1;
 }
 
-void sleep_millis(uint64_t millis) {
-    uint64_t start_time = pit.ticks_since_boot;
-
-    while (pit.ticks_since_boot - start_time < millis) {
+void sleep_ticks(uint64_t ticks) {
+    uint64_t start_time = pit.timer_ticks;
+    //This is obsolete in the multitasking world!!!
+    while (pit.timer_ticks - start_time < ticks) {
         __asm__ volatile("hlt");
     }
 }
 
 void sleep(uint64_t seconds) {
-    sleep_millis(seconds * 1000);
+    sleep_ticks(seconds * pit.ticks_per_second);
 }
 
 uint64_t get_ticks_since_boot() {
-    return pit.ticks_since_boot;
+    return pit.timer_ticks;
 }
 
 uint64_t get_epoch() {
-    return pit.boot_epoch + (pit.ticks_since_boot / 1000);
+    return pit.boot_epoch + (pit.timer_ticks / pit.ticks_per_second);
 }

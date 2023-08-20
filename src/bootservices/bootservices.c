@@ -48,6 +48,10 @@ uint64_t get_current_terminal() {
     return terminal_writer;
 }
 
+int64_t get_boot_time() {
+    return CALL_SERVICE(TIME)->boot_time;
+}
+
 uint64_t get_memory_map_entries() {
     return CALL_SERVICE(MEMMAP)->entry_count;
 }

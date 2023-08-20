@@ -81,9 +81,9 @@ void boot() {
     init_paging();
     init_heap();
     init_gdt();
-    init_pit(1678779503);
+    init_pit(100);
     init_scheduler();
-    init_interrupts(1); //One disables pit
+    init_interrupts(0); //One disables pit
     init_drive();
     init_serial_dd();
     init_tty_dd();
@@ -95,12 +95,10 @@ void boot() {
     register_filesystem(tty_registrar);
     init_vfs();
     print_prompt();
-    //init_dbgshell();    
     add_task(create_task((void*)init_dbgshell, "ttya"));
-    go();
+    go(3); //The number is the number of ticks for preemption, zero for cooperative scheduling
 
     panic("Kernel returned to boot() (this should never happen!)\n");
-    while(1) {}
 }
 
 void __attribute__((noreturn)) halt() {

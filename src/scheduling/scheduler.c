@@ -14,6 +14,8 @@ struct task *task_head = 0;
 struct task * current_task = 0;
 struct task * shithole_task = 0;
 
+int irq_disable_counter = 0;
+
 //Returns the task that must enter cpu
 
 struct task * schedule() {
@@ -66,8 +68,44 @@ struct task * schedule() {
     return prev_task;
 }
 
+void lock_scheduler(void) {
+#ifndef SMP
+    __asm__("cli");
+    irq_disable_counter++;
+#endif
+}
+ 
+void unlock_scheduler(void) {
+#ifndef SMP
+    irq_disable_counter--;
+    if(irq_disable_counter == 0) {
+        __asm__("sti");
+    }
+#endif
+}
+
+void block_task(long reason) {
+    lock_scheduler();
+    current_task->state = reason;
+    yield();
+    unlock_scheduler();
+}
+
+void unblock_task(struct task * task) {
+    lock_scheduler();
+    task->state = TASK_READY;
+    yield();
+    unlock_scheduler();
+}
+
 void __attribute__((noinline)) yield() {
+    if (current_task->last_scheduled != 0)
+        current_task->cpu_time += (get_ticks_since_boot() - current_task->last_scheduled);
+
     struct task * prev = schedule();
+
+    current_task->last_scheduled = get_ticks_since_boot();
+
     tss_set_stack(current_task->processor, (void*)current_task->rsp, 0);
     ctxswtch(
         prev,
@@ -174,10 +212,17 @@ struct task* get_current_task() {
     return current_task;
 }
 
-void go() {
+//void go(uint8_t preempt) {
+void go(uint8_t preempt) {
+
     shithole_task = malloc(sizeof(struct task));
     memset(shithole_task, 0, sizeof(struct task));
     schedule();
+    if (preempt) {
+        __asm__("cli");
+        set_preeption_ticks(preempt);
+        enable_preemption();
+    }
     tss_set_stack(current_task->processor, (void*)current_task->rsp, 0);
     ctxswtch(
         shithole_task,
@@ -248,6 +293,8 @@ struct task* create_task(void * init_func, const char * tty) {
     task->frame = 0;
 
     task->processor = 0;
+    task->cpu_time = 0;
+    task->last_scheduled = 0;
     task->sleep_time = 0;
     task->exit_code = 0;    
     task->exit_signal = 0;

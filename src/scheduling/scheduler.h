@@ -54,5 +54,5 @@ void init_scheduler();
 void pseudo_ps();
 void yield();
 void task_test();
-void go();
+void go(uint8_t preempt);
 #endif

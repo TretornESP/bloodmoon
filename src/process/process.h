@@ -59,7 +59,11 @@ struct task {
     struct mm_struct *mm;
     struct interrupt_frame_error *frame;
 
-    unsigned long sleep_time;
+    unsigned long long sleep_time;
+    unsigned long long cpu_time;
+    unsigned long long last_scheduled;
+
+
     int exit_code, exit_signal;
     int pdeath_signal;
 

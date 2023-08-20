@@ -6,6 +6,8 @@ global ctxswtch
 ; RSI: struct task* new
 
 ctxswtch:
+    cli
+
     ; Push registers rbx, r12, r13, r14, r15
     push rbp
     push rbx
@@ -32,4 +34,5 @@ ctxswtch:
     pop rbx
     pop rbp
 
+    sti
     ret
