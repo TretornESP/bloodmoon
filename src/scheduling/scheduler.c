@@ -5,8 +5,10 @@
 #include "../arch/gdt.h"
 #include "../util/printf.h"
 #include "../util/dbgprinter.h"
+#include "../dev/devices.h"
 #include "../util/string.h"
 #include "../arch/tss.h"
+#include "../vfs/vfs_interface.h"
 
 #define MAX_TASKS 255
 
@@ -315,7 +317,28 @@ struct task* create_task(void * init_func, const char * tty) {
     task->gid = 0;
 
     task->locks = 0;
-    task->open_files = 0;
+    task->open_files = malloc(sizeof(int) * 32);
+    memset(task->open_files, -1, sizeof(int) * 32);
+    if (task->open_files == 0) {
+        printf("Failed to allocate open_files");
+    } else {
+        //Check if tty is valid
+        if (tty != 0) {
+            struct device* dev = device_search(tty);
+            if (dev != 0) {
+                char buf[256] = {0};
+                strcpy(buf, tty);
+                strcat(buf, "p0/");
+                task->open_files[0] = vfs_file_open(buf, 0, 0);
+                if (task->open_files[0] == -1) {
+                    printf("Failed to open tty %s\n", buf);
+                } else {
+                    memcpy(&(task->open_files[1]), &(task->open_files[0]), sizeof(int));
+                    memcpy(&(task->open_files[2]), &(task->open_files[0]), sizeof(int));
+                }
+            }
+        }
+    }
 
     task->entry = init_func;
     task->rsp = (uint64_t)stackalloc(STACK_SIZE);

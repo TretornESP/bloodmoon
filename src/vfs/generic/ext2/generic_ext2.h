@@ -185,17 +185,6 @@ int ext2_compat_dir_load(int partno, int fd) {
     return 1;
 }
 
-uint64_t ext2_compat_file_write(int partno, int fd, void* buffer, uint64_t size) {
-    if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
-        return -1;
-    struct ext2_partition * partition = ext2_partitions[partno];
-    if (partition == 0)
-        return -1;
-
-    struct file_descriptor_entry * entry = vfs_compat_get_file_descriptor(fd);
-    return ext2_write_file(partition, entry->name, buffer, size, entry->offset);
-}
-
 uint64_t ext2_compat_file_seek(int partno, int fd, uint64_t offset, int whence) {
     if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
         return 0;
@@ -223,6 +212,19 @@ uint64_t ext2_compat_file_seek(int partno, int fd, uint64_t offset, int whence) 
     }
 
     return entry->offset;
+}
+
+uint64_t ext2_compat_file_write(int partno, int fd, void* buffer, uint64_t size) {
+    if (partno < 0 || partno >= MAX_EXT2_PARTITIONS) 
+        return -1;
+    struct ext2_partition * partition = ext2_partitions[partno];
+    if (partition == 0)
+        return -1;
+
+    struct file_descriptor_entry * entry = vfs_compat_get_file_descriptor(fd);
+    uint64_t written = ext2_write_file(partition, entry->name, buffer, size, entry->offset);
+    ext2_compat_file_seek(partno, fd, size, SEEK_CUR);
+    return written;
 }
 
 uint64_t ext2_compat_file_tell(int partno, int fd) {

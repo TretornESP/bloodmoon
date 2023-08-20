@@ -4,12 +4,15 @@
 #include "../util/printf.h"
 #include "../util/string.h"
 
+#define PRINT_ENABLE 0
+#define vfs_print(...) if (PRINT_ENABLE) printf(__VA_ARGS__)
+
 void vfs_lsdisk() {
     dump_mounts();
 }
 
 int vfs_file_open(const char* path, int flags, int mode) {
-    printf("vfs_file_open(%s, %d, %d)\n", path, flags, mode);
+    vfs_print("vfs_file_open(%s, %d, %d)\n", path, flags, mode);
     char * native_path_buffer = malloc(strlen(path) + 1);
     struct vfs_mount* mount = get_mount_from_path(path, native_path_buffer);
     int res = -1;
@@ -21,7 +24,7 @@ int vfs_file_open(const char* path, int flags, int mode) {
 }
 
 int vfs_file_close(int fd) {
-    printf("vfs_file_close(%d)\n", fd);
+    vfs_print("vfs_file_close(%d)\n", fd);
     char * path = get_full_path_from_fd(fd);
     if (path == 0) {
         return -1;
@@ -39,7 +42,7 @@ int vfs_file_close(int fd) {
 }
 
 uint64_t vfs_file_read(int fd, void* buffer, uint64_t size) {
-    printf("vfs_file_read(%d, %p, %ld)\n", fd, buffer, size);
+    vfs_print("vfs_file_read(%d, %p, %ld)\n", fd, buffer, size);
     char * path = get_full_path_from_fd(fd);
     if (path == 0) {
         return -1;
@@ -57,7 +60,7 @@ uint64_t vfs_file_read(int fd, void* buffer, uint64_t size) {
 }
 
 uint64_t vfs_file_write(int fd, void* buffer, uint64_t size) {
-    printf("vfs_file_write(%d, %p, %ld)\n", fd, buffer, size);
+    vfs_print("vfs_file_write(%d, %p, %ld)\n", fd, buffer, size);
     char * path = get_full_path_from_fd(fd);
     if (path == 0) {
         return -1;
@@ -71,11 +74,12 @@ uint64_t vfs_file_write(int fd, void* buffer, uint64_t size) {
     }
     free(native_path_buffer);
     free(path);
+
     return res;
 }
 
 int vfs_file_creat(const char* path, int mode) {
-    printf("vfs_file_creat(%s, %d)\n", path, mode);
+    vfs_print("vfs_file_creat(%s, %d)\n", path, mode);
     char * native_path_buffer = malloc(strlen(path) + 1);
     struct vfs_mount* mount = get_mount_from_path(path, native_path_buffer);
     int res = -1;
@@ -87,7 +91,7 @@ int vfs_file_creat(const char* path, int mode) {
 }
 
 uint64_t vfs_file_seek(int fd, uint64_t offset, int whence) {
-    printf("vfs_file_seek(%d, %ld, %d)\n", fd, offset, whence);
+    vfs_print("vfs_file_seek(%d, %ld, %d)\n", fd, offset, whence);
     char * path = get_full_path_from_fd(fd);
     if (path == 0) {
         return -1;
@@ -105,7 +109,7 @@ uint64_t vfs_file_seek(int fd, uint64_t offset, int whence) {
 }
 
 uint64_t vfs_file_tell(int fd) {
-    printf("vfs_file_tell(%d)\n", fd);
+    vfs_print("vfs_file_tell(%d)\n", fd);
     char * path = get_full_path_from_fd(fd);
     if (path == 0) {
         return -1;
@@ -123,7 +127,7 @@ uint64_t vfs_file_tell(int fd) {
 }
 
 int vfs_dir_open(const char* path) {
-    printf("vfs_dir_open(%s)\n", path);
+    vfs_print("vfs_dir_open(%s)\n", path);
 
     char * native_path_buffer = malloc(strlen(path) + 1);
     struct vfs_mount* mount = get_mount_from_path(path, native_path_buffer);
@@ -137,7 +141,7 @@ int vfs_dir_open(const char* path) {
 }
 
 int vfs_dir_close(int fd) {
-    printf("vfs_dir_close(%d)\n", fd);
+    vfs_print("vfs_dir_close(%d)\n", fd);
 
     char * path = get_full_path_from_dir(fd);
     if (path == 0) {
@@ -157,7 +161,7 @@ int vfs_dir_close(int fd) {
 }
 
 void vfs_file_flush(int fd) {
-    printf("vfs_file_flush(%d)\n", fd);
+    vfs_print("vfs_file_flush(%d)\n", fd);
 
     char * path = get_full_path_from_fd(fd);
     if (path == 0) {
@@ -175,7 +179,7 @@ void vfs_file_flush(int fd) {
 }
 
 int vfs_dir_load(int fd) {
-    printf("vfs_dir_load(%d)\n", fd);
+    vfs_print("vfs_dir_load(%d)\n", fd);
 
     char * path = get_full_path_from_dir(fd);
     if (path == 0) {
@@ -220,7 +224,7 @@ void vfs_dir_list(char* name) {
 }
 
 int vfs_dir_read(int fd, char* name, uint32_t * name_len, uint32_t * type) {
-    //printf("vfs_dir_read(%d)\n", fd);
+    vfs_print("vfs_dir_read(%d)\n", fd);
 
     char * path = get_full_path_from_dir(fd);
     if (path == 0) {
@@ -240,7 +244,7 @@ int vfs_dir_read(int fd, char* name, uint32_t * name_len, uint32_t * type) {
 }
 
 int vfs_mkdir(const char* path, int mode) {
-    printf("vfs_dir_creat(%s)\n", path);
+    vfs_print("vfs_dir_creat(%s)\n", path);
 
     char * native_path_buffer = malloc(strlen(path) + 1);
     struct vfs_mount* mount = get_mount_from_path(path, native_path_buffer);
@@ -255,7 +259,7 @@ int vfs_mkdir(const char* path, int mode) {
 int vfs_rename(const char* path, const char* name) {return -1;}
 
 int vfs_remove(const char* path, uint8_t force) {
-    printf("vfs_remove(%s)\n", path);
+    vfs_print("vfs_remove(%s)\n", path);
     char * native_path_buffer = malloc(strlen(path) + 1);
     struct vfs_mount* mount = get_mount_from_path(path, native_path_buffer);
 
@@ -274,7 +278,7 @@ int vfs_remove(const char* path, uint8_t force) {
 int vfs_chmod(const char* path, int mode) {return -1;}
 
 void vfs_debug_by_path(const char* path) {
-    printf("vfs_debug_by_path(%s)\n", path);
+    vfs_print("vfs_debug_by_path(%s)\n", path);
     char * native_path_buffer = malloc(strlen(path) + 1);
     struct vfs_mount* mount = get_mount_from_path(path, native_path_buffer);
     if (mount != 0) {

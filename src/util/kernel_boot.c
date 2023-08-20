@@ -38,22 +38,6 @@
 #include "time.h"
 #include "rand.h"
 
-void print_prompt() {
-    int fd = vfs_file_open("ttyap0/", 0, 0);
-    if (fd < 0) return;
-
-    vfs_file_write(fd, "    ____  __    ____  ____  ____  __  _______  ____  _   __\n", 60);
-    vfs_file_write(fd, "   / __ )/ /   / __ \\/ __ \\/ __ \\/  |/  / __ \\/ __ \\/ | / /\n", 60);
-    vfs_file_write(fd, "  / __  / /   / / / / / / / / / / /|_/ / / / / / / /  |/ / \n", 60);
-    vfs_file_write(fd, " / /_/ / /___/ /_/ / /_/ / /_/ / /  / / /_/ / /_/ / /|  /  \n", 60);
-    vfs_file_write(fd, "/_____/_____/\\____/\\____/_____/_/  /_/\\____/\\____/_/ |_/   \n", 60);
-    vfs_file_write(fd, "                                                           \n", 60);
-    vfs_file_write(fd, "rotero@bloodmon:/$ ", 19);
-    vfs_file_flush(fd);
-
-    vfs_file_close(fd);
-}
-
 //This searches for the first terminal and initializes the debugger on it
 void enable_debug(uint8_t reserved) {
     uint32_t terminals = get_device_count_by_major(DEVICE_TTY);
@@ -82,7 +66,6 @@ void boot() {
     init_heap();
     init_gdt();
     init_pit(100);
-    init_scheduler();
     init_interrupts(0); //One disables pit
     init_drive();
     init_serial_dd();
@@ -94,7 +77,7 @@ void boot() {
     register_filesystem(ext2_registrar);
     register_filesystem(tty_registrar);
     init_vfs();
-    print_prompt();
+    init_scheduler();
     add_task(create_task((void*)init_dbgshell, "ttya"));
     go(3); //The number is the number of ticks for preemption, zero for cooperative scheduling
 

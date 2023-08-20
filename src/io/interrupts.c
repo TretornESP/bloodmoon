@@ -178,7 +178,7 @@ __attribute__((interrupt)) void Security_Handler(struct interrupt_frame* frame) 
 }
 
 __attribute__((interrupt)) void Syscall_Handler(struct interrupt_frame* frame) {
-    uint64_t syscall_number, arg1, arg2, arg3, arg4, arg5, arg6;
+    volatile uint64_t syscall_number, arg1, arg2, arg3, arg4, arg5, arg6;
     __asm__ volatile("mov %%rax, %0" : "=r"(syscall_number));
     __asm__ volatile("mov %%rdi, %0" : "=r"(arg1));
     __asm__ volatile("mov %%rsi, %0" : "=r"(arg2));
@@ -186,7 +186,7 @@ __attribute__((interrupt)) void Syscall_Handler(struct interrupt_frame* frame) {
     __asm__ volatile("mov %%r10, %0" : "=r"(arg4));
     __asm__ volatile("mov %%r8, %0" : "=r"(arg5));
     __asm__ volatile("mov %%r9, %0" : "=r"(arg6));
-    uint64_t ret = syscall(syscall_number, arg1, arg2, arg3, arg4, arg5, arg6);
+    volatile uint64_t ret = syscall(syscall_number, arg1, arg2, arg3, arg4, arg5, arg6);
     __asm__ volatile("mov %0, %%rax" : : "r"(ret));
 }
 

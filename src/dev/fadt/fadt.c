@@ -2,6 +2,7 @@
 #include "../../util/printf.h"
 
 void dump_fadt(struct fadt_header* fadt) {
+    (void)fadt;
     printf("FADT:\n");
     return;
 }

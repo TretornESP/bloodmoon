@@ -17,6 +17,9 @@ struct command {
     void (*handler)(int argc, char* argv[]);
 };
 
+const char root[] = "hdap2";
+char cwd[256] = {0};
+char workpath[256] = {0};
 char devno[32] = {0};
 
 void test(int argc, char *argv[]) {
@@ -137,6 +140,18 @@ void loadraw(int argc, char* argv[]) {
     free(buf);
 }
 
+//This function receives a relative path and returns an absolute path
+void apply_cd(char* path) {
+    memset(workpath, 0, 256);
+    if (path[0] == '/') {
+        strcpy(workpath, path+1);
+    } else {
+        strcpy(workpath, cwd);
+        strcat(workpath, "/");
+        strcat(workpath, path);
+    }
+}
+
 void ls(int argc, char*argv[]) {
     if (argc < 2) {
         printf("Lists the contents of a directory\n");
@@ -144,7 +159,9 @@ void ls(int argc, char*argv[]) {
         return;
     }
 
-    vfs_dir_list(argv[1]);
+    apply_cd(argv[1]);
+    printf("Listing directory %s\n", workpath);
+    vfs_dir_list(workpath);
 }
 
 void sched(int argc, char* argv[]) {
@@ -211,6 +228,193 @@ void ptasks(int argc, char* argv[]) {
     task_test();
 }
 
+void read(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Reads n characters of a file\n");
+        printf("Usage: read <file> [size] [offset]\n");
+        return;
+    }
+
+    uint64_t size = 0;
+    uint64_t offset = 0;
+
+    apply_cd(argv[1]);
+    int fd = vfs_file_open(workpath, 0, 0);
+    if (fd < 0) {
+        printf("Could not open file %s\n", workpath);
+        return;
+    }
+
+    if (argc > 3) {
+        offset = atou64(argv[3]);
+    }
+
+    if (argc > 2) {
+        size = atou64(argv[2]);
+    } else {
+        vfs_file_seek(fd, 0, 0x2); //SEEK_END
+        size = vfs_file_tell(fd);
+        vfs_file_seek(fd, 0, 0x0); //SEEK_SET
+    }
+
+    printf("Reading %d bytes from %s offset: %d\n", size, workpath, offset);
+
+    vfs_file_seek(fd, offset, 0x0); //SEEK_SET
+    uint8_t* buf = malloc(size);
+    vfs_file_read(fd, buf, size);
+    vfs_file_close(fd);
+
+    printf("%s\n", buf);
+    free(buf);
+}
+
+void write(int argc, char* argv[]) {
+    if (argc < 3) {
+        printf("Writes n characters to a file\n");
+        printf("Usage: write <file>[:offset] <text...>\n");
+        return;
+    }
+
+    uint64_t offset = 0;
+    //Do not use strchr
+    for (uint64_t i = 0; i < strlen(argv[1]); i++) {
+        if (argv[1][i] == ':') {
+            argv[1][i] = '\0';
+            offset = atou64(argv[1] + i + 1);
+            break;
+        }
+    }
+
+    apply_cd(argv[1]);
+    
+    int fd = vfs_file_open(workpath, 0, 0);
+    if (fd < 0) {
+        printf("Could not open file %s\n", workpath);
+        return;
+    }
+
+    printf("Writing to %s offset: %d\n", workpath, offset);
+    printf("Text: ");
+    for (int i = 2; i < argc; i++) {
+        printf("%s ", argv[i]);
+    }
+    printf("\n");
+
+    vfs_file_seek(fd, offset, 0x0); //SEEK_SET
+    for (int i = 2; i < argc; i++) {
+        vfs_file_write(fd, argv[i], strlen(argv[i]));
+        vfs_file_write(fd, " ", 1);
+    }
+
+    vfs_file_flush(fd);
+
+    vfs_file_close(fd);
+}
+
+void create(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Creates a file\n");
+        printf("Usage: create <file>\n");
+        return;
+    }
+
+    apply_cd(argv[1]);
+    int result = vfs_file_creat(workpath, 0);
+    if (result < 0) {
+        printf("Could not create file %s\n", workpath);
+    }
+}
+
+void delete(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Deletes a file\n");
+        printf("Usage: delete <file> [-force]\n");
+        return;
+    }
+
+    uint8_t force = 0;
+    if (argc > 2) {
+        if (strcmp(argv[2], "-force") == 0)
+            force = 1;
+    }
+
+    apply_cd(argv[1]);
+    int result = vfs_remove(workpath, force);
+    if (result < 0) {
+        printf("Could not delete file %s\n", workpath);
+    }
+}
+
+void mkdir(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Creates a directory\n");
+        printf("Usage: mkdir <dir>\n");
+        return;
+    }
+
+    apply_cd(argv[1]);
+    int result = vfs_mkdir(workpath, 0);
+    if (result < 0) {
+        printf("Could not create directory %s\n", workpath);
+    }
+}
+
+void normalizePath(char *path) {
+    if (path == NULL || strlen(path) == 0) {
+        return;
+    }
+
+    char normalizedPath[strlen(path) + 1];
+    normalizedPath[0] = '\0';  // Initialize the normalizedPath
+
+    char *token = strtok(path, "/");
+    int depth = 0;
+
+    while (token != NULL) {
+        if (strcmp(token, "..") == 0) {
+            if (depth > 0) {
+                char *lastSlash = normalizedPath + strlen(normalizedPath) - 1;
+                while (lastSlash > normalizedPath && *lastSlash != '/') {
+                    lastSlash--;
+                }
+                if (lastSlash != normalizedPath) {
+                    *lastSlash = '\0';
+                    depth--;
+                }
+            }
+        } else if (strcmp(token, ".") != 0 && strlen(token) > 0) {
+            if (depth > 0) {
+                strcat(normalizedPath, "/");
+            }
+            strcat(normalizedPath, token);
+            depth++;
+        }
+
+        token = strtok(NULL, "/");
+    }
+
+    if (strlen(normalizedPath) > 0 && normalizedPath[strlen(normalizedPath) - 1] == '/') {
+        normalizedPath[strlen(normalizedPath) - 1] = '\0';
+    }
+
+    strcpy(path, normalizedPath);
+}
+
+void cd(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Changes the current directory\n");
+        printf("Usage: cd <dir>\n");
+        return;
+    }
+
+    apply_cd(argv[1]);
+    memset(cwd, 0, 256);
+    strcpy(cwd, workpath);
+    //Make sure cwd ends in \0
+    cwd[strlen(cwd)] = '\0';
+    normalizePath(cwd);
+}
+
 void ticks(int argc, char* argv[]) {
     if (argc < 1) {
         printf("Prints the number of ticks since boot\n");
@@ -222,6 +426,7 @@ void ticks(int argc, char* argv[]) {
 }
 
 void dc(int argc, char* argv[]);
+void help(int argc, char* argv[]);
 
 struct command cmdlist[] = {
     {
@@ -293,14 +498,55 @@ struct command cmdlist[] = {
         .handler = ptasks
     },
     {
+        .keyword = "read",
+        .handler = read
+    },
+    {
+        .keyword = "write",
+        .handler = write
+    },
+    {
+        .keyword = "create",
+        .handler = create
+    },
+    {
+        .keyword = "delete",
+        .handler = delete
+    },
+    {
+        .keyword = "mkdir",
+        .handler = mkdir
+    },
+    {
+        .keyword = "cd",
+        .handler = cd
+    },
+    {
         .keyword = "preempt",
         .handler = ptoggle
     },
     {
         .keyword = "ticks",
         .handler = ticks
+    },
+    {
+        .keyword = "help",
+        .handler = help
     }
 };
+
+void help(int argc, char* argv[]) {
+    (void)argc;
+    (void)argv;
+    printf("Available commands:\n");
+    for (long unsigned int i = 0; i < sizeof(cmdlist) / sizeof(struct command); i++) {
+        printf("%s ", cmdlist[i].keyword);
+        if (i > 1 && i % 5 == 0) {
+            printf("\n");
+        }
+    }
+    printf("\n");
+}
 
 //TODO: Remove this, it's utterly stupid
 void dc(int argc, char* argv[]) {
@@ -313,7 +559,7 @@ void dc(int argc, char* argv[]) {
 }
 
 void promt() {
-    printf("dbgshell> ");
+    printf("rotero@bloodmon:%s$ ", cwd);
 }
 
 void handler(void* ttyb, uint8_t event) {
@@ -348,6 +594,25 @@ void handler(void* ttyb, uint8_t event) {
     }
 }
 
+void print_prompt() {
+    struct task * curr = get_current_task();
+    int fd = curr->open_files[1];
+    if (fd == -1) {
+        return;
+    }
+
+    vfs_file_flush(fd);
+    vfs_file_write(fd, "    ____  __    ____  ____  ____  __  _______  ____  _   __\n", 60);
+    vfs_file_write(fd, "   / __ )/ /   / __ \\/ __ \\/ __ \\/  |/  / __ \\/ __ \\/ | / /\n", 60);
+    vfs_file_write(fd, "  / __  / /   / / / / / / / / / / /|_/ / / / / / / /  |/ / \n", 60);
+    vfs_file_write(fd, " / /_/ / /___/ /_/ / /_/ / /_/ / /  / / /_/ / /_/ / /|  /  \n", 60);
+    vfs_file_write(fd, "/_____/_____/\\____/\\____/_____/_/  /_/\\____/\\____/_/ |_/   \n", 60);
+    vfs_file_write(fd, "                                                           \n", 60);
+    vfs_file_flush(fd);
+
+    vfs_file_close(fd);
+}
+
 void init_dbgshell() {
     char* tty = get_current_tty();
     if (tty == 0) {
@@ -363,6 +628,8 @@ void init_dbgshell() {
     device_ioctl(tty, 0x1, handler); //ADD SUBSCRIBER
     printf("\n");
     dbg_flush();
+    strcpy(cwd, root);
+    print_prompt();
     promt();
 
     while(1);

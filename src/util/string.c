@@ -3,11 +3,64 @@
 
 void *memchr(const void *s, int c, size_t n) {__UNDEFINED();}
 void *memmove(void *dest, const void *src, size_t n) {__UNDEFINED();}
-void *strcat(char *dest, const char *src) {__UNDEFINED();}
-void *strncat(char *dest, const char *src, size_t n) {__UNDEFINED();}
-void *strchr(const char *str, int ch) {__UNDEFINED();}
+void *strcat(char *dest, const char *src) {
+    char *dest_start = dest;
+    while (*dest != '\0') {
+        dest++;
+    }
+    while (*src != '\0') {
+        *dest = *src;
+        dest++;
+        src++;
+    }
+    *dest = '\0';
+    return dest_start;
+}
+void *strncat(char *dest, const char *src, size_t n) {
+    char *dest_start = dest;
+    while (*dest != '\0') {
+        dest++;
+    }
+    while (*src != '\0' && n > 0) {
+        *dest = *src;
+        dest++;
+        src++;
+        n--;
+    }
+    *dest = '\0';
+    return dest_start;
+}
+void *strchr(const char *str, int ch) {
+    while (*str != '\0') {
+        if (*str == ch) {
+            return (char *)str;
+        }
+        str++;
+    }
+    if (*str == ch) {
+        return (char *)str;
+    }
+    return 0;
+}
 int strcoll(const char *s1, const char *s2) {__UNDEFINED();}
-size_t strcspn(const char *s, const char *reject) {__UNDEFINED();}
+size_t strcspn(const char *str, const char *reject) {
+    const char *s = str;
+    size_t count = 0;
+
+    while (*s) {
+        const char *r = reject;
+        while (*r) {
+            if (*s == *r) {
+                return count;
+            }
+            r++;
+        }
+        s++;
+        count++;
+    }
+
+    return count;
+}
 char *strerror(int errnum) {__UNDEFINED();}
 char *strpbrk(const char *s, const char *accept) {__UNDEFINED();}
 char *strrchr(const char *str, int ch) {

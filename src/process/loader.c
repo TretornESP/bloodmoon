@@ -276,7 +276,8 @@ uint8_t elf_load_elf(uint8_t * buffer, uint64_t size, void* env) {
         if (program_header[i].p_type == PT_LOAD) {
             if (elf_header->e_entry >= program_header[i].p_vaddr && elf_header->e_entry < program_header[i].p_vaddr + program_header[i].p_memsz) {
                 printf("Spawning processs at 0x%x\n", elf_header->e_entry);
-                //spawn(father->pid, 0, 0, (void*)elf_header->e_entry, 0, 0, father->tty, pd);
+                struct task * task = create_task((void*)elf_header->e_entry, get_current_tty());
+                add_task(task);
             }
         }
     }
