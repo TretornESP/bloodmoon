@@ -81,7 +81,6 @@ void remap_pic() {
     io_wait();
 }
 
-
 __attribute__((interrupt)) void PageFault_Handler(struct interrupt_frame * frame) {
    uint64_t faulting_address;
    __asm__ volatile("mov %%cr2, %0" : "=r" (faulting_address));

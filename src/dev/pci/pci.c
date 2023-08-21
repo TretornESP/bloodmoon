@@ -3,6 +3,7 @@
 #include "../../util/printf.h"
 #include "../../util/dbgprinter.h"
 #include "../../drivers/disk/ahci/ahci.h"
+#include "../../drivers/net/e1000/e1000.h"
 
 struct pci_device_header* global_device_header = {0};
 
@@ -277,6 +278,17 @@ void register_pci_device(struct pci_device_header* pci, char* (*cb)(void*, uint8
             }
             break;
         }
+        case 0x2: {
+            switch (pci->subclass) {
+                case 0x0: {
+                    switch (pci->prog_if) {
+                        case 0x0: {
+                            e1000_init((struct pci_device_header_0*)pci);
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -340,6 +352,12 @@ void enumerate_bus(uint64_t base_address, uint64_t bus, char* (*cb)(void*, uint8
     for (uint64_t device = 0; device < 32; device++) {
         enumerate_device(bus_address, device, cb);
     }
+}
+
+void enable_bus_mastering(struct pci_device_header* pci_device_header) {
+    uint16_t command = pci_device_header->command;
+    command |= 0x4;
+    pci_device_header->command = command;
 }
 
 void register_pci(struct mcfg_header *mcfg, char* (*cb)(void*, uint8_t, uint64_t)) {

@@ -8,6 +8,7 @@
 #include "../vfs/vfs_interface.h"
 #include "../memory/heap.h"
 #include "../process/loader.h"
+#include "../drivers/net/e1000/e1000.h"
 #include "../process/process.h"
 #include "../process/raw.h"
 #include "debug.h"
@@ -402,6 +403,18 @@ void normalizePath(char *path) {
     strcpy(path, normalizedPath);
 }
 
+void nict(int argc, char* argv[]) {
+    if (argc < 1) {
+        printf("Tests the network interface card\n");
+        printf("Usage: nic\n");
+    }
+
+    uint8_t data[] = "AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIIIJJJJKKKKLLLLMMMMNNNNOOOOPPPP";
+    uint16_t len = 64;
+
+    sendPacket(data, len);
+}
+
 void cd(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Changes the current directory\n");
@@ -450,6 +463,10 @@ struct command cmdlist[] = {
     {
         .keyword = "readelf",
         .handler = readelf
+    },
+    {
+        .keyword = "nic",
+        .handler = nict
     },
     {
         .keyword = "ls",

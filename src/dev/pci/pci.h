@@ -214,6 +214,24 @@
 //Class
 #define PCI_CLASS_UNASSIGNED    0xFF
 
+#define PCI_BAR_MEM             0x0
+#define PCI_BAR_IO              0x1
+
+#define BAR_TYPE(x) ((x) & 0x1)
+
+struct pci_bar_io {
+    uint32_t base_address : 30;
+    uint32_t reserved : 1;
+    uint32_t always_one : 1;
+} __attribute__ ((packed));
+
+struct pci_bar_mem {
+    uint32_t base_address : 28;
+    uint32_t prefetchable : 1;
+    uint32_t type : 2;
+    uint32_t reserved : 1;
+} __attribute__ ((packed));
+
 //Prog if
 
 struct pci_device_header {
@@ -261,6 +279,7 @@ struct device_config {
     uint32_t reserved;
 };
 
+void enable_bus_mastering(struct pci_device_header* pci_device_header);
 const char* get_vendor_name(uint16_t);
 const char* get_device_name(uint16_t, uint16_t);
 const char* get_device_class(uint8_t);
