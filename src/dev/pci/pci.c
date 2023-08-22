@@ -1,13 +1,15 @@
 #include "pci.h"
 #include "../../memory/paging.h"
+#include "../../memory/heap.h"
 #include "../../util/printf.h"
 #include "../../util/dbgprinter.h"
+#include "../../io/io.h"
 #include "../../drivers/disk/ahci/ahci.h"
 #include "../../drivers/net/e1000/e1000.h"
 
 struct pci_device_header* global_device_header = {0};
 
-const char* pci_device_classes[] = {
+const char* pci_device_classes[] = {    
     "Unclassified",
     "Mass Storage Controller",
     "Network Controller",
@@ -29,6 +31,56 @@ const char* pci_device_classes[] = {
     "Processing Accelerator",
     "Non Essential Instrumentation"
 };
+
+void PCIWrite32(uint32_t addr, uint32_t data) {
+    addr &= ~(0b11);
+    /* Write address */
+    outl(PCI_CONFIG_ADDR, addr);
+    /* Write data */
+    outl(PCI_CONFIG_DATA, data);
+}
+
+uint32_t PCIRead32(uint32_t addr) {
+    addr &= ~(0b11);
+    /* Write address */
+    outl(PCI_CONFIG_ADDR, addr);
+    /* Read data */
+    return inl(PCI_CONFIG_DATA);
+}
+
+uint16_t PCIRead16(uint32_t addr) {
+    uint8_t offset = addr & 0xff;
+    addr &= ~(0b11);
+    return (uint16_t) ((PCIRead32(addr) >> ((offset & 0b10) * 0x10)) & 0xffff);
+}
+
+uint8_t PCIRead8(uint32_t addr) {
+    uint8_t offset = addr & 0xff;
+    addr &= ~(0b11);
+    return (uint16_t) ((PCIRead16(addr) >> ((offset & 0b1) * 0x8)) & 0xff);
+}
+
+void PCIMemcpy8(void* dst, uint32_t src, uint64_t size){
+    src &= ~(0b11);
+    for(uint64_t i = 0; i < size; i += 0x1){
+        *(uint8_t*)((uint64_t)dst + i) = PCIRead8(src + i);
+    }
+}
+
+void PCIMemcpy16(void* dst, uint32_t src, uint64_t size){
+    src &= ~(0b11);
+    for(uint64_t i = 0; i < size; i += 0x2){
+        *(uint16_t*)((uint64_t)dst + i) = PCIRead16(src + i);
+    }
+}
+
+void PCIMemcpy32(void* dst, uint32_t src, uint64_t size){
+    src &= ~(0b11);
+    for(uint64_t i = 0; i < size; i += 0x4){
+        *(uint32_t*)((uint64_t)dst + i) = PCIRead32(src + i);
+    }
+}
+
 
 const char* get_vendor_name(uint16_t vendor_id) {
     switch (vendor_id) {
@@ -241,7 +293,7 @@ const char* get_prog_interface(uint8_t class_code, uint8_t subclass_code, uint8_
     return itoa(prog_interface, 16);
 }
 
-void register_pci_device(struct pci_device_header* pci, char* (*cb)(void*, uint8_t, uint64_t)) {
+void register_pci_device(struct pci_device_header* pci, uint32_t device_base_address, char* (*cb)(void*, uint8_t, uint64_t)) {
     printf("[PCI] Device detected: %x, %x, %x\n", pci->class_code, pci->subclass, pci->prog_if);
     switch (pci->class_code){
         case 0x01: {
@@ -283,7 +335,7 @@ void register_pci_device(struct pci_device_header* pci, char* (*cb)(void*, uint8
                 case 0x0: {
                     switch (pci->prog_if) {
                         case 0x0: {
-                            e1000_init((struct pci_device_header_0*)pci);
+                            e1000_init((struct pci_device_header_0*)pci, device_base_address);
                         }
                     }
                 }
@@ -292,7 +344,7 @@ void register_pci_device(struct pci_device_header* pci, char* (*cb)(void*, uint8
     }
 }
 
-void enumerate_function(uint64_t device_address, uint64_t function, char* (*cb)(void*, uint8_t, uint64_t)) {
+void enumerate_function(uint64_t device_address, uint64_t bus, uint64_t device, uint64_t function, char* (*cb)(void*, uint8_t, uint64_t)) {
 
     uint64_t offset = function << 12;
 
@@ -313,10 +365,12 @@ void enumerate_function(uint64_t device_address, uint64_t function, char* (*cb)(
         get_prog_interface(pci_device_header->class_code, pci_device_header->subclass, pci_device_header->prog_if)
     );
 
-    register_pci_device(pci_device_header, cb);
+    uint32_t device_base_address = ((1 << 31) | (bus << 16) | (device << 11) | (function << 8));
+    printf("[PCI] Device base address: %x\n", device_base_address);
+    register_pci_device(pci_device_header, device_base_address, cb);
 }
 
-void enumerate_device(uint64_t bus_address, uint64_t device, char* (*cb)(void*, uint8_t, uint64_t)) {
+void enumerate_device(uint64_t bus_address, uint64_t device, uint64_t bus, char* (*cb)(void*, uint8_t, uint64_t)) {
     uint64_t offset = device << 15;
 
     uint64_t device_address = bus_address + offset;
@@ -331,10 +385,10 @@ void enumerate_device(uint64_t bus_address, uint64_t device, char* (*cb)(void*, 
 
     if (pci_device_header->header_type & 0x80) {
         for (uint64_t function = 0; function < 8; function++) {
-            enumerate_function(device_address, function, cb);
+            enumerate_function(device_address, bus, device, function, cb);
         }
     } else {
-        enumerate_function(device_address, 0, cb);
+        enumerate_function(device_address, bus, device, 0, cb);
     }
 }
 
@@ -350,8 +404,117 @@ void enumerate_bus(uint64_t base_address, uint64_t bus, char* (*cb)(void*, uint8
 
     //printf("\n[PCI] Enumerating bus %x\n", bus);
     for (uint64_t device = 0; device < 32; device++) {
-        enumerate_device(bus_address, device, cb);
+        enumerate_device(bus_address, device, bus, cb);
     }
+}
+
+//Shoutout to kot!
+//https://github.com/kot-org/Kot/blob/f14dabe3771fa5d633ab5523c888f3bf428f89b8/Sources/Modules/Drivers/bus/pci/Src/core/main.cpp#L152
+
+void* get_bar_address(struct pci_device_header_0 * devh, uint8_t index) {
+    if (index > 5) return 0x0;
+    uint32_t *bar_pointer = &(devh->bar0);
+    uint32_t bar_value = bar_pointer[index];
+    uint32_t bar_value2 = bar_pointer[index + 1];
+    switch (get_bar_type(bar_value)){
+        case PCI_BAR_TYPE_IO:
+            return (void*)(bar_value & 0xFFFFFFFC);
+        case PCI_BAR_TYPE_32:
+            return (void*)(bar_value & 0xFFFFFFF0);
+        case PCI_BAR_TYPE_64: {
+            if (index == 5) return 0x0;
+            return (void*)((bar_value & 0xFFFFFFF0) | ((bar_value2 & 0xFFFFFFFF) << 32));
+        }
+        default:
+            break;
+    }
+
+    return 0x0;
+}
+
+uint8_t get_bar_type(uint32_t value){
+    if(value & 0b1){ /* i/o */
+        return PCI_BAR_TYPE_IO;
+    }else{
+        if(!(value & 0b110)){ /* 32bits */
+            return PCI_BAR_TYPE_32;
+        }else if((value & 0b110) == 0b110){ /* 64bits */
+            return PCI_BAR_TYPE_64;
+        }
+    }
+    return PCI_BAR_TYPE_NULL;
+}
+
+void ReceiveConfigurationSpacePCI(uint32_t address, void * buffer){
+    PCIMemcpy32(buffer, address, PCI_CONFIGURATION_SPACE_SIZE);
+}
+
+void SendConfigurationSpacePCI(uint32_t address, void * buffer){
+    uint64_t ubuffer = (uint64_t)buffer;
+
+    ubuffer &= ~(0b11);
+
+    for(uint64_t i = 0; i < PCI_CONFIGURATION_SPACE_SIZE; i += 4) {
+        PCIWrite32(address, *(uint32_t*)ubuffer);
+        ubuffer += 4;
+        address += 4;
+    }
+}
+
+uint64_t get_bar_size(void* addresslow, uint32_t base_address){ //Address low is bar0.
+    uint32_t BARValueLow = *(uint32_t*)addresslow;
+    uint8_t Type = get_bar_type(BARValueLow);
+
+    uint8_t * confspace = malloc(PCI_CONFIGURATION_SPACE_SIZE);
+    ReceiveConfigurationSpacePCI(base_address, confspace);
+
+    if(Type != PCI_BAR_TYPE_NULL){
+        /* Write into bar low */
+        *(uint32_t*)addresslow = 0xFFFFFFFF;
+        SendConfigurationSpacePCI(base_address, confspace);
+
+        /* Read bar low */
+        ReceiveConfigurationSpacePCI(base_address, confspace);
+        uint32_t SizeLow = *(uint32_t*)addresslow;
+
+        if(Type == PCI_BAR_TYPE_IO){
+            SizeLow &= 0xFFFFFFFC;
+        }else{
+            SizeLow &= 0xFFFFFFF0;
+        }
+
+
+        uint32_t SizeHigh = 0xFFFFFFFF;
+
+        if(Type == PCI_BAR_TYPE_64){
+            void* addresshigh = (void*)((uint64_t)addresslow + 0x4);
+
+            uint32_t BARValueHigh = *(uint32_t*)addresshigh;
+            /* Write into bar high */
+            *(uint32_t*)addresshigh = 0xFFFFFFFF;
+            SendConfigurationSpacePCI(base_address, confspace);
+
+            /* Read bar high */
+            ReceiveConfigurationSpacePCI(base_address, confspace);
+            SizeHigh = *(uint32_t*)addresshigh;
+
+            /* Restore value */
+            *(uint32_t*)addresshigh = BARValueHigh;   
+            SendConfigurationSpacePCI(base_address, confspace);
+        }
+
+        /* Restore value */
+        *(uint32_t*)addresslow = BARValueLow;
+        SendConfigurationSpacePCI(base_address, confspace);
+
+        uint64_t Size = ((uint64_t)(SizeHigh & 0xFFFFFFFF) << 32) | (SizeLow & 0xFFFFFFFF);
+        Size = ~Size + 1;
+
+        free(confspace);
+        return Size;
+    }
+
+    return 0;
 }
 
 void enable_bus_mastering(struct pci_device_header* pci_device_header) {
@@ -366,6 +529,7 @@ void register_pci(struct mcfg_header *mcfg, char* (*cb)(void*, uint8_t, uint64_t
     printf("[PCI] Registering pci devices... %ld entries\n", entries);
     for (uint64_t i = 0; i < entries; i++) {
         struct device_config * new_device_config = (struct device_config*)((uint64_t)mcfg + sizeof(struct mcfg_header) + (sizeof(struct device_config) * i));	
+        printf("[PCI] Base address as registering: %x\n", new_device_config->base_address);
         printf("[PCI] Enumerating buses %x:%x\n", new_device_config->start_bus, new_device_config->end_bus);
         for (uint64_t bus = new_device_config->start_bus; bus < new_device_config->end_bus; bus++) {
             enumerate_bus(new_device_config->base_address, bus, cb);

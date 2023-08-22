@@ -142,6 +142,23 @@ void map_current_memory(void* virtual_memory, void* physical_memory) {
     map_memory(pml4, virtual_memory, physical_memory);
 }
 
+void map_current_memory_size(void* virtual_memory, void* physical_memory, uint64_t size) {
+    struct page_directory* pml4 = get_pml4();
+    map_memory_size(pml4, virtual_memory, physical_memory, size);
+}
+
+void map_memory_size(struct page_directory* pml4, void* virtual_memory, void* physical_memory, uint64_t size) {
+    uint64_t start = (uint64_t)virtual_memory;
+    uint64_t end = start + size;
+    start = start & ~0xfff;
+    end = (end + 0xfff) & ~0xfff;
+
+    for (uint64_t i = start; i < end; i += 0x1000) {
+        map_memory(pml4, (void*)i, physical_memory);
+        physical_memory += 0x1000;
+    }
+}
+
 void map_memory(struct page_directory* pml4, void* virtual_memory, void* physical_memory) {
 
     if ((uint64_t)virtual_memory & 0xfff) {

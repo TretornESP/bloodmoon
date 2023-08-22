@@ -42,7 +42,7 @@ BLOCKSIZE := 1024
 MEMSIZE := 1024
 VMEMSIZE := 128
 QFLAGS ?= -cpu qemu64 -d cpu_reset -machine q35 -m $(MEMSIZE) -boot d -serial stdio -serial telnet::4444,server,nowait -cdrom 
-QFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 -m $(MEMSIZE) -boot d -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -net none -serial stdio -netdev tap,id=mynet0,ifname=tap,script=no,downscript=no -device e1000,netdev=mynet0,mac=52:55:00:d1:55:01 -drive file=
+QFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 -m $(MEMSIZE) -boot d -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -net none -serial stdio -netdev tap,id=mynet0,ifname=tap,script=no,downscript=no -device e1000,netdev=mynet0,mac=51:52:53:54:55:56 -drive file=
 
 CFLAGS ?= -O2 -g -Wall -Wextra -pipe -std=c11
 NASMFLAGS ?= -F dwarf -g

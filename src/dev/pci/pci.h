@@ -2,6 +2,15 @@
 #define _PCI_H
 #include "../acpi/acpi.h"
 
+#define PCI_BAR_TYPE_NULL           0x0
+#define PCI_BAR_TYPE_IO             0x1
+#define PCI_BAR_TYPE_32             0x2
+#define PCI_BAR_TYPE_64             0x3
+
+#define PCI_CONFIGURATION_SPACE_SIZE 0x100
+#define PCI_CONFIG_ADDR            0xCF8
+#define PCI_CONFIG_DATA            0xCFC
+
 //Unknown
 //Class
 #define PCI_CLASS_UNKNOWN       0x0
@@ -214,11 +223,6 @@
 //Class
 #define PCI_CLASS_UNASSIGNED    0xFF
 
-#define PCI_BAR_MEM             0x0
-#define PCI_BAR_IO              0x1
-
-#define BAR_TYPE(x) ((x) & 0x1)
-
 struct pci_bar_io {
     uint32_t base_address : 30;
     uint32_t reserved : 1;
@@ -279,6 +283,9 @@ struct device_config {
     uint32_t reserved;
 };
 
+uint64_t get_bar_size(void* addresslow, uint32_t base_address);
+void* get_bar_address(struct pci_device_header_0 * devh, uint8_t index);
+uint8_t get_bar_type(uint32_t value);
 void enable_bus_mastering(struct pci_device_header* pci_device_header);
 const char* get_vendor_name(uint16_t);
 const char* get_device_name(uint16_t, uint16_t);

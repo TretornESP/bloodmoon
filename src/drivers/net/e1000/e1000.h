@@ -9,6 +9,39 @@
 #define E1000_FAILURE 0x0
 #define E1000_SUCCESS 0x1
 
+// control
+#define REG_CTRL                0x0000
+#define CTRL_RESET_MASK         (1 << 26)
+#define CTRL_ASDE_MASK          (1 << 5) // Auto-speed detection enable
+#define CTRL_SLU_MASK           (1 << 6) // Set link up
+
+// status
+#define REG_STATUS              0x0008
+#define STATUS_SPEED_MASK       (1 << 6) 
+
+
+// packet
+#define PACKET_SIZE     2048
+
+// Receive base address
+#define RCV_BA_LOW      0x5400 
+#define RCV_BA_HIGH     0x5404
+#define RBAH_AV_MASK    (1 << 31) // bit "Address valid" sur le registre RAH (Receive address high)
+
+// Receive descriptor (RCVD)
+#define RCVD_ADDR_LOW       0x2800
+#define RCVD_ADDR_HIGH      0x2804
+#define RCVD_LENGTH         0x2808
+#define RCVD_HEAD           0x2810
+#define RCVD_TAIL           0x2818
+
+// Receive control
+#define REG_RCV_CTRL        0x0100
+#define RCV_EN_MASK         (1 << 1)
+#define RCV_BAM_MASK        (1 << 15)
+#define RCV_BSIZE_MASK      (1 << 16)
+
+
 #define INTEL_VEND     0x8086  // Vendor ID for Intel 
 #define E1000_DEV      0x100E  // Device ID for the e1000 Qemu, Bochs, and VirtualBox emmulated NICs
 #define E1000_I217     0x153A  // Device ID for Intel I217
@@ -139,7 +172,7 @@ struct e1000 {
     uint16_t tx_cur;
 };
 
-uint8_t e1000_init(struct pci_device_header_0 * _pciConfigHeader); // Constructor. takes as a parameter a pointer to an object that encapsulate all he PCI configuration data of the device
+uint8_t e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t base_address); // Constructor. takes as a parameter a pointer to an object that encapsulate all he PCI configuration data of the device
 //void fire (InterruptContext * p_interruptContext);  // This method should be called by the interrupt handler 
 uint8_t * getMacAddress ();                         // Returns the MAC address
 int sendPacket(const void * p_data, uint16_t p_len);  // Send a packet
