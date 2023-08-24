@@ -302,6 +302,16 @@ void * request_current_page_identity() {
     return request_page_identity(pml4);
 }
 
+void * request_current_pages_identity(uint64_t count) {
+    struct page_directory *pml4 = get_pml4();
+    void * result = request_contiguous_pages(count);
+    if (result == NULL) {
+        panic("ERROR: Could not allocate pages for identity mapping\n");
+    }
+    map_memory_size(pml4, result, result, count * PAGESIZE);
+    return result;
+}
+
 void * request_page_at(struct page_directory *pml4, void* vaddr) {
     void * result = request_page();
     if (result == NULL) {

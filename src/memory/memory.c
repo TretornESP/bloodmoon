@@ -203,6 +203,58 @@ void free_page(void* addr) {
     }
 }
 
+void * request_contiguous_pages(uint64_t num) {
+    static uint64_t last_requested;
+    static uint64_t statistics_requested; //Deleteme
+    uint64_t first = last_requested-1;
+    uint64_t last = last_requested-1;
+
+    while (GET_PAGE_BIT(last_requested) == 1) {
+        if (last_requested >= memory->total_available_pages)
+            last_requested = 0;
+        if (last_requested == first) {
+            dbg_print("\nRequested up to: ");
+            dbg_print(itoa(statistics_requested, 16));
+            dbg_print("\n NOW I WILL CRASH LIKE A HERO!\n");
+            panic("No free pages available!"); //Change with page swap!!
+        }
+        last_requested++;
+    }
+
+    for (uint64_t i = 0; i < num; i++) {
+        if (GET_PAGE_BIT(last_requested) == 1)
+            panic("Page already reserved!"); //Deleteme
+        lock_page((void*)(last_requested << 12));
+        last_requested++;
+    }
+
+    statistics_requested += num; //Deleteme
+
+    return (void*)(memory->first_available_page_addr+(last << 12));
+}
+
+void free_contiguous_pages(void * address, uint64_t num) {
+    uint64_t addr_uint = (uint64_t)address;
+    uint64_t normaliced_address = (addr_uint - memory->first_available_page_addr);
+
+    if (addr_uint < memory->first_available_page_addr)
+        panic("Page below active range!"); //Deleteme
+
+    for (uint64_t i = 0; i < num; i++) {
+        if (GET_PAGE_BIT((normaliced_address >> 12) + i) == 0)
+            panic("Page was not locked!"); //Deleteme
+        unlock_page((void*)(normaliced_address + (i << 12)));
+    }
+    
+    if (GET_PAGE_BIT((normaliced_address >> 12)) == 1) {
+        dbg_print("Im about to crash at: 0x");
+        dbg_print(itoa(normaliced_address, 16));
+        dbg_print("Page was: ");
+        dbg_print(itoa(normaliced_address >> 12, 16));
+        panic("Page not freed!");
+    }
+}
+
 void unreserve_page(void* address) {
     if (get_page_bit(address) == 0)
         panic("Page not reserved!"); //Deleteme

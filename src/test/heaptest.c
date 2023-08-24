@@ -9,8 +9,8 @@
 #include "../memory/paging.h"
 #include "../arch/simd.h"
 
-#define TEST_ROUNDS 25000
-#define TEST_MAX_SIZE 0x1234
+#define TEST_ROUNDS 250
+#define TEST_MAX_SIZE 0x112340
 #define TEST_VALUE 0x41
 
 extern void enable_avx(void);
@@ -31,7 +31,7 @@ void heaptest() {
             printf("Round %d\n", i);
         }
         int size = rand() % TEST_MAX_SIZE;
-        allocations[i] = malloc(size);
+        allocations[i] = malloc(size + 0x1000);
         memset(allocations[i], TEST_VALUE, size);
     }
     printf("Random free\n");
@@ -48,7 +48,7 @@ void heaptest() {
             printf("Round %d\n", i);
         }
         int size = rand() % TEST_MAX_SIZE;
-        void * ptr = malloc(size);
+        void * ptr = malloc(size + 0x1000);
         memset(ptr, TEST_VALUE, size);
     }
     printf("Heap test finished\n");

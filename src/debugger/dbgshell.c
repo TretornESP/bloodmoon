@@ -409,10 +409,36 @@ void nict(int argc, char* argv[]) {
         printf("Usage: nic\n");
     }
 
-    uint8_t data[] = "AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIIIJJJJKKKKLLLLMMMMNNNNOOOOPPPP";
-    uint16_t len = 64;
+    uint8_t mac2[6];
+    memcpy(mac2, getMacAddress(), 6);
 
-    sendPacket(data, len);
+    uint8_t bufferExample[2048];
+    memset(bufferExample, 0, 2048);
+
+    uint32_t ipsrc = 0x54400001;
+    uint32_t ipdest = 0x0A000101;
+
+    uint8_t arp_buffer[42];
+
+    // Ethernet header
+    memcpy((void*)&arp_buffer[0], (void*)"\xff\xff\xff\xff\xff\xff", 6); // Destination MAC address (broadcast)
+    memcpy((void*)&arp_buffer[6], (void*)mac2, 6); // Source MAC address
+    memcpy((void*)&arp_buffer[12], (void*)"\x08\x06", 2); // Ethernet Type: ARP
+
+    // ARP header
+    memcpy((void*)&arp_buffer[14], (void*)"\x00\x01", 2); // Hardware Type: Ethernet
+    memcpy((void*)&arp_buffer[16], (void*)"\x08\x00", 2); // Protocol Type: IPv4
+    arp_buffer[18] = 6; // Hardware Address Length: 6 (Ethernet MAC address)
+    arp_buffer[19] = 4; // Protocol Address Length: 4 (IPv4 address)
+    memcpy((void*)&arp_buffer[20], (void*)"\x00\x01", 2); // Operation: ARP Request
+    memcpy((void*)&arp_buffer[22], (void*)mac2, 6); // Sender Hardware Address: Source MAC address
+    memcpy((void*)&arp_buffer[28], (void*)&ipsrc, 4); // Sender Protocol Address: Source IP address
+    memcpy((void*)&arp_buffer[32], (void*)"\x00\x00\x00\x00\x00\x00", 6); // Target Hardware Address: zero (unknown)
+    memcpy((void*)&arp_buffer[38], (void*)&ipdest, 4); // Target Protocol Address: Destination IP address
+
+    memcpy(bufferExample, arp_buffer, 42);
+
+    sendPacket(bufferExample, 2048);
 }
 
 void cd(int argc, char* argv[]) {

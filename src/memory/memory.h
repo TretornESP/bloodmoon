@@ -40,4 +40,6 @@ void unlock_pages(void*, uint64_t);
 void * request_page();
 void free_page(void*);
 
+void * request_contiguous_pages(uint64_t);
+void free_contiguous_pages(void * address, uint64_t num);
 #endif // _MEMORY_H

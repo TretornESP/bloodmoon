@@ -9,6 +9,7 @@
 #include "../memory/paging.h"
 #include "../util/string.h"
 #include "../drivers/keyboard/keyboard.h"
+#include "../drivers/net/e1000/e1000.h"
 #include "../scheduling/scheduler.h"
 #include "../scheduling/pit.h"
 #include "../syscall/syscall.h"
@@ -176,6 +177,14 @@ __attribute__((interrupt)) void Security_Handler(struct interrupt_frame* frame) 
     __UNDEFINED_HANDLER
 }
 
+__attribute__((interrupt)) void Network_Handler(struct interrupt_frame* frame) {
+    (void)frame;
+    __asm__ volatile("cli");
+    handle_nic_int();
+    __asm__ volatile("sti");
+    pic_end_master();
+}
+
 __attribute__((interrupt)) void Syscall_Handler(struct interrupt_frame* frame) {
     volatile uint64_t syscall_number, arg1, arg2, arg3, arg4, arg5, arg6;
     __asm__ volatile("mov %%rax, %0" : "=r"(syscall_number));
@@ -240,14 +249,6 @@ __attribute__((interrupt)) void DynamicInt_Handler(struct interrupt_frame * fram
     handler(frame);
 }
 
-void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uint8_t ist, uint16_t selector) {
-    struct idtdescentry* interrupt = (struct idtdescentry*)(idtr.offset + (entry_offset * sizeof(struct idtdescentry)));
-    set_offset(interrupt, handler);
-    interrupt->type_attr.raw = type_attr;
-    interrupt->selector = selector;
-    interrupt->ist = ist;
-}
-
 struct idtdescentry * get_idt_gate(uint8_t entry_offset) {
     return (struct idtdescentry*)(idtr.offset + (entry_offset * sizeof(struct idtdescentry)));
 }
@@ -278,6 +279,14 @@ void irq_clear_mask(unsigned char interrupt) {
     }
     value = inb(port) & ~(1 << interrupt);
     outb(port, value);        
+}
+
+void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uint8_t ist, uint16_t selector) {
+    struct idtdescentry* interrupt = (struct idtdescentry*)(idtr.offset + (entry_offset * sizeof(struct idtdescentry)));
+    set_offset(interrupt, handler);
+    interrupt->type_attr.raw = type_attr;
+    interrupt->selector = selector;
+    interrupt->ist = ist;
 }
 
 void hook_interrupt(uint8_t interrupt, void* handler, uint8_t dynamic) {
@@ -329,7 +338,7 @@ void init_interrupts(uint8_t pit_disable) {
     set_idt_gate((uint64_t)NoCoproc_Handler,    0x7,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
     set_idt_gate((uint64_t)CoprocSegmentOverrun_Handler, 0x9, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
     set_idt_gate((uint64_t)INVTSS_Handler,      0xA,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)SegNotPresent_Handler, 0xB,  IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+    set_idt_gate((uint64_t)Network_Handler, 0xB,  IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
     set_idt_gate((uint64_t)StackSegmentFault_Handler, 0xC, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
     set_idt_gate((uint64_t)x87FPE_Handler,      0x10,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
     set_idt_gate((uint64_t)AlignCheck_Handler,  0x11,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
@@ -350,9 +359,12 @@ void init_interrupts(uint8_t pit_disable) {
     remap_pic();
 
     init_keyboard();
-
+    
+    //0xe is on binary 1110, so we mask the first 4 bits
     outb(PIC1_DATA, 0xe0 + pit_disable); //PIT IS DISABLED
     outb(PIC2_DATA, 0xef);
+
+    irq_clear_mask(0xb);
 
     dbg_print("Interrupts initialized\n");
     __asm__("sti");

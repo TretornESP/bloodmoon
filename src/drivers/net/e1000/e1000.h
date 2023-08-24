@@ -19,6 +19,9 @@
 #define REG_STATUS              0x0008
 #define STATUS_SPEED_MASK       (1 << 6) 
 
+#define TX_STATUS_DD    (1 << 0) // Descriptor done
+#define TX_STATUS_EC    (1 << 1) // Excess Collisions
+#define TX_STATUS_LC    (1 << 2) // Late Collision
 
 // packet
 #define PACKET_SIZE     2048
@@ -115,13 +118,13 @@
  
 // Transmit Command
  
-#define CMD_EOP                         (1 << 0)    // End of Packet
-#define CMD_IFCS                        (1 << 1)    // Insert FCS
-#define CMD_IC                          (1 << 2)    // Insert Checksum
-#define CMD_RS                          (1 << 3)    // Report Status
-#define CMD_RPS                         (1 << 4)    // Report Packet Sent
-#define CMD_VLE                         (1 << 6)    // VLAN Packet Enable
-#define CMD_IDE                         (1 << 7)    // Interrupt Delay Enable
+#define TX_CMD_EOP                         (1 << 0)    // End of Packet
+#define TX_CMD_IFCS                        (1 << 1)    // Insert FCS
+#define TX_CMD_IC                          (1 << 2)    // Insert Checksum
+#define TX_CMD_RS                          (1 << 3)    // Report Status
+#define TX_CMD_RPS                         (1 << 4)    // Report Packet Sent
+#define TX_CMD_VLE                         (1 << 6)    // VLAN Packet Enable
+#define TX_CMD_IDE                         (1 << 7)    // Interrupt Delay Enable
  
  
 // TCTL Register
@@ -137,6 +140,11 @@
 #define TSTA_EC                         (1 << 1)    // Excess Collisions
 #define TSTA_LC                         (1 << 2)    // Late Collision
 #define LSTA_TU                         (1 << 3)    // Transmit Underrun
+
+// Transmit control
+#define REG_TST_CTRL    0x0400
+#define TST_EN_MASK     (1 << 1) // Transmit enable
+#define TST_PSP_MASK    (1 << 3) // Pad Short Packets
 
 #define E1000_NUM_RX_DESC 32
 #define E1000_NUM_TX_DESC 8
@@ -174,6 +182,7 @@ struct e1000 {
 
 uint8_t e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t base_address); // Constructor. takes as a parameter a pointer to an object that encapsulate all he PCI configuration data of the device
 //void fire (InterruptContext * p_interruptContext);  // This method should be called by the interrupt handler 
-uint8_t * getMacAddress ();                         // Returns the MAC address
+uint8_t * getMacAddress();                         // Returns the MAC address
 int sendPacket(const void * p_data, uint16_t p_len);  // Send a packet
+void handle_nic_int();
 #endif

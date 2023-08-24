@@ -87,6 +87,7 @@ void * request_current_page_identity();
 
 void * request_page_at(struct page_directory *, void*);
 void * request_current_page_at(void*);
+void * request_current_pages_identity(uint64_t count);
 
 void * request_accessible_page_at(struct page_directory*, void*, void *);
 void * request_current_accessible_page_at(void*, void *);

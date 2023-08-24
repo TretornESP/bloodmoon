@@ -1,6 +1,7 @@
 #include "e1000.h"
 #include "../../../io/io.h"
 #include "../../../util/printf.h"
+#include "../../../util/dbgprinter.h"
 #include "../../../util/string.h"
 #include "../../../dev/pci/pci.h"
 #include "../../../memory/heap.h"
@@ -10,6 +11,10 @@ struct e1000 nic = {0};
 
 void WriteRegister( uint16_t p_address, uint32_t p_value);
 uint32_t ReadRegister(uint16_t p_address);
+
+//Given a size in bytes, return the number of pages needed to store it
+//Use bit shifts instead of division
+#define GET_PAGE_SIZE(x) (((x) % 4096) ? (((x) >>12) + 1) : ((x) >> 12))
  
  
 //bool detectEEProm(); // Return true if EEProm exist, else it returns false and set the eerprom_existsdata member
@@ -127,30 +132,25 @@ void rxinit()
  
     // Allocate buffer for receive descriptors. For simplicity, in my case khmalloc returns a virtual address that is identical to it physical mapped address.
     // In your case you should handle virtual and physical addresses as the addresses passed to the NIC should be physical ones
- 
-    ptr = (uint8_t *)malloc(sizeof(struct e1000_rx_desc)*E1000_NUM_RX_DESC + 16);
+    
+    ptr = (uint8_t*)request_current_pages_identity(GET_PAGE_SIZE(sizeof(struct e1000_rx_desc)*E1000_NUM_RX_DESC + 16));
  
     descs = (struct e1000_rx_desc *)ptr;
     for(int i = 0; i < E1000_NUM_RX_DESC; i++)
     {
         nic.rx_descs[i] = (struct e1000_rx_desc *)((uint8_t *)descs + i*16);
-        nic.rx_descs[i]->addr = (uint64_t)(uint8_t *)(malloc(8192 + 16));
+        nic.rx_descs[i]->addr = (uint64_t)(uint8_t *)(request_current_pages_identity(GET_PAGE_SIZE(8192 + 16)));
         nic.rx_descs[i]->status = 0;
     }
  
     WriteRegister(REG_TXDESCLO, (uint32_t)((uint64_t)ptr >> 32) );
     WriteRegister(REG_TXDESCHI, (uint32_t)((uint64_t)ptr & 0xFFFFFFFF));
  
-    WriteRegister(REG_RXDESCLO, (uint64_t)ptr);
-    WriteRegister(REG_RXDESCHI, 0);
+    WriteRegister(RCVD_TAIL, E1000_NUM_RX_DESC - 1);
+    WriteRegister(RCVD_HEAD, 0);
  
-    WriteRegister(REG_RXDESCLEN, E1000_NUM_RX_DESC * 16);
- 
-    WriteRegister(REG_RXDESCHEAD, 0);
-    WriteRegister(REG_RXDESCTAIL, E1000_NUM_RX_DESC-1);
-    nic.rx_cur = 0;
-    WriteRegister(REG_RCTRL, RCTL_EN| RCTL_SBP| RCTL_UPE | RCTL_MPE | RCTL_LBM_NONE | RTCL_RDMTS_HALF | RCTL_BAM | RCTL_SECRC  | RCTL_BSIZE_8192);
- 
+    WriteRegister(REG_RCV_CTRL, ReadRegister(REG_RCV_CTRL) | RCV_EN_MASK | RCV_BAM_MASK); // BSIZE is not enabled because PACKET_SIZE <= 2048
+
 }
  
  
@@ -160,41 +160,28 @@ void txinit()
     struct e1000_tx_desc *descs;
     // Allocate buffer for receive descriptors. For simplicity, in my case khmalloc returns a virtual address that is identical to it physical mapped address.
     // In your case you should handle virtual and physical addresses as the addresses passed to the NIC should be physical ones
-    ptr = (uint8_t *)(malloc(sizeof(struct e1000_tx_desc)*E1000_NUM_TX_DESC + 16));
+    ptr = (uint8_t *)(request_current_pages_identity(GET_PAGE_SIZE(sizeof(struct e1000_tx_desc)*E1000_NUM_TX_DESC + 16)));
  
     descs = (struct e1000_tx_desc *)ptr;
     for(int i = 0; i < E1000_NUM_TX_DESC; i++)
     {
         nic.tx_descs[i] = (struct e1000_tx_desc *)((uint8_t*)descs + i*16);
-        nic.tx_descs[i]->addr = 0;
-        nic.tx_descs[i]->cmd = 0;
-        nic.tx_descs[i]->status = TSTA_DD;
+        nic.tx_descs[i]->addr = (uint64_t)(uint8_t *)(request_current_pages_identity(GET_PAGE_SIZE(8192 + 16)));
+        nic.tx_descs[i]->cmd = TX_CMD_EOP | TX_CMD_IFCS /* insert FCS (Frame Check Sequence) */ | TX_CMD_RS; ;
+        nic.tx_descs[i]->status = TX_STATUS_DD;
     }
  
     WriteRegister(REG_TXDESCHI, (uint32_t)((uint64_t)ptr >> 32) );
     WriteRegister(REG_TXDESCLO, (uint32_t)((uint64_t)ptr & 0xFFFFFFFF));
  
- 
     //now setup total length of descriptors
-    WriteRegister(REG_TXDESCLEN, E1000_NUM_TX_DESC * 16);
- 
+    WriteRegister(REG_TXDESCLEN, sizeof(struct e1000_tx_desc)*E1000_NUM_TX_DESC + 16);
  
     //setup numbers
     WriteRegister( REG_TXDESCHEAD, 0);
     WriteRegister( REG_TXDESCTAIL, 0);
     nic.tx_cur = 0;
-    WriteRegister(REG_TCTRL,  TCTL_EN
-        | TCTL_PSP
-        | (15 << TCTL_CT_SHIFT)
-        | (64 << TCTL_COLD_SHIFT)
-        | TCTL_RTLC);
- 
-    // This line of code overrides the one before it but I left both to highlight that the previous one works with e1000 cards, but for the e1000e cards 
-    // you should set the TCTRL register as follows. For detailed description of each bit, please refer to the Intel Manual.
-    // In the case of I217 and 82577LM packets will not be sent if the TCTRL is not configured using the following bits.
-    WriteRegister(REG_TCTRL,  0b0110000000000111111000011111010);
-    WriteRegister(REG_TIPG,  0x0060200A);
- 
+    WriteRegister(REG_TST_CTRL, ReadRegister(REG_TST_CTRL) | TST_EN_MASK | TST_PSP_MASK); 
 }
 
 void printMac() {
@@ -203,15 +190,28 @@ void printMac() {
 
 int sendPacket(const void * p_data, uint16_t p_len)
 {    
-    nic.tx_descs[nic.tx_cur]->addr = (uint64_t)p_data;
-    nic.tx_descs[nic.tx_cur]->length = p_len;
-    nic.tx_descs[nic.tx_cur]->cmd = CMD_EOP | CMD_IFCS | CMD_RS;
-    nic.tx_descs[nic.tx_cur]->status = 0;
-    uint8_t old_cur = nic.tx_cur;
-    nic.tx_cur = (nic.tx_cur + 1) % E1000_NUM_TX_DESC;
-    WriteRegister(REG_TXDESCTAIL, nic.tx_cur);   
-    while(!(nic.tx_descs[old_cur]->status & 0xff));    
-    return 0;
+    if(p_len > PACKET_SIZE) {
+        return;
+    }
+
+    uint8_t idx = (uint8_t) ReadRegister(REG_TXDESCTAIL);
+    
+    while(!(nic.tx_descs[idx]->status & TX_STATUS_DD)){
+        __asm__ volatile("":::"memory");
+    }
+
+    // copy data to the correct buffer of the correct tx descriptor
+    memcpy((void*)nic.tx_descs[idx]->addr, (void*) p_data, p_len);
+
+    nic.tx_descs[idx]->length = p_len;
+    nic.tx_descs[idx]->status &= ~TX_STATUS_DD; // undone -> status = 0
+
+    WriteRegister(REG_TXDESCTAIL, (idx + 1) % E1000_NUM_TX_DESC);
+
+    // wait for the packet to be sent
+    while(!(nic.tx_descs[idx]->status & TX_STATUS_DD)){
+        __asm__ volatile("":::"memory");
+    }
 }
 
 uint8_t e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t base_address) {
@@ -221,7 +221,7 @@ uint8_t e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t base_
     uint32_t bar_address = (uint32_t)get_bar_address(_pciConfigHeader, 0x0);
     nic.bar_type = get_bar_type(bar_address);
 
-    printf("[NIC] Bar0 Type: %x\n", nic.bar_type);
+    printf("[NIC] Bar0 Type: %x interrupt line: %x\n", nic.bar_type, _pciConfigHeader->interrupt_line);
 
     if (nic.bar_type == PCI_BAR_TYPE_IO) {
         printf("[NIC] IO Base: %x\n", bar_address);
@@ -245,21 +245,20 @@ uint8_t e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t base_
     // reconfigure
     WriteRegister(REG_CTRL, CTRL_ASDE_MASK | CTRL_SLU_MASK);
     
-    uint8_t mac2[6] = {0,0,0,0,0,0};
     // get mac address
     /* LOW */
-    mac2[0] = (uint8_t) ReadRegister(RCV_BA_LOW) & 0xFF;
-    mac2[1] = (uint8_t) (ReadRegister(RCV_BA_LOW) >> 8) & 0xFF;
-    mac2[2] = (uint8_t) (ReadRegister(RCV_BA_LOW) >> 16) & 0xFF;
-    mac2[3] = (uint8_t) (ReadRegister(RCV_BA_LOW) >> 24) & 0xFF;
+    nic.mac[0] = (uint8_t) ReadRegister(RCV_BA_LOW) & 0xFF;
+    nic.mac[1] = (uint8_t) (ReadRegister(RCV_BA_LOW) >> 8) & 0xFF;
+    nic.mac[2] = (uint8_t) (ReadRegister(RCV_BA_LOW) >> 16) & 0xFF;
+    nic.mac[3] = (uint8_t) (ReadRegister(RCV_BA_LOW) >> 24) & 0xFF;
     /* HIGH */
-    mac2[4] = (uint8_t) ReadRegister(RCV_BA_HIGH) & 0xFF;
-    mac2[5] = (uint8_t) (ReadRegister(RCV_BA_HIGH) >> 8) & 0xFF;
+    nic.mac[4] = (uint8_t) ReadRegister(RCV_BA_HIGH) & 0xFF;
+    nic.mac[5] = (uint8_t) (ReadRegister(RCV_BA_HIGH) >> 8) & 0xFF;
 
     // set bit "Address valid"
     WriteRegister(RCV_BA_HIGH, ReadRegister(RCV_BA_HIGH) | RBAH_AV_MASK);
     
-    printf("[KOT NET/E1000] MAC address: %x:%x:%x:%x:%x:%x", mac2[0], mac2[1], mac2[2], mac2[3], mac2[4], mac2[5]);
+    printf("[KOT NET/E1000] MAC address: %x:%x:%x:%x:%x:%x", nic.mac[0], nic.mac[1], nic.mac[2], nic.mac[3], nic.mac[4], nic.mac[5]);
 
     nic.eerprom_exists = 0;
     if (detectEEProm ()) {
@@ -270,13 +269,16 @@ uint8_t e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t base_
     if (! readMACAddress()) return E1000_FAILURE;
     printMac();
 
-    
-
     //startLink();
     for(int i = 0; i < 0x80; i++)
         WriteRegister(0x5200 + i*4, 0);
     rxinit();
     txinit();  
+    
+    WriteRegister(REG_IMASK ,0x1F6DC);
+    WriteRegister(REG_IMASK ,0xff & ~4);
+    ReadRegister(0xc0);
+
     //if ( interruptManager->registerInterrupt(IRQ0+pciConfigHeader->getIntLine(),this))
     //{
     //    enableInterrupt();
@@ -287,33 +289,110 @@ uint8_t e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t base_
     //}
     //else return E1000_FAILURE;
 
-    uint8_t bufferExample[PACKET_SIZE];
-    memset(bufferExample, 0, PACKET_SIZE);
-
-    uint32_t ipsrc = 0x54400001;
-    uint32_t ipdest = 0x7F000001;
-
-    uint8_t arp_buffer[42];
-
-    // Ethernet header
-    memcpy((void*)&arp_buffer[0], (void*)"\xff\xff\xff\xff\xff\xff", 6); // Destination MAC address (broadcast)
-    memcpy((void*)&arp_buffer[6], (void*)mac2, 6); // Source MAC address
-    memcpy((void*)&arp_buffer[12], (void*)"\x08\x06", 2); // Ethernet Type: ARP
-
-    // ARP header
-    memcpy((void*)&arp_buffer[14], (void*)"\x00\x01", 2); // Hardware Type: Ethernet
-    memcpy((void*)&arp_buffer[16], (void*)"\x08\x00", 2); // Protocol Type: IPv4
-    arp_buffer[18] = 6; // Hardware Address Length: 6 (Ethernet MAC address)
-    arp_buffer[19] = 4; // Protocol Address Length: 4 (IPv4 address)
-    memcpy((void*)&arp_buffer[20], (void*)"\x00\x01", 2); // Operation: ARP Request
-    memcpy((void*)&arp_buffer[22], (void*)mac2, 6); // Sender Hardware Address: Source MAC address
-    memcpy((void*)&arp_buffer[28], (void*)&ipsrc, 4); // Sender Protocol Address: Source IP address
-    memcpy((void*)&arp_buffer[32], (void*)"\x00\x00\x00\x00\x00\x00", 6); // Target Hardware Address: zero (unknown)
-    memcpy((void*)&arp_buffer[38], (void*)&ipdest, 4); // Target Protocol Address: Destination IP address
-
-    memcpy(bufferExample, arp_buffer, 42);
-
-    sendPacket(bufferExample, PACKET_SIZE);
-
     return E1000_SUCCESS;
+}
+
+uint8_t * getMacAddress() {
+    return nic.mac;
+}
+
+static void rx_poll()
+{
+
+    //MOVE ME!!!!!
+	uint8_t *pkt = (void *)nic.rx_descs[nic.rx_cur]->addr;
+	uint16_t pktlen = nic.rx_descs[nic.rx_cur]->length;
+	uint8_t dropflag = 0;
+    printf("[NIC] Packet: \n");
+    for (int i = 0; i < pktlen; i++) {
+        printf("%x ", pkt[i]);
+        if (i % 16 == 0) {
+            printf("\n");
+        }
+    }
+    printf("\n");
+
+	while( (nic.rx_descs[nic.rx_cur]->status & (1 << 0)) )
+	{
+		// raw packet and packet length (excluding CRC)
+
+        //move here
+		if( pktlen < 60 )
+		{
+			printf("[NIC] short packet (%u bytes)\n", pktlen);
+			dropflag = 1;
+		}
+
+		// while not technically an error, there is no support in this driver
+		if( !(nic.rx_descs[nic.rx_cur]->status & (1 << 1)) )
+		{
+			printf("[NIC] no EOP set! (len=%u, 0x%x 0x%x 0x%x)\n", 
+				pktlen, pkt[0], pkt[1], pkt[2]);
+			dropflag = 1;
+		}
+		
+		if( nic.rx_descs[nic.rx_cur]->errors )
+		{
+			printf("[NIC] rx errors (0x%x)\n", nic.rx_descs[nic.rx_cur]->errors);
+			dropflag = 1;
+		}
+
+		if( !dropflag )
+		{
+			dbg_print("VaLID PACKET\n");
+		}
+		
+		// update RX counts and the tail pointer
+		nic.rx_descs[nic.rx_cur]->status = (uint16_t)(0);
+			
+		nic.rx_cur = (nic.rx_cur + 1) % E1000_NUM_RX_DESC;
+		
+		// write the tail to the device
+		WriteRegister(REG_RDTR, nic.rx_cur);
+	}
+}
+
+void handle_nic_int() {
+    WriteRegister(REG_IMASK, 0x1);
+
+    dbg_print("[NIC] Interrupt\n");
+    uint32_t icr = ReadRegister(0xc0);
+    printf("[NIC] Status: %x\n", icr);
+    icr &= ~(3);
+
+	// LINK STATUS CHANGE
+    if (icr & (1 << 2) ) {
+        icr &= ~(1 << 2);
+        WriteRegister(REG_CTRL, (ReadRegister(REG_CTRL) | CTRL_SLU_MASK));
+		printf("[NIC] e1000: Link Status Change, STATUS = 0x%p8x\n", ReadRegister(REG_STATUS));
+    }
+
+	// RX underrun / min threshold
+	if( icr & (1 << 6) || icr & (1 << 4) )
+	{
+		icr &= ~((1 << 6) | (1 << 4));
+		printf(" underrun (rx_head = %u, rx_cur = %u)\n", ReadRegister(REG_RXDESCHEAD), nic.rx_cur);
+		
+		volatile int i;
+		for(i = 0; i < E1000_NUM_RX_DESC; i++)
+		{
+			if( nic.rx_descs[i]->status )
+				printf(" pending descriptor (i=%u, status=0x%p4x)\n", i, nic.rx_descs[i]->status );
+		}
+		
+		rx_poll();
+	}
+
+	// packet is pending
+	if( icr & (1 << 7) )
+	{
+		icr &= ~(1 << 7);
+		rx_poll();
+	}
+	
+	if( icr )
+		printf("[NIC]: unhandled interrupt received! (0x%p8x)\n", icr);
+	
+	// clearing the pending interrupts
+	ReadRegister(0xC0);
 }
