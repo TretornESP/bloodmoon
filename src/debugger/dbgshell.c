@@ -8,7 +8,7 @@
 #include "../vfs/vfs_interface.h"
 #include "../memory/heap.h"
 #include "../process/loader.h"
-#include "../drivers/net/e1000/e1000.h"
+#include "../drivers/net/e1000/e1000c.h"
 #include "../process/process.h"
 #include "../process/raw.h"
 #include "debug.h"

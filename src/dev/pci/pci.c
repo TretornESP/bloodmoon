@@ -5,7 +5,7 @@
 #include "../../util/dbgprinter.h"
 #include "../../io/io.h"
 #include "../../drivers/disk/ahci/ahci.h"
-#include "../../drivers/net/e1000/e1000.h"
+#include "../../drivers/net/e1000/e1000c.h"
 
 struct pci_device_header* global_device_header = {0};
 
@@ -418,12 +418,12 @@ void* get_bar_address(struct pci_device_header_0 * devh, uint8_t index) {
     uint32_t bar_value2 = bar_pointer[index + 1];
     switch (get_bar_type(bar_value)){
         case PCI_BAR_TYPE_IO:
-            return (void*)(bar_value & 0xFFFFFFFC);
+            return (void*)(uint64_t)(bar_value & 0xFFFFFFFC);
         case PCI_BAR_TYPE_32:
-            return (void*)(bar_value & 0xFFFFFFF0);
+            return (void*)(uint64_t)(bar_value & 0xFFFFFFF0);
         case PCI_BAR_TYPE_64: {
             if (index == 5) return 0x0;
-            return (void*)((bar_value & 0xFFFFFFF0) | ((bar_value2 & 0xFFFFFFFF) << 32));
+            return (void*)(uint64_t)((bar_value & 0xFFFFFFF0) | ((uint64_t)(bar_value2 & 0xFFFFFFFF) << 32));
         }
         default:
             break;

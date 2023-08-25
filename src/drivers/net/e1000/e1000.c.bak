@@ -1,3 +1,5 @@
+#ifdef CUAK
+
 #include "e1000.h"
 #include "../../../io/io.h"
 #include "../../../util/printf.h"
@@ -134,22 +136,29 @@ void rxinit()
     // In your case you should handle virtual and physical addresses as the addresses passed to the NIC should be physical ones
     
     ptr = (uint8_t*)request_current_pages_identity(GET_PAGE_SIZE(sizeof(struct e1000_rx_desc)*E1000_NUM_RX_DESC + 16));
- 
+    memset(ptr, 0, GET_PAGE_SIZE(sizeof(struct e1000_rx_desc)*E1000_NUM_RX_DESC + 16));
     descs = (struct e1000_rx_desc *)ptr;
     for(int i = 0; i < E1000_NUM_RX_DESC; i++)
     {
-        nic.rx_descs[i] = (struct e1000_rx_desc *)((uint8_t *)descs + i*16);
+        nic.rx_descs[i] = (struct e1000_rx_desc *)((uint8_t *)descs + (i*16));
         nic.rx_descs[i]->addr = (uint64_t)(uint8_t *)(request_current_pages_identity(GET_PAGE_SIZE(8192 + 16)));
+        memset((void*)nic.rx_descs[i]->addr, 0, GET_PAGE_SIZE(8192 + 16));
         nic.rx_descs[i]->status = 0;
     }
  
     WriteRegister(REG_TXDESCLO, (uint32_t)((uint64_t)ptr >> 32) );
     WriteRegister(REG_TXDESCHI, (uint32_t)((uint64_t)ptr & 0xFFFFFFFF));
- 
-    WriteRegister(RCVD_TAIL, E1000_NUM_RX_DESC - 1);
-    WriteRegister(RCVD_HEAD, 0);
- 
-    WriteRegister(REG_RCV_CTRL, ReadRegister(REG_RCV_CTRL) | RCV_EN_MASK | RCV_BAM_MASK); // BSIZE is not enabled because PACKET_SIZE <= 2048
+    
+    WriteRegister(REG_RXDESCLO, (uint64_t)ptr);
+    WriteRegister(REG_RXDESCHI, 0);
+
+    WriteRegister(RCVD_LENGTH, (uint32_t)(E1000_NUM_RX_DESC * 16));
+
+    WriteRegister(REG_RXDESCHEAD, 0);
+    WriteRegister(REG_RXDESCTAIL, E1000_NUM_RX_DESC-1);
+    nic.rx_cur = 0;
+    WriteRegister(REG_RCV_CTRL, ReadRegister(REG_RCV_CTRL) | RCV_EN_MASK | RCV_BAM_MASK | RCTL_BAM | RCTL_SBP);
+    //WriteRegister(REG_RCTRL, RCTL_EN | RCTL_LBM_NONE | RTCL_RDMTS_HALF | RCTL_BAM | RCTL_SECRC  | RCTL_BSIZE_8192);
 
 }
  
@@ -161,13 +170,14 @@ void txinit()
     // Allocate buffer for receive descriptors. For simplicity, in my case khmalloc returns a virtual address that is identical to it physical mapped address.
     // In your case you should handle virtual and physical addresses as the addresses passed to the NIC should be physical ones
     ptr = (uint8_t *)(request_current_pages_identity(GET_PAGE_SIZE(sizeof(struct e1000_tx_desc)*E1000_NUM_TX_DESC + 16)));
- 
+    memset(ptr, 0, GET_PAGE_SIZE(sizeof(struct e1000_tx_desc)*E1000_NUM_TX_DESC + 16));
     descs = (struct e1000_tx_desc *)ptr;
     for(int i = 0; i < E1000_NUM_TX_DESC; i++)
     {
         nic.tx_descs[i] = (struct e1000_tx_desc *)((uint8_t*)descs + i*16);
         nic.tx_descs[i]->addr = (uint64_t)(uint8_t *)(request_current_pages_identity(GET_PAGE_SIZE(8192 + 16)));
-        nic.tx_descs[i]->cmd = TX_CMD_EOP | TX_CMD_IFCS /* insert FCS (Frame Check Sequence) */ | TX_CMD_RS; ;
+        memset((void*)nic.tx_descs[i]->addr, 0, GET_PAGE_SIZE(8192 + 16));
+        nic.tx_descs[i]->cmd = TX_CMD_EOP | TX_CMD_IFCS /* insert FCS (Frame Check Sequence) */ | TX_CMD_RS;
         nic.tx_descs[i]->status = TX_STATUS_DD;
     }
  
@@ -182,6 +192,7 @@ void txinit()
     WriteRegister( REG_TXDESCTAIL, 0);
     nic.tx_cur = 0;
     WriteRegister(REG_TST_CTRL, ReadRegister(REG_TST_CTRL) | TST_EN_MASK | TST_PSP_MASK); 
+
 }
 
 void printMac() {
@@ -206,12 +217,13 @@ int sendPacket(const void * p_data, uint16_t p_len)
     nic.tx_descs[idx]->length = p_len;
     nic.tx_descs[idx]->status &= ~TX_STATUS_DD; // undone -> status = 0
 
-    WriteRegister(REG_TXDESCTAIL, (idx + 1) % E1000_NUM_TX_DESC);
 
     // wait for the packet to be sent
     while(!(nic.tx_descs[idx]->status & TX_STATUS_DD)){
         __asm__ volatile("":::"memory");
     }
+    memset((void*)nic.tx_descs[idx]->addr, 0, nic.tx_descs[idx]->length);
+    WriteRegister(REG_TXDESCTAIL, (idx + 1) % E1000_NUM_TX_DESC);
 }
 
 uint8_t e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t base_address) {
@@ -234,32 +246,6 @@ uint8_t e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t base_
     }
 
     enable_bus_mastering(&(_pciConfigHeader->header));
-
-    // reset the device
-    WriteRegister(REG_CTRL, CTRL_RESET_MASK);
-
-    while(ReadRegister(REG_CTRL) & CTRL_RESET_MASK){
-        __asm__ volatile("":::"memory");
-    }
-
-    // reconfigure
-    WriteRegister(REG_CTRL, CTRL_ASDE_MASK | CTRL_SLU_MASK);
-    
-    // get mac address
-    /* LOW */
-    nic.mac[0] = (uint8_t) ReadRegister(RCV_BA_LOW) & 0xFF;
-    nic.mac[1] = (uint8_t) (ReadRegister(RCV_BA_LOW) >> 8) & 0xFF;
-    nic.mac[2] = (uint8_t) (ReadRegister(RCV_BA_LOW) >> 16) & 0xFF;
-    nic.mac[3] = (uint8_t) (ReadRegister(RCV_BA_LOW) >> 24) & 0xFF;
-    /* HIGH */
-    nic.mac[4] = (uint8_t) ReadRegister(RCV_BA_HIGH) & 0xFF;
-    nic.mac[5] = (uint8_t) (ReadRegister(RCV_BA_HIGH) >> 8) & 0xFF;
-
-    // set bit "Address valid"
-    WriteRegister(RCV_BA_HIGH, ReadRegister(RCV_BA_HIGH) | RBAH_AV_MASK);
-    
-    printf("[KOT NET/E1000] MAC address: %x:%x:%x:%x:%x:%x", nic.mac[0], nic.mac[1], nic.mac[2], nic.mac[3], nic.mac[4], nic.mac[5]);
-
     nic.eerprom_exists = 0;
     if (detectEEProm ()) {
         printf("[NIC] EEProm detected\n");
@@ -269,26 +255,19 @@ uint8_t e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t base_
     if (! readMACAddress()) return E1000_FAILURE;
     printMac();
 
-    //startLink();
+    //start Link
+    WriteRegister(REG_CTRL, CTRL_ASDE_MASK | CTRL_SLU_MASK);
+
+    // Init multicase table array
     for(int i = 0; i < 0x80; i++)
-        WriteRegister(0x5200 + i*4, 0);
+        WriteRegister(REG_MTA + i*4, 0);
+
+    WriteRegister(REG_IMASK ,0x1F6DC);
+    ReadRegister(0xc0);
+
     rxinit();
     txinit();  
     
-    WriteRegister(REG_IMASK ,0x1F6DC);
-    WriteRegister(REG_IMASK ,0xff & ~4);
-    ReadRegister(0xc0);
-
-    //if ( interruptManager->registerInterrupt(IRQ0+pciConfigHeader->getIntLine(),this))
-    //{
-    //    enableInterrupt();
-    //    rxinit();
-    //    txinit();        
-    //    video.putString("E1000 card started\n",COLOR_RED,COLOR_WHITE);
-    //    return E1000_SUCCESS;
-    //}
-    //else return E1000_FAILURE;
-
     return E1000_SUCCESS;
 }
 
@@ -302,11 +281,19 @@ static void rx_poll()
     //MOVE ME!!!!!
 	uint8_t *pkt = (void *)nic.rx_descs[nic.rx_cur]->addr;
 	uint16_t pktlen = nic.rx_descs[nic.rx_cur]->length;
+    uint16_t minlen = (pktlen > 180) ? 180 : pktlen;
 	uint8_t dropflag = 0;
     printf("[NIC] Packet: \n");
-    for (int i = 0; i < pktlen; i++) {
-        printf("%x ", pkt[i]);
-        if (i % 16 == 0) {
+    for (int i = 0; i < minlen; i++) {
+        printf("%02x ", pkt[i]);
+        if (i % 10 == 0) {
+            printf("\n");
+        }
+    }
+    printf("\n");
+    for (int i = 0; i < minlen; i++) {
+        printf("%c ", pkt[i]);
+        if (i % 10 == 0) {
             printf("\n");
         }
     }
@@ -342,6 +329,9 @@ static void rx_poll()
 			dbg_print("VaLID PACKET\n");
 		}
 		
+        //Empty the buffer
+        memset((void*)nic.rx_descs[nic.rx_cur]->addr, 0, nic.rx_descs[nic.rx_cur]->length);
+        nic.rx_descs[nic.rx_cur]->length = 0;
 		// update RX counts and the tail pointer
 		nic.rx_descs[nic.rx_cur]->status = (uint16_t)(0);
 			
@@ -396,3 +386,5 @@ void handle_nic_int() {
 	// clearing the pending interrupts
 	ReadRegister(0xC0);
 }
+
+#endif

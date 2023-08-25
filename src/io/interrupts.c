@@ -9,7 +9,7 @@
 #include "../memory/paging.h"
 #include "../util/string.h"
 #include "../drivers/keyboard/keyboard.h"
-#include "../drivers/net/e1000/e1000.h"
+#include "../drivers/net/e1000/e1000c.h"
 #include "../scheduling/scheduler.h"
 #include "../scheduling/pit.h"
 #include "../syscall/syscall.h"
