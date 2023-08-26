@@ -335,7 +335,8 @@ void register_pci_device(struct pci_device_header* pci, uint32_t device_base_add
                 case 0x0: {
                     switch (pci->prog_if) {
                         case 0x0: {
-                            e1000_init((struct pci_device_header_0*)pci, device_base_address);
+                            struct e1000 * nic = e1000_init((struct pci_device_header_0*)pci, device_base_address);
+                            cb((void*)nic, 0x11, 0);
                         }
                     }
                 }

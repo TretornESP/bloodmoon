@@ -54,8 +54,15 @@ struct file_operations {
     //int (*fadvise)(struct file *, loff_t, loff_t, int);
 };
 
+struct network_operations {
+    uint64_t (*send)(void *, uint8_t *, uint16_t);
+    uint64_t (*recv)(void *, uint8_t *, uint16_t );
+    uint64_t (*ioctl)(void *, uint32_t, void*);
+};
+
 struct device_driver {
     struct file_operations *fops;
+    struct network_operations *nops;
     uint8_t registered;
     char name[DEVICE_NAME_SIZE];
 };
@@ -74,8 +81,10 @@ struct device {
 void device_list(uint8_t);
 void register_char(uint8_t, const char*, struct file_operations*);
 void register_block(uint8_t, const char*, struct file_operations*);
+void register_network(uint8_t, const char *, struct network_operations*);
 void unregister_char(uint8_t);
 void unregister_block(uint8_t);
+void unregister_network(uint8_t);
 
 struct device* get_device_head();
 struct device* get_next_device(struct device*);

@@ -6,6 +6,8 @@
 
 struct device_driver char_device_drivers[256] = {0};
 struct device_driver block_device_drivers[256] = {0};
+struct device_driver net_device_drivers[256] = {0};
+
 struct device* devices;
 
 const char* device_identifiers[] = {
@@ -26,7 +28,7 @@ const char* device_identifiers[] = {
     "tty", // e
     "kbd", // f
     "mouse", // 10
-    "none", // 11
+    "net", // 11
     "none", // 12
     "none", // 13
     [0x8d] = "serial", // 80
@@ -70,13 +72,25 @@ void register_char(uint8_t major, const char* name, struct file_operations* fops
     strncpy(char_device_drivers[major].name, name, strlen(name));
     char_device_drivers[major].registered = 1;
     char_device_drivers[major].fops = fops;
+    char_device_drivers[major].nops = 0x0;
+
+    printf("Registered char device: %s [MAJ: %d]\n", name, major);
 }
 
 void register_block(uint8_t major, const char* name, struct file_operations* fops) {
     strncpy(block_device_drivers[major].name, name, strlen(name));
     block_device_drivers[major].registered = 1;
     block_device_drivers[major].fops = fops;
+    block_device_drivers[major].nops = 0x0;
     printf("Registered block device: %s [MAJ: %d]\n", name, major);
+}
+
+void register_network(uint8_t major, const char * name, struct network_operations* nops) {
+    strncpy(net_device_drivers[major].name, name, strlen(name));
+    net_device_drivers[major].registered = 1;
+    net_device_drivers[major].nops = nops;
+    net_device_drivers[major].fops = 0x0;
+    printf("Registered network device: %s [IDX: %d]\n", name, major);
 }
 
 void unregister_block(uint8_t major) {
@@ -85,6 +99,10 @@ void unregister_block(uint8_t major) {
 
 void unregister_char(uint8_t major) {
     char_device_drivers[major].registered = 0;
+}
+
+void unregister_network(uint8_t major) {
+    net_device_drivers[major].registered = 0;
 }
 
 void init_devices() {
@@ -189,9 +207,14 @@ uint64_t device_read(const char * device, uint64_t size, uint64_t offset, uint8_
     while (dev->valid) {
         if (memcmp((void*)dev->name, (void*)device, strlen(device)) == 0) {
             if (dev->bc == 0) {
-                if (!block_device_drivers[dev->major].registered)
+                if (!block_device_drivers[dev->major].registered && !net_device_drivers[dev->major].registered)
                     return 0;
-                return block_device_drivers[dev->major].fops->read(dev->internal_id, size, offset, buffer);
+
+                if (block_device_drivers[dev->major].fops != 0)
+                    return block_device_drivers[dev->major].fops->read(dev->internal_id, size, offset, buffer);
+
+                if (net_device_drivers[dev->major].nops != 0)
+                    return net_device_drivers[dev->major].nops->recv(dev->device_control_structure, buffer, size);
             } else {
                 if (!char_device_drivers[dev->major].registered)
                     return 0;
@@ -209,9 +232,14 @@ uint64_t device_write(const char * device, uint64_t size, uint64_t offset, uint8
     do {
         if (memcmp((void*)dev->name, (void*)device, strlen(device)) == 0) {
             if (dev->bc == 0) {
-                if (!block_device_drivers[dev->major].registered)
+                if (!block_device_drivers[dev->major].registered && !net_device_drivers[dev->major].registered)
                     return 0;
-                return block_device_drivers[dev->major].fops->write(dev->internal_id, size, offset, buffer);
+
+                if (block_device_drivers[dev->major].fops != 0)
+                    return block_device_drivers[dev->major].fops->write(dev->internal_id, size, offset, buffer);
+
+                if (net_device_drivers[dev->major].nops != 0)
+                    return net_device_drivers[dev->major].nops->send(dev->device_control_structure, buffer, size);
             } else {
                 if (!char_device_drivers[dev->major].registered)
                     return 0;
@@ -228,9 +256,14 @@ uint64_t device_ioctl (const char * device, uint32_t op, void* buffer) {
     do {
         if (memcmp((void*)dev->name, (void*)device, strlen(device)) == 0) {
             if (dev->bc == 0) {
-                if (!block_device_drivers[dev->major].registered)
+                if (!block_device_drivers[dev->major].registered && !net_device_drivers[dev->major].registered)
                     return 0;
-                return block_device_drivers[dev->major].fops->ioctl(dev->internal_id, op, buffer);
+
+                if (block_device_drivers[dev->major].fops != 0)
+                    return block_device_drivers[dev->major].fops->ioctl(dev->internal_id, op, buffer);
+                
+                if (net_device_drivers[dev->major].nops != 0)
+                    return net_device_drivers[dev->major].nops->ioctl(dev->device_control_structure, op, buffer);
             } else {
                 if (!char_device_drivers[dev->major].registered)
                     return 0;

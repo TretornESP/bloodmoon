@@ -25,6 +25,7 @@
 #include "../drivers/tty/tty_interface.h"
 #include "../drivers/keyboard/keyboard.h"
 #include "../drivers/disk/disk_interface.h"
+#include "../drivers/net/e1000/e1000_dd.h"
 
 
 #include "../vfs/vfs.h"
@@ -70,6 +71,7 @@ void boot() {
     init_drive();
     init_serial_dd();
     init_tty_dd();
+    init_e1000_dd();
     init_smbios_interface();
     init_devices();
     enable_debug(0);

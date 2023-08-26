@@ -180,7 +180,7 @@ __attribute__((interrupt)) void Security_Handler(struct interrupt_frame* frame) 
 __attribute__((interrupt)) void Network_Handler(struct interrupt_frame* frame) {
     (void)frame;
     __asm__ volatile("cli");
-    handle_nic_int();
+    handle_nic_int(); //TODO: inject nic here
     __asm__ volatile("sti");
     pic_end_master();
 }

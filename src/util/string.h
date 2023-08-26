@@ -36,7 +36,7 @@ char *strtok(char *s, const char *delim);
 uint64_t strtoull(const char *nptr, char **endptr, register int base);
 size_t strxfrm(char *dest, const char *src, size_t n);
 uint64_t atou64(const char *nptr);
-
+uint8_t atou8(const char *nptr);
 uint64_t strlen(const char *str);
 void *memset(void *dest, int c, uint64_t n);
 void strncpy(char *dest, const char *src, uint64_t n);

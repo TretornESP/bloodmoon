@@ -69,10 +69,15 @@ struct e1000 {
 	int is_e;	
 	uint16_t rx_cur;
 	uint16_t tx_cur;
+	void (*inject_packet)(uint8_t *, uint8_t * p_data, uint16_t p_len);
+	void (*inject_status_change)(uint8_t *, uint8_t);
 };
 
 void handle_nic_int();
+uint8_t e1000_get_status(void *e);
+void e1000_inject_status_change_callback(struct e1000 *e, void (*)(uint8_t *, uint8_t));
+void e1000_set_injection_callback(struct e1000 *e, void (*)(uint8_t *, uint8_t * p_data, uint16_t p_len));
 struct e1000 *e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t base_address);
-uint8_t * getMacAddress();                         // Returns the MAC address
-int sendPacket(const void * p_data, uint16_t p_len);
+uint8_t * getMacAddress(void *e);                         // Returns the MAC address
+int sendPacket(void*e, uint8_t* p_data, uint16_t p_len);
 #endif

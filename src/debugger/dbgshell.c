@@ -11,6 +11,7 @@
 #include "../drivers/net/e1000/e1000c.h"
 #include "../process/process.h"
 #include "../process/raw.h"
+#include "../dev/net/netstack.h"
 #include "debug.h"
 
 struct command {
@@ -404,15 +405,103 @@ void normalizePath(char *path) {
 }
 
 void nict(int argc, char* argv[]) {
-    if (argc < 1) {
+    if (argc < 3) {
         printf("Tests the network interface card\n");
-        printf("Usage: nic\n");
+        printf("Usage: nic <nic name> <network card device name>\n");
+        return;
     }
 
-    uint8_t mac2[6];
-    memcpy(mac2, getMacAddress(), 6);
+    struct device * dev = device_search(argv[2]);
+    if (dev == 0) {
+        printf("Could not find device %s\n", argv[2]);
+        return;
+    }
+    struct nic * nic = create_nic(argv[1], argv[2]);
+    if (nic == 0) {
+        printf("Could not create NIC\n");
+        return;
+    }
 
-    uint8_t bufferExample[2048];
+    printf("NIC created\n");
+    dump_nics();
+}
+
+void ndump(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Dumps the packets of a NIC\n");
+        printf("Usage: nicdump <nic name>\n");
+        return;
+    }
+
+    struct nic * nic = get_nic(argv[1]);
+    if (nic == 0) {
+        printf("Could not find NIC %s\n", argv[1]);
+        return;
+    }
+
+    dump_packets(nic);
+}
+
+void ioctl(int argc, char* argv[]) {
+    if (argc < 4) {
+        printf("Creates a buffer of size <bsize> and calls <device>'s\n");
+        printf("ioctl code <code> with the buffer as argument\n");
+        printf("Then prints the buffer. If content is specified\n");
+        printf("it will be copied to the buffer\n");
+        printf("Usage: ioctl <device> <code> <bsize> <content...>\n");
+        return;
+    }
+
+    uint64_t bsize = atou64(argv[3]);
+    uint8_t* buffer = malloc(bsize);
+    memset(buffer, 0, bsize);
+    if (argc > 4) {
+        for (int i = 4; i < argc; i++) {
+            buffer[i-4] = atou8(argv[i]);
+        }
+        printf("Sending: %s\n", argv[4]);
+        printf("Sending hex: ");
+        for (int i = 0; i < argc - 4; i++) {
+            printf("%02x ", buffer[i]);
+            if (i > 0 && i % 16 == 0) {
+                printf("\n");
+            }
+        }
+        printf("\n");
+    }
+
+    uint64_t result = device_ioctl(argv[1], atou64(argv[2]), buffer);
+    printf("Ioctl complete, Result: %d\n", result);
+    printf("Buffer (str): %s\n", buffer);
+    printf("Buffer hex: ");
+    for (uint64_t i = 0; i < bsize; i++) {
+        printf("%02x ", buffer[i]);
+        if (i > 0 && i % 16 == 0) {
+            printf("\n");
+        }
+    }
+    printf("\n");
+    free(buffer);
+}
+
+void nicadd(int argc, char* argv[]) { 
+    if (argc < 2) {
+        printf("Adds a dummy packet to the nic' tx\n");
+        printf("Usage: nicadd <nic name>\n");
+        return;
+    }
+
+    struct nic * nic = get_nic(argv[1]);
+    if (nic == 0) {
+        printf("Could not find NIC %s\n", argv[1]);
+        return;
+    }
+
+    struct packet * pkt = create_tx_packet(nic, 2048);
+    uint8_t * bufferExample = pkt->data;
+    uint8_t mac2[6];
+    memcpy(mac2, nic->mac, 6);
+
     memset(bufferExample, 0, 2048);
 
     uint32_t ipsrc = 0x54400001;
@@ -437,8 +526,35 @@ void nict(int argc, char* argv[]) {
     memcpy((void*)&arp_buffer[38], (void*)&ipdest, 4); // Target Protocol Address: Destination IP address
 
     memcpy(bufferExample, arp_buffer, 42);
+    printf("NIC PACKET DUMP: \n");
+    dump_packets(nic);
+}
 
-    sendPacket(bufferExample, 2048);
+void nicflush(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Flushes the packets of a NIC\n");
+        printf("Usage: nicflush <nic name>\n");
+        return;
+    }
+
+    struct nic * nic = get_nic(argv[1]);
+    if (nic == 0) {
+        printf("Could not find NIC %s\n", argv[1]);
+        return;
+    }
+
+    flush_tx(nic);
+}
+
+void dwrite(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Writes to a device\n");
+        printf("Usage: dwrite <dir>\n");
+        return;
+    }
+
+    printf("NOT IMPLEMENTED YET -\\_(-.-)_/-\n");
+
 }
 
 void cd(int argc, char* argv[]) {
@@ -507,6 +623,14 @@ struct command cmdlist[] = {
         .handler = lschr
     },
     {
+        .keyword = "dwrite",
+        .handler = dwrite
+    },
+    {
+        .keyword = "nicdump",
+        .handler = ndump
+    },
+    {
         .keyword = "lsdsk",
         .handler = lsdsk
     },
@@ -541,6 +665,18 @@ struct command cmdlist[] = {
     {
         .keyword = "ptasks",
         .handler = ptasks
+    },
+    {
+        .keyword = "ioctl",
+        .handler = ioctl
+    },
+    {
+        .keyword = "nicadd",
+        .handler = nicadd
+    },
+    {
+        .keyword = "nicflush",
+        .handler = nicflush
     },
     {
         .keyword = "read",

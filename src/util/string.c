@@ -80,6 +80,10 @@ size_t strspn(const char *s, const char *accept) {__UNDEFINED();}
 char *strstr(const char *haystack, const char *needle) {__UNDEFINED();}
 size_t strxfrm(char *dest, const char *src, size_t n) {__UNDEFINED();}
 
+uint8_t atou8(const char *nptr) {
+    return (uint8_t)atou64(nptr);
+}
+
 uint64_t atou64(const char *nptr) {
     
     //Check if prefix is 0x or 0b for hex or binary

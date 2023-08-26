@@ -4,6 +4,8 @@
 
 void vfs_lsdisk();
 
+int vfs_socket_open(int, int, int);
+
 int vfs_file_open(const char*, int, int);
 int vfs_file_close(int);
 uint64_t vfs_file_read(int, void*, uint64_t);
@@ -24,4 +26,6 @@ int vfs_rename(const char*, const char*);
 int vfs_remove(const char*, uint8_t);
 int vfs_chmod(const char*, int);
 void vfs_debug_by_path(const char*);
+
+int vfs_ioctl(int, int, void*);
 #endif

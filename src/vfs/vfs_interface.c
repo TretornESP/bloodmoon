@@ -11,6 +11,10 @@ void vfs_lsdisk() {
     dump_mounts();
 }
 
+int vfs_socket_open(int family, int type, int protocol) {
+
+}
+
 int vfs_file_open(const char* path, int flags, int mode) {
     vfs_print("vfs_file_open(%s, %d, %d)\n", path, flags, mode);
     char * native_path_buffer = malloc(strlen(path) + 1);
