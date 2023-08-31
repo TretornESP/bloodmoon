@@ -71,6 +71,7 @@ struct e1000 {
 	uint16_t tx_cur;
 	void (*inject_packet)(uint8_t *, uint8_t * p_data, uint16_t p_len);
 	void (*inject_status_change)(uint8_t *, uint8_t);
+	struct pci_device_header_0 *pciConfigHeader;
 };
 
 void handle_nic_int();

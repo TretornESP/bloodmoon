@@ -41,7 +41,7 @@
 
 #define GET_PAGE_SIZE(x) (((x) % 4096) ? (((x) >>12) + 1) : ((x) >> 12))
 
-struct e1000 *e1000_global;
+struct e1000 e1000_nics[16] = {0};
 #define E1000_DEV 0x100E
 
 #define REG_CTRL 		0x0000
@@ -232,7 +232,7 @@ uint8_t e1000_get_status(void *nic) {
 	return ReadRegister((struct e1000*)nic, 0x0008);
 }
 
-void handle_nic_int()
+void handle_nic_int(struct 
 {
 	struct e1000 *e = e1000_global;
 	uint32_t status = ReadRegister(e, 0xc0);
@@ -359,7 +359,7 @@ struct e1000 *e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t
 	e1000_global = e;
 	e->inject_packet = 0x0;
 	e->inject_status_change = 0x0;
-
+	e->pciConfigHeader = _pciConfigHeader;
     uint32_t bar_address = (uint32_t)(uint64_t)get_bar_address(_pciConfigHeader, 0x0);
     e->bar_type = get_bar_type(bar_address);
 

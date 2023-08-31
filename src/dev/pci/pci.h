@@ -2,6 +2,8 @@
 #define _PCI_H
 #include "../acpi/acpi.h"
 
+#define PCI_INTERRUPT_START 0x64
+
 #define PCI_BAR_TYPE_NULL           0x0
 #define PCI_BAR_TYPE_IO             0x1
 #define PCI_BAR_TYPE_32             0x2
@@ -283,6 +285,7 @@ struct device_config {
     uint32_t reserved;
 };
 
+void pci_set_irq(struct pci_device_header_0* pci, uint8_t irq);
 uint64_t get_bar_size(void* addresslow, uint32_t base_address);
 void* get_bar_address(struct pci_device_header_0 * devh, uint8_t index);
 uint8_t get_bar_type(uint32_t value);
@@ -292,6 +295,7 @@ const char* get_device_name(uint16_t, uint16_t);
 const char* get_device_class(uint8_t);
 const char* get_subclass_name(uint8_t, uint8_t);
 const char* get_prog_interface(uint8_t, uint8_t, uint8_t);
-
+void trigger_pci_interrupt();
+void subscribe_pci_interrupt(struct pci_device_header * dev);
 void register_pci(struct mcfg_header *, char* (*cb)(void*, uint8_t, uint64_t));
 #endif

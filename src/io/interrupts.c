@@ -8,6 +8,7 @@
 #include "../memory/heap.h"
 #include "../memory/paging.h"
 #include "../util/string.h"
+#include "../dev/pci/pci.h"
 #include "../drivers/keyboard/keyboard.h"
 #include "../drivers/net/e1000/e1000c.h"
 #include "../scheduling/scheduler.h"
@@ -180,7 +181,7 @@ __attribute__((interrupt)) void Security_Handler(struct interrupt_frame* frame) 
 __attribute__((interrupt)) void Network_Handler(struct interrupt_frame* frame) {
     (void)frame;
     __asm__ volatile("cli");
-    handle_nic_int(); //TODO: inject nic here
+    trigger_pci_interrupt();
     __asm__ volatile("sti");
     pic_end_master();
 }
@@ -223,7 +224,6 @@ __attribute__((interrupt)) void Serial2Int_Handler(struct interrupt_frame * fram
     dbg_print(itoa(c, 16));
     dbg_print("\n");
     pic_end_master();
-
 }
 
 __attribute__((interrupt)) void KReturn_Handler(struct interrupt_frame_error * frame) {

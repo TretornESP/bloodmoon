@@ -8,6 +8,11 @@ struct device_driver char_device_drivers[256] = {0};
 struct device_driver block_device_drivers[256] = {0};
 struct device_driver net_device_drivers[256] = {0};
 
+uint32_t irq_handlers[256] = {
+    [0 ... 100] = 0x1,
+    [101 ... 255] = 0x0
+};
+
 struct device* devices;
 
 const char* device_identifiers[] = {

@@ -3,11 +3,20 @@
 #include "../../memory/heap.h"
 #include "../../util/printf.h"
 #include "../../util/dbgprinter.h"
+#include "../../dev/devices.h"
 #include "../../io/io.h"
 #include "../../drivers/disk/ahci/ahci.h"
 #include "../../drivers/net/e1000/e1000c.h"
 
 struct pci_device_header* global_device_header = {0};
+
+struct pci_dev_list {
+    struct pci_device_header* device;
+    void (*cb)(struct pci_device_header*);
+    struct pci_dev_list* next;
+};
+
+struct pci_dev_list* pci_dev_list_head = {0};
 
 const char* pci_device_classes[] = {    
     "Unclassified",
@@ -31,6 +40,14 @@ const char* pci_device_classes[] = {
     "Processing Accelerator",
     "Non Essential Instrumentation"
 };
+
+uint8_t has_interrupted(struct pci_device_header_0* device) {
+    uint16_t status = ((struct pci_device_header*)device)->status;
+    uint16_t command = ((struct pci_device_header*)device)->command;
+
+    //If bit 3 of the status register == 1 and the bit 10 of the command register == 0 return 1
+    return ((status & 0b1000) && !(command & 0b10000000000));
+}
 
 void PCIWrite32(uint32_t addr, uint32_t data) {
     addr &= ~(0b11);
@@ -293,6 +310,25 @@ const char* get_prog_interface(uint8_t class_code, uint8_t subclass_code, uint8_
     return itoa(prog_interface, 16);
 }
 
+void trigger_pci_interrupt() {
+    //Iterate pci_dev_list_head and check if any of the devices have an interrupt.
+    //If so call cb
+    struct pci_dev_list* current = pci_dev_list_head;
+    while (current != 0) {
+        if (has_interrupted((struct pci_device_header_0*)current->device)) {
+            current->cb(current->device);
+        }
+        current = current->next;
+    }
+}
+
+void subscribe_pci_interrupt(struct pci_device_header * dev) {
+    struct pci_dev_list* new_dev_list = malloc(sizeof(struct pci_dev_list));
+    new_dev_list->device = dev;
+    new_dev_list->next = pci_dev_list_head;
+    pci_dev_list_head = new_dev_list;
+}
+
 void register_pci_device(struct pci_device_header* pci, uint32_t device_base_address, char* (*cb)(void*, uint8_t, uint64_t)) {
     printf("[PCI] Device detected: %x, %x, %x\n", pci->class_code, pci->subclass, pci->prog_if);
     switch (pci->class_code){
@@ -343,6 +379,10 @@ void register_pci_device(struct pci_device_header* pci, uint32_t device_base_add
             }
         }
     }
+}
+
+void pci_set_irq(struct pci_device_header_0* pci, uint8_t irq) {
+    pci->interrupt_line = irq;
 }
 
 void enumerate_function(uint64_t device_address, uint64_t bus, uint64_t device, uint64_t function, char* (*cb)(void*, uint8_t, uint64_t)) {
