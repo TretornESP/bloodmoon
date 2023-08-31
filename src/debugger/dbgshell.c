@@ -12,6 +12,8 @@
 #include "../process/process.h"
 #include "../process/raw.h"
 #include "../dev/net/netstack.h"
+#include "../net/arp.h"
+#include "../net/eth.h"
 #include "debug.h"
 
 struct command {
@@ -484,6 +486,16 @@ void ioctl(int argc, char* argv[]) {
     free(buffer);
 }
 
+void nicw(int argc, char* argv[]) {
+    if (argc < 1) {
+        printf("Forces the nic worker to run on all nics\n");
+        printf("Usage: nicw\n");
+        return;
+    }
+
+    force_network_worker();
+}
+
 void nicadd(int argc, char* argv[]) { 
     if (argc < 2) {
         printf("Adds a dummy packet to the nic' tx\n");
@@ -544,6 +556,56 @@ void nicflush(int argc, char* argv[]) {
     }
 
     flush_tx(nic);
+}
+
+void arp_request(int argc, char* argv[]) {
+    if (argc < 3) {
+        printf("Sends an ARP request and prints the resulting MAC\n");
+        printf("Usage: arpr <nic name> <ip>\n");
+        return;
+    }
+
+    struct nic * nic = get_nic(argv[1]);
+    if (nic == 0) {
+        printf("Could not find NIC %s\n", argv[1]);
+        return;
+    }
+
+    struct arp arp;
+    uint8_t length[2];
+    uint8_t type[2];
+    init_arp(&arp, nic->mac, "10.0.1.2", argv[2]);
+    size_arp(&arp, length);
+    ethertype_arp(type);
+
+    uint8_t * arp_data = malloc(length[0] << 8 | length[1]); //No se si este cast falla para numeros mas grandes que 2^8 idk
+    data_arp(&arp, arp_data);
+
+    printf("ARP initialized\n");
+    dump_arp(&arp);
+    //Ethernet initialization
+    struct eth eth;
+    init_eth(&eth, nic->mac, (uint8_t*)"\xff\xff\xff\xff\xff\xff", arp_data, type, length);
+
+    struct packet * pkt = create_tx_packet(nic, *length);
+    memcpy(pkt->data, eth.data, *length);
+    flush_tx(nic);
+
+    printf("Packet sent\n");
+
+    //Freeing resources
+    destroy_eth(&eth);
+    free(arp_data);
+    if (arp.sha == 0) {
+        printf("SHA\n");
+    } else {
+        //print first 6 elements of arp.sha
+        printf("SHA: %02x:%02x:%02x:%02x:%02x:%02x\n", arp.sha[0], arp.sha[1], arp.sha[2], arp.sha[3], arp.sha[4], arp.sha[5]);
+    }
+    destroy_arp(&arp);
+
+    printf("Resources freed\n");
+
 }
 
 void dwrite(int argc, char* argv[]) {
@@ -613,6 +675,14 @@ struct command cmdlist[] = {
     {
         .keyword = "ls",
         .handler = ls
+    },
+    {
+        .keyword = "nicw",
+        .handler = nicw
+    },
+    {
+        .keyword = "arpr",
+        .handler = arp_request
     },
     {
         .keyword = "lsblk",

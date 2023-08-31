@@ -232,9 +232,8 @@ uint8_t e1000_get_status(void *nic) {
 	return ReadRegister((struct e1000*)nic, 0x0008);
 }
 
-void handle_nic_int(struct 
-{
-	struct e1000 *e = e1000_global;
+void handle_nic_int(void * addr) {
+	struct e1000 *e = (struct e1000*)addr;
 	uint32_t status = ReadRegister(e, 0xc0);
 
 	if(status & 0x04)
@@ -356,7 +355,6 @@ void print_mac(char *mac)
 struct e1000 *e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t base_address)
 {
 	struct e1000 *e = (struct e1000 *)malloc(sizeof(*e));
-	e1000_global = e;
 	e->inject_packet = 0x0;
 	e->inject_status_change = 0x0;
 	e->pciConfigHeader = _pciConfigHeader;
@@ -374,6 +372,8 @@ struct e1000 *e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t
         map_current_memory_size((void*)(uint64_t)bar_address, (void*)(uint64_t)bar_address, bar_size);
         e->mem_base = (uint8_t*)(uint64_t) bar_address;
     }
+	
+	subscribe_pci_interrupt("E1000", (struct pci_device_header*)_pciConfigHeader, handle_nic_int, (void*)e);
 
 	e1000_eeprom_gettype(e);
 	e1000_getmac(e, (char *)e->mac);
@@ -382,6 +382,7 @@ struct e1000 *e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t
 	e1000_start(e);
 	uint32_t flags = ReadRegister(e, REG_RCTRL);
 	WriteRegister(e, REG_RCTRL, flags | RCTRL_EN);//RCTRL_8192 | RCTRL_MPE | RCTRL_UPE |RCTRL_EN);
+
     
 	return e;
 }

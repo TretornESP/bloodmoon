@@ -296,6 +296,6 @@ const char* get_device_class(uint8_t);
 const char* get_subclass_name(uint8_t, uint8_t);
 const char* get_prog_interface(uint8_t, uint8_t, uint8_t);
 void trigger_pci_interrupt();
-void subscribe_pci_interrupt(struct pci_device_header * dev);
+void subscribe_pci_interrupt(const char* id, struct pci_device_header * dev, void (*cb)(void*), void * data);
 void register_pci(struct mcfg_header *, char* (*cb)(void*, uint8_t, uint64_t));
 #endif

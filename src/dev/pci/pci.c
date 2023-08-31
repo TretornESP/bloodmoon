@@ -2,17 +2,23 @@
 #include "../../memory/paging.h"
 #include "../../memory/heap.h"
 #include "../../util/printf.h"
+#include "../../util/string.h"
 #include "../../util/dbgprinter.h"
 #include "../../dev/devices.h"
 #include "../../io/io.h"
 #include "../../drivers/disk/ahci/ahci.h"
 #include "../../drivers/net/e1000/e1000c.h"
 
+//Ignore -waddress-of-packed-member
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+
 struct pci_device_header* global_device_header = {0};
 
 struct pci_dev_list {
+    char name[32];
+    void * data;
     struct pci_device_header* device;
-    void (*cb)(struct pci_device_header*);
+    void (*cb)(void*);
     struct pci_dev_list* next;
 };
 
@@ -316,16 +322,20 @@ void trigger_pci_interrupt() {
     struct pci_dev_list* current = pci_dev_list_head;
     while (current != 0) {
         if (has_interrupted((struct pci_device_header_0*)current->device)) {
-            current->cb(current->device);
+            //printf("[PCI] Device %s has interrupted\n", current->name);
+            current->cb(current->data);
         }
         current = current->next;
     }
 }
 
-void subscribe_pci_interrupt(struct pci_device_header * dev) {
+void subscribe_pci_interrupt(const char* id, struct pci_device_header * dev, void (*cb)(void*), void * data) {
     struct pci_dev_list* new_dev_list = malloc(sizeof(struct pci_dev_list));
     new_dev_list->device = dev;
+    new_dev_list->cb = cb;
+    new_dev_list->data = data;
     new_dev_list->next = pci_dev_list_head;
+    strncpy(new_dev_list->name, id, strlen(id));
     pci_dev_list_head = new_dev_list;
 }
 
