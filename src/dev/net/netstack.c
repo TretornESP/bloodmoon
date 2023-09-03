@@ -1,15 +1,21 @@
+
 #include "netstack.h"
 
 #include "../../util/printf.h"
 #include "../../util/string.h"
-#include "../../memory/heap.h"
 #include "../../util/ctype.h"
 #include "../../util/dbgprinter.h"
+#include "../../util/lists.h"
 
 #include "../../net/eth.h"
 #include "../../net/arp.h"
 #include "../../net/crc.h"
+
+#include "../../memory/heap.h"
+
 #include "../devices.h"
+
+
 
 struct nic * nics[16] = {0};
 
@@ -53,98 +59,146 @@ void add_arp_cache_entry(struct nic* nic, uint8_t * ip, uint8_t * mac) {
     nic->arp_cache = new;
 }
 
+void process_packet(volatile struct packet * p, struct nic* c) {
+    if (p != 0 && p->len >= 14) {
+
+        printf("Processing packet\n");
+        //Dump packet
+        for (int i = 0; i < p->len; i++) {
+            printf("%02x ", p->data[i]);
+            if (i % 16 == 15) {
+                printf("\n");
+            }
+        }
+        printf("\n");
+
+        struct eth eth;
+        if (!eth_from_packet(&eth, p->data, p->len))
+            return;
+        eth_dump(&eth);
+
+        switch (eth_get_version(p->data, p->len)) {
+            case ETH_802_3: {
+                printf("802.3 packet not supported\n");
+                break;
+            }
+
+            case ETH_INVALID: {
+                printf("Invalid packet\n");
+                break;
+            }
+
+            case ETH_II: {
+                printf("Ethernet II frame detected!\n");
+                uint16_t eth_data_size = 0;
+                uint8_t * eth_raw_data = eth_get_data(&eth, &eth_data_size);
+
+                switch(eth_get_type(&eth)) {
+                    case ETHERT_ARP: {
+                        struct arp arp;
+                        parse_arp(&arp, eth_raw_data, eth_data_size);
+                        dump_arp(&arp);
+                        
+                        if (arp.oper == ARP_REQUEST) {
+                            printf("ARP request detected!\n");
+                            if (memcmp(arp.tpa, c->ip, 4) == 0) {
+                                printf("ARP request for me!\n");
+                                struct arp reply;
+                                reply.htype = arp.htype;
+                                reply.ptype = arp.ptype;
+                                reply.hlen = arp.hlen;
+                                reply.plen = arp.plen;
+                                reply.oper = htons(ARP_REPLY);
+                                reply.sha = (uint8_t*)malloc(arp.hlen);
+                                reply.spa = (uint8_t*)malloc(arp.plen);
+                                reply.tha = (uint8_t*)malloc(arp.hlen);
+                                reply.tpa = (uint8_t*)malloc(arp.plen);
+                                memcpy(reply.sha, c->mac, arp.hlen);
+                                memcpy(reply.spa, c->ip, arp.plen);
+                                memcpy(reply.tha, arp.sha, arp.hlen);
+                                memcpy(reply.tpa, arp.spa, arp.plen);
+                                uint16_t reply_size = size_arp(&reply);
+                                uint8_t * reply_data = (uint8_t*)malloc(reply_size);
+                                data_arp(&reply, reply_data);
+
+                                uint8_t type[2];
+                                ethertype_arp(type);
+
+                                struct eth reply_eth;
+
+                                eth_create(&reply_eth, c->mac, arp.sha, reply_data, type, reply_size);
+                                uint16_t reply_eth_size = eth_get_packet_size(&reply_eth);
+
+                                struct packet * reply_packet = create_tx_packet(c, reply_eth_size);
+                                if (eth_to_packet(&reply_eth, reply_packet->data, reply_packet->len) == 0) {
+                                    printf("Failed to create packet\n");
+                                    return;
+                                }
+
+                                printf("Sending ARP reply\n");
+                                eth_dump(&reply_eth);
+                                tx_n(c, 1);
+                            }
+
+                        } else if (arp.oper == ARP_REPLY) {
+                            printf("ARP reply detected!\n");
+                            if (memcmp(arp.tpa, c->ip, 4) == 0) {
+                                printf("ARP reply for me!\n");
+                                add_arp_cache_entry(c, arp.spa, arp.sha);
+                            } else {
+                                printf("ARP Was for %d.%d.%d.%d\n", arp.tpa[0], arp.tpa[1], arp.tpa[2], arp.tpa[3]);
+                                printf("But im %d.%d.%d.%d\n", c->ip[0], c->ip[1], c->ip[2], c->ip[3]);
+                            }
+                        } else {
+                            printf("Unknown ARP operation %d\n", arp.oper);
+                        }     
+                        break;
+                    }
+
+                    case ETHERT_IPV4: {
+                        printf("IPv4 frame detected!\n");
+                        break;
+                    }
+
+                    default: {
+                        printf("Unknown packet ethertype %d\n", eth_get_version(p->data, p->len));
+                        break;
+                    }
+                }
+                
+                free(eth_raw_data);
+                break;
+            }
+
+            default: {
+                printf("Unknown packet arrived!\n");
+                break;
+            } 
+        }
+    }
+}
+
 void network_worker() {
     for (int i = 0; i < 16; i++) {
         struct nic* c = nics[i];
-
         if (c != 0) {
-            struct packet * p = get_packet_head(c, NET_RX_QUEUE);
-            if (p != 0 && p->len >= 14) {
-                struct eth eth;
-                if (!parse_eth(&eth, p->data))
-                    continue;
-                dump_eth(&eth);
-
-                int data_size = eth.length[0] * 256 + eth.length[1];
-                switch (get_eth_version(&eth)) {
-                    case ETH_802_3: {
-                        printf("802.3 packet not supported\n");
-                        break;
-                    }
-                    case ETH_II: {
-                        void * eth_raw_data = malloc(ETH_MAX_FRAME_SIZE);
-                        get_eth_data(&eth, eth_raw_data, ETH_MAX_FRAME_SIZE);
-
-                        switch(data_size) {
-                            case ETHERT_ARP: {
-                                data_size = get_arp_payload_size(eth_raw_data);
-                                if (data_size == -1) {
-                                    printf("Invalid ARP packet\n");
-                                    break;
-                                }
-
-                                void * eth_data = malloc(data_size);
-                                get_eth_data(&eth, eth_data, data_size);
-
-                                struct arp arp;
-                                parse_arp(&arp, eth_data, data_size);
-                                dump_arp(&arp);
-
-                                if (arp.oper == htons(ARP_REQUEST)) {
-                                    printf("ARP request detected!\n");
-                                    if (memcmp(arp.tpa, c->ip, 4) == 0) {
-                                        printf("ARP request for me!\n");
-                                        struct packet * reply = create_tx_packet(c, 14+data_size);
-                                        struct eth * reply_eth = (struct eth*)reply->data;
-                                        memcpy(reply_eth->da, arp.sha, 6);
-                                        memcpy(reply_eth->sa, c->mac, 6);
-                                        reply_eth->length[0] = data_size & 0xFF;
-                                        reply_eth->length[1] = (data_size >> 8) & 0xFF;
-                                        memcpy(reply_eth->data, eth_data, data_size);
-                                        reply_eth->crc = 0;
-                                        reply_eth->crc = crc32_byte(reply->data, 14+data_size);
-                                        tx_n(c, 1);
-                                    }
-                                } else if (arp.oper == htons(ARP_REPLY)) {
-                                    printf("ARP reply detected!\n");
-                                    if (memcmp(arp.tpa, c->ip, 4) == 0) {
-                                        printf("ARP reply for me!\n");
-                                        add_arp_cache_entry(c, arp.spa, arp.sha);
-                                    }
-                                } else {
-                                    printf("Unknown ARP operation %d\n", arp.oper);
-                                }
-
-                                
-                                break;
-                            }
-                            case ETHERT_IPV4: {
-                                printf("IPv4 frame detected!\n");
-                                break;
-                            }
-                        }
-
-                        free(eth_raw_data);
-                        break;
-                    }
-                    case ETH_INVALID: {
-                        printf("Invalid packet\n");
-                        break;
-                    }
-                    default: {
-                        printf("Unknown packet arrived!\n");
-                        break;
-                    }
-                    
+            volatile struct packet * p = get_packet_head(c, NET_RX_QUEUE);
+            while (p != 0) {
+                if (p->processed == 0) {
+                    //printf("Processing packet %p, next: %p\n", p, p->next);
+                    process_packet(p, c);
+                    p->processed = 1;
                 }
-
-                struct packet * next = p->next;
-                free(p->data);
-                free(p);
-                c->rx_queue = next;
+                p = p->next;
             }
             flush_tx(c);
         }
+    }
+}
+
+void spawn_network_worker() {
+    while (1) {
+        network_worker(force_network_worker);
     }
 }
 
@@ -161,8 +215,8 @@ void dump_nics() {
     }
 }
 
-void print_packet_queue(struct packet * head) {
-    struct packet * p = head;
+void print_packet_queue(volatile struct packet * head) {
+    volatile struct packet * p = head;
     while (p != 0) {
         printf("  Packet %p: len=%d, data=%p, next=%p\n", p, p->len, p->data, p->next);
         p = p->next;
@@ -200,12 +254,61 @@ void inject_nic_status_callback(uint8_t *mac, uint8_t status) {
 }
 
 void inject_packet_callback(uint8_t * mac, uint8_t * buffer, uint16_t len) {
-    printf("Packet arrived to %02x:%02x:%02x:%02x:%02x:%02x len: %d\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], len);
     for (int i = 0; i < 16; i++) {
         if (nics[i] != 0) {
             if (memcmp(nics[i]->mac, mac, 6) == 0) {
-                struct packet * p = create_rx_packet(nics[i], len);
+                if (nics[i]->rx_queue_size > RX_HARD_THRESHOLD) {
+                    atomic_increment_u64(&(nics[i]->dropped_rx));
+                    printf("WARNING: RX queue is full, dropping packet\n");
+                    return;
+                }
+                
+                if (len > 1500) {
+                    atomic_increment_u64(&(nics[i]->dropped_rx));
+                    printf("WARNING: Packet is too large, dropping packet\n");
+                    return;
+                }
+
+                volatile struct packet * p = create_rx_packet(nics[i], len);
+                if (p == 0) {
+                    printf("WARNING: Failed to create packet\n");
+                    return;
+                }
+
                 memcpy(p->data, buffer, len);
+
+
+                if (nics[i]->rx_queue_size > RX_CLEAN_THRESHOLD) {
+                    uint64_t freed = 0;
+                    printf("Trying to free space in rx queue\n", nics[i]->name);
+
+                    if (!try_acquire_lock(&(nics[i]->rx_queue_lock))) {
+                        printf("WARNING: RX queue is locked, cant free space\n");
+                        return;
+                    }
+
+                    volatile struct packet * p = get_packet_head(nics[i], NET_RX_QUEUE);
+                    while (p != 0) {
+                        if (p->processed == 1) {
+                            volatile struct packet * next = p->next;
+                            free(p->data);
+                            free((void*)p);
+                            p = next;
+                            freed++;
+                        } else {
+                            p = p->next;
+                        }
+                    }
+                    printf("Freed %d packets\n", freed);
+                    atomic_sub_u64(&(nics[i]->rx_queue_size), freed);
+
+                    release_lock(&(nics[i]->rx_queue_lock));
+
+                    if (nics[i]->rx_queue_size > RX_CLEAN_THRESHOLD) {
+                        printf("WARNING: RX queue is over capacity, we recommend processing ASAP\n");
+                    }
+                }
+
                 return;
             }
         }
@@ -230,6 +333,8 @@ struct nic* create_nic(const char* name, const char * device_name) {
             device_ioctl(device_name, 0x1001, mac); //Get mac
             memcpy(nics[i]->mac, mac, 6);
             nics[i]->status = device_ioctl(device_name, 0x1004, 0x0);
+            init_lock(&(nics[i]->rx_queue_lock));
+            nics[i]->rx_queue_size = 0;
             nics[i]->rx_queue = 0;
             nics[i]->tx_queue = 0;
             nics[i]->ip[0] = 0;
@@ -264,21 +369,29 @@ void change_nic_status(struct nic * n, uint8_t status) {
     n->status = status;
 }
 
-struct packet* create_rx_packet(struct nic * n, uint16_t len) {
-    struct packet * p = (struct packet*)malloc(sizeof(struct packet));
+volatile struct packet* create_rx_packet(struct nic * n, uint16_t len) {
+    volatile struct packet * p = (struct packet*)malloc(sizeof(struct packet));
     p->len = len;
     p->data = (uint8_t*)malloc(len);
     p->next = 0;
+    p->processed = 0;
 
-    if (n->rx_queue == 0) {
-        n->rx_queue = p;
-    } else {
-        struct packet * last = n->rx_queue;
-        while (last->next != 0) {
-            last = last->next;
-        }
-        last->next = p;
+
+    if (!try_acquire_lock(&(n->rx_queue_lock))) {
+        printf("WARNING: RX queue is locked, dropping packet\n");
+        n->dropped_rx++;
+        free(p->data);
+        free((void*)p);
+        return;
     }
+
+    //Insert packet at the beginning of the queue
+    volatile struct packet * head = n->rx_queue;
+    p->next = head;
+    n->rx_queue = p;
+    n->rx_queue_size++;
+
+    release_lock(&(n->rx_queue_lock));
 
     return p;
 }
@@ -287,31 +400,30 @@ struct packet* create_tx_packet(struct nic * n, uint16_t len) {
     struct packet * p = (struct packet*)malloc(sizeof(struct packet));
     p->len = len;
     p->data = (uint8_t*)malloc(len);
+    memset(p->data, 0, len);
     p->next = 0;
+    p->processed = 0;
 
-    if (n->tx_queue == 0) {
-        n->tx_queue = p;
-    } else {
-        struct packet * last = n->tx_queue;
-        while (last->next != 0) {
-            last = last->next;
-        }
-        last->next = p;
-    }
-
+    //Insert packet at the beginning of the queue
+    volatile struct packet * head = n->tx_queue;
+    p->next = head;
+    n->tx_queue = p;
+    
     return p;
 }
 
-struct packet* peek_rx(struct nic * n) {
-    struct packet * p = n->rx_queue;
+volatile struct packet* peek_rx(struct nic * n) {
+    volatile struct packet * p = n->rx_queue;
     if (p == 0) return 0;
-    while (p->next != 0) {
+    //Get first packet that has not been processed
+    while (p->processed == 1) {
         p = p->next;
+        if (p == 0) return 0;
     }
     return p;
 }
 
-struct packet* get_packet_head(struct nic * n, uint8_t queue) {
+volatile struct packet* get_packet_head(struct nic * n, uint8_t queue) {
     if (queue == NET_RX_QUEUE) {
         return n->rx_queue;
     } else if (queue == NET_TX_QUEUE){
@@ -321,13 +433,20 @@ struct packet* get_packet_head(struct nic * n, uint8_t queue) {
 }
 
 void flush_tx(struct nic * n) {
-    struct packet * p = n->tx_queue;
+    volatile struct packet * p = n->tx_queue;
     while (p != 0) {
         //Send packet
+        
+        struct eth test;
+        eth_from_packet(&test, p->data, p->len);
+        printf("Packet about to be sent:\n");
+        eth_dump(&test);
+
         device_write(n->device_name, p->len, 0x0, p->data);
-        struct packet * next = p->next;
+        p->processed = 1;
+        volatile struct packet * next = p->next;
         free(p->data);
-        free(p);
+        free((void*)p);
         p = next;
     }
     n->tx_queue = 0;
@@ -335,13 +454,14 @@ void flush_tx(struct nic * n) {
 
 //Send and free num packets
 void tx_n(struct nic * n, uint16_t num) {
-    struct packet * p = n->tx_queue;
+    volatile struct packet * p = n->tx_queue;
     for (int i = 0; i < num; i++) {
         //Send packet
         device_write(n->device_name, p->len, 0x0, p->data);
-        struct packet * next = p->next;
+        p->processed = 1;
+        volatile struct packet * next = p->next;
         free(p->data);
-        free(p);
+        free((void*)p);
         p = next;
     }
     n->tx_queue = p;
@@ -431,6 +551,7 @@ void get_mac_for_ip(struct nic * n, uint8_t * ip, uint8_t * mac) {
     mac[5] = 0;
 
 }
+
 void clear_arp_cache(struct nic * n) {
     struct arp_cache * c = n->arp_cache;
     while (c != 0) {

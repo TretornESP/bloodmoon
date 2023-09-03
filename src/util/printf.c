@@ -30,10 +30,10 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdbool.h>
 #include <stdint.h>
 
 #include "printf.h"
+#include "bool.h"
 #include "../bootservices/bootservices.h"
 #include "../dev/devices.h"
 #include "../scheduling/scheduler.h"

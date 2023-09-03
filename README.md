@@ -14,7 +14,7 @@ Current memory usage:
 
 ## State:
 
-- [x] Basic bootstrap
+- [x] Basic boot services
 - [x] Interface with limine
 - [x] Basic print functionality
 - [x] Page frame allocator
@@ -32,15 +32,16 @@ Current memory usage:
 - [x] VFS
 - [x] Serial communication
 - [x] TTY
-- [ ] Task switching
-- [ ] Basic concurrency
-- [ ] Process loading
-- [ ] Syscalls
+- [X] Task switching
+- [X] Basic concurrency
+- [X] Process loading
+- [X] Syscalls
 - [ ] Userspace
-- [ ] GLibc (sorta)
+- [ ] mLibc (sorta)
 - [ ] Basic software utilities
-- [ ] Network drivers
-- [ ] Network stack
+- [X] Network drivers
+- [X] Network stack (In progress)
+- [ ] Bootstrapping (Compiling from the own OS)
 - [ ] Mouse drivers
 - [ ] Graphical interface
 - [ ] Advanced device drivers (USB)
@@ -68,6 +69,17 @@ Current memory usage:
 - **Limine**. Inside the folder:
 
       git clone https://github.com/limine-bootloader/limine.git --branch=v3.0-branch-binary --depth=1
+
+## Networking
+
+Bloodmoon is a network oriented OS, so you cannot run it without a NIC!
+
+I have tested it with openvpn tap interfaces and it works fine. (NDIS6)
+
+Just rename the nic to **tap** and give it the mac that you want.
+
+On real systems you depend on compatibility with the intel e1000 driver...
+(I have another for a generic i825 but it is unfinished atm)
 
 ## How to configure
 
@@ -197,3 +209,5 @@ Okay, so the idea is the following:
 - The Limine project
 - strawberryhacker
 - ToAruOS
+- Roen
+- ChickenOS

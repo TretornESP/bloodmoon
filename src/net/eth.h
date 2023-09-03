@@ -34,17 +34,23 @@ struct eth {
 #endif
     uint8_t da[6];
     uint8_t sa[6];
-    uint8_t length[2];
+    uint8_t type[2];
+    uint16_t datalen;
     uint8_t *data;
-    uint32_t crc;
-} __attribute__((packed));
+    //uint32_t crc;
+};
 
-uint8_t parse_eth(struct eth *eth, uint8_t* data);
-uint8_t get_eth_version(struct eth *eth);
-void get_eth_data(struct eth *eth, uint8_t *data, uint16_t size);
-void init_eth(struct eth *eth, uint8_t* sa, uint8_t *da, uint8_t *data, uint8_t *type, uint8_t *length);
-void destroy_eth(struct eth *eth);
-uint64_t size_eth(struct eth *eth);
-void dump_eth(struct eth *eth);
+//uint8_t eth_check_crc(struct eth* eth);
+
+void eth_create(struct eth *eth, uint8_t* sa, uint8_t *da, uint8_t *data, uint8_t *type, uint16_t length);
+uint16_t eth_to_packet(struct eth* eth, uint8_t * buffer, uint16_t max_size);
+uint8_t eth_from_packet(struct eth *eth, uint8_t* data, uint64_t size);
+
+uint64_t eth_get_packet_size(struct eth *eth);
+uint64_t eth_get_data_size(struct eth *eth);
+uint8_t eth_get_version(uint8_t* data, uint64_t size);
+uint16_t eth_get_type(struct eth *eth);
+uint8_t* eth_get_data(struct eth *eth, uint16_t *size);
+void eth_dump(struct eth *eth);
 
 #endif

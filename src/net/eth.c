@@ -1,156 +1,172 @@
-#include "crc.h"
+//#include "crc.h"
 #include "eth.h"
 
 #include "../util/printf.h"
 #include "../memory/heap.h"
 #include "../util/string.h"
 
-void init_eth(struct eth *eth, uint8_t* sa, uint8_t *da, uint8_t *data, uint8_t *type, uint8_t *length) {
-    uint16_t llength = *length;
-    eth->data = malloc(llength);
-    printf("%p\n", eth->data);
-    if (llength < 46) {
-        llength = 46;
-        free(eth->data);
-        eth->data = malloc(llength);
-        length[0] = llength;
-        length[1] = llength >> 8;
-    }
-    if (llength > 1500) {
-        llength = 1500;
-        free(eth->data);
-        eth->data = malloc(llength);
-        printf("WARNING: fragmentation isn't supported yet\n");
-        length[0] = llength;
-        length[1] = llength >> 8;
-    }
-    memcpy(eth->data, data, llength);
-    #ifdef INCLUDE_PREAMBLE
+//uint8_t eth_check_crc(struct eth* eth) {
+//    if (eth == 0) return 0;
+//    uint32_t crc = crc32_byte(eth->data, eth->datalen);
+//    if (eth->crc != crc) {
+//        printf("CRC error --- stored: %x calculated: %x\n", eth->crc, crc);
+//        return 0;
+//    }
+//    return 1;
+//}
 
+uint16_t eth_get_type(struct eth *eth) {
+    if (eth == 0) return 0;
+    return (eth->type[0] << 8) | eth->type[1];
+}
+
+void eth_create(struct eth *eth, uint8_t* sa, uint8_t *da, uint8_t *data, uint8_t *type, uint16_t length) {
+    eth->data = data;
+    if (length < 46) {
+        length = 46;
+    }
+    if (length > 1500) {
+        length = 1500;
+        printf("WARNING: fragmentation isn't supported yet\n");
+    }
+    eth->datalen = length;
+    memcpy(eth->sa, sa, 6);
+    memcpy(eth->da, da, 6);
+    memcpy(eth->type, type, 2);
+    //eth->crc = crc32_byte(data, length);
+
+    #ifdef INCLUDE_PREAMBLE
     for (int i = 0; i < 7; i++) {
         eth->preamble[i] = 0x55;
     }
+
     eth->sfd = 0x7e;
-    #endif
-
-
-    memcpy(eth->length, type, 2);
-    memcpy(eth->sa, sa, 6);
-    memcpy(eth->da, da, 6);
-
-    uint8_t* packet = malloc(llength+26);
-
-    #ifdef INCLUDE_PREAMBLE
-
-    memcpy(packet, &eth->preamble, 7);
-    memcpy(packet+7, &eth->sfd, 1);
 
     #endif
-    memcpy(packet, &eth->da, 6);
-    memcpy(packet+6, &eth->sa, 6);
-    memcpy(packet+12, &eth->length, 2);
-    memcpy(packet+14, eth->data, llength);
-    free(eth->data);
-    eth->crc = crc32_byte(packet, llength+14);
-    memcpy(packet+llength+14, &eth->crc, 4);
-
-    printf("SENT CRC: %x\n", eth->crc);
-    eth->data = packet; 
-    //Esto es una mierda, deberia seguir la interfaz de data_arp que te saca el paquete del header
-    //Pero como entonces habria que esperar para calcular el crc me da profunda pereza y lo hago asi
- 
 }
 
-uint8_t get_eth_version(struct eth *eth) {
-    uint16_t ethsize = eth->length[0] + eth->length[1]*256;
-    if (ethsize < 46) {
-        return ETH_INVALID;
-    }
-    if (ethsize > 1500 && ethsize < 1536) {
-        return ETH_INVALID;
-    }
-    if (ethsize > 1536) {
-        return ETH_II;
-    }
-    return ETH_802_3;
-}
-
-void dump_eth(struct eth *eth) {
-    printf("ETH:\n");
-    printf("  DA: %x:%x:%x:%x:%x:%x\n", eth->da[0], eth->da[1], eth->da[2], eth->da[3], eth->da[4], eth->da[5]);
-    printf("  SA: %x:%x:%x:%x:%x:%x\n", eth->sa[0], eth->sa[1], eth->sa[2], eth->sa[3], eth->sa[4], eth->sa[5]);
-    printf("  LENGTH: %x\n", eth->length[0] + eth->length[1]*256);
-    printf("  CRC: %x\n", eth->crc);
-    printf("  DATA: ");
-    for (int i = 0; i < eth->length[0] + eth->length[1]*256; i++) {
-        printf("%x ", eth->data[i]);
-    }
-    printf("\n");
-}
-
-uint8_t parse_eth(struct eth *eth, uint8_t* data) {
-
+uint16_t eth_to_packet(struct eth* eth, uint8_t * buffer, uint16_t max_size) {
+    if (eth == 0) return 0;
+    //if (eth_check_crc(eth) == 0) return 0;
+    memset(buffer, 0, max_size);
+    
     #ifdef INCLUDE_PREAMBLE
-    memcpy(eth, data, 22);
+    if (max_size < eth->datalen + 22) {
+        printf("WARNING: buffer is too small (%d) for the packet (%d)\n", max_size, eth->datalen + 22);
+        return 0;
+    }
+    memcpy(buffer, &eth->preamble, 7);
+    memcpy(buffer+7, &eth->sfd, 1);
+    memcpy(buffer+8, &eth->da, 6);
+    memcpy(buffer+14, &eth->sa, 6);
+    memcpy(buffer+20, &eth->type, 2);
+    memcpy(buffer+22, eth->data, eth->datalen);
+    //memcpy(buffer+eth->datalen+22, &eth->crc, 4);
+    return eth->datalen + 22;
     #else
-    memcpy(eth, data, 14);
+    if (max_size < eth->datalen + 14) {
+        printf("WARNING: buffer is too small (%d) for the packet (%d)\n", max_size, eth->datalen + 14);
+        return 0;
+    }
+    memcpy(buffer, &eth->da, 6);
+    memcpy(buffer+6, &eth->sa, 6);
+    memcpy(buffer+12, &eth->type, 2);
+    memcpy(buffer+14, eth->data, eth->datalen);
+    //memcpy(buffer+eth->datalen+14, &eth->crc, 4);
+    return eth->datalen + 14;
+    #endif
+}
+
+uint8_t eth_from_packet(struct eth *eth, uint8_t* data, uint64_t size) {
+    if (eth == 0 || data == 0) return 0;
+
+    #ifdef INCLUDE_PREAMBLE
+    if (size < 22) return 0;
+    memcpy(&eth->preamble, data, 7);
+    memcpy(&eth->sfd, data+7, 1);
+    memcpy(&eth->da, data+8, 6);
+    memcpy(&eth->sa, data+14, 6);
+    memcpy(&eth->type, data+20, 2);
+
+    eth->datalen = size - 22;
+    eth->data = malloc(eth->datalen);
+    memcpy(eth->data, data+22, eth->datalen);
+    
+    #else
+    if (size < 14) return 0;
+    memcpy(&eth->da, data, 6);
+    memcpy(&eth->sa, data+6, 6);
+    memcpy(&eth->type, data+12, 2);
+
+    eth->datalen = size - 14;
+    eth->data = malloc(eth->datalen);
+    memcpy(eth->data, data+14, eth->datalen);
     #endif
     
-    if (eth->length[0] + eth->length[1]*256 < 46) {
-        printf("Invalid length\n");
-        return 0;
-    }
-    eth->data = malloc(eth->length[0] + eth->length[1]*256);
-    if (eth->length[0] + eth->length[1]*256 > 1500) {
-        printf("WARNING: fragmentation isn't supported yet\n");
-        printf("Size: %d\n", eth->length[0] + eth->length[1]*256);
-        return 0;
-    }
-    if (eth->data == 0) {
-        printf("Malloc failed\n");
-        return 0;
-    }
-    #ifdef INCLUDE_PREAMBLE
-    memcpy(eth->data, data+22, eth->length[0] + eth->length[1]*256);
-    eth->crc = *(uint32_t*)(data+eth->length[0] + eth->length[1]*256 + 22);
-    #else
-    memcpy(eth->data, data+14, eth->length[0] + eth->length[1]*256);
-    eth->crc = *(uint32_t*)(data+eth->length[0] + eth->length[1]*256 + 14);
-    #endif
-
     return 1;
 }
 
-//Checks if ethernet crc is valid
-int check_crc(struct eth *eth) {
-    if (eth->crc == 0) {
-        return 1;
+uint64_t eth_get_data_size(struct eth *eth) {
+    if (eth == 0) return 0;
+    return eth->datalen;
+}
+
+uint8_t eth_get_version(uint8_t* data, uint64_t size) {
+    struct eth eth;
+    if (eth_from_packet(&eth, data, size)) {
+        uint16_t ethsize = eth_get_type(&eth);
+        if (ethsize < 46) {
+            return ETH_INVALID;
+        }
+        if (ethsize > 1500 && ethsize < 1536) {
+            return ETH_INVALID;
+        }
+        if (ethsize > 1536) {
+            return ETH_II;
+        }
+        return ETH_802_3;
     }
-    uint8_t *packet = malloc(eth->length[0] + eth->length[1]*256 + 26);
-    memcpy(packet, &eth->da, 6);
-    memcpy(packet+6, &eth->sa, 6);
-    memcpy(packet+12, &eth->length, 2);
-    memcpy(packet+14, eth->data, eth->length[0] + eth->length[1]*256);
-    uint32_t crc = crc32_byte(packet, eth->length[0] + eth->length[1]*256);
-    free(packet);
-    printf("CRC: %x\n", crc);
-    printf("STORED: %x\n", eth->crc);
-    return crc == eth->crc;
+    return ETH_INVALID;
 }
 
-void get_eth_data(struct eth *eth, uint8_t *data, uint16_t size) {
-    if (check_crc(eth)) {
-        printf("Length: %d\n", size);
-        memcpy(data, eth->data, size);
-    } else {
-        printf("CRC error\n");
+uint8_t* eth_get_data(struct eth *eth, uint16_t *size) {
+    if (eth == 0) return 0;
+    *size = eth->datalen;
+    return eth->data;
+}
+
+uint64_t eth_get_packet_size(struct eth *eth) {
+    if (eth == 0) return 0;
+    #ifdef INCLUDE_PREAMBLE
+    return eth->datalen + 22;
+    #endif
+    return eth->datalen + 14;
+}
+
+void eth_dump(struct eth *eth) {
+    printf("ETH version: ");
+    switch (eth_get_version(eth->data, eth->datalen)) {
+        case ETH_802_3:
+            printf("802.3\n");
+            break;
+        case ETH_II:
+            printf("II\n");
+            break;
+        default:
+            printf("INVALID\n");
+            break;
     }
-}
-
-void destroy_eth(struct eth *eth) {
-    free(eth->data);
-}
-
-uint64_t size_eth(struct eth *eth) {
-    return 18;
+    printf("  DA: %x:%x:%x:%x:%x:%x\n", eth->da[0], eth->da[1], eth->da[2], eth->da[3], eth->da[4], eth->da[5]);
+    printf("  SA: %x:%x:%x:%x:%x:%x\n", eth->sa[0], eth->sa[1], eth->sa[2], eth->sa[3], eth->sa[4], eth->sa[5]);
+    printf("  DATALENGTH: %x\n", eth->datalen);
+    printf("  TYPE: %x\n", (eth->type[0] << 8) | eth->type[1]);
+//    printf("  CRC: %x\n", eth->crc);
+    printf("  DATA: ");
+    for (int i = 0; i < eth->datalen; i++) {
+        printf("%02x ", eth->data[i]);
+        if (i % 16 == 0 && i != 0) {
+            printf("\n        ");
+        }
+    }
+    printf("\n");
 }

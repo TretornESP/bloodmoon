@@ -52,10 +52,13 @@ void panic(const char * str) {
         }
     }
 
+    __asm__ __volatile__ ("cli");
     while(1);
 
     fallback:
     dbg_print("Debugger failed to print panic message, probably the heap isn't working fine!\n");
+    
+    __asm__ __volatile__ ("cli");
     while(1);
 }
 

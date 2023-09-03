@@ -21,9 +21,9 @@ struct arp {
 void init_arp(struct arp* arp, uint8_t* mac, const char* sips, const char* tips);
 void parse_arp(struct arp* arp, uint8_t* packet, uint64_t size);
 void destroy_arp(struct arp* arp);
-void size_arp(struct arp* arp, uint8_t* size);
+uint16_t size_arp(struct arp* arp);
 void ethertype_arp(uint8_t *type);
 void data_arp(struct arp* arp, uint8_t* data);
-uint8_t get_arp_payload_size(void * buffer);
+int get_arp_payload_size(void * buffer);
 void dump_arp(struct arp* arp);
 #endif

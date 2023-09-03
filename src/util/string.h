@@ -1,12 +1,12 @@
 #ifndef _STRING_H
 #define _STRING_H
 #define STR_MAX_SIZE 65536
-#define TRUE 1
-#define FALSE 0
+
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wreturn-type"
 #include <stdint.h>
 #include "printf.h"
+#include "bool.h"
 typedef uint64_t size_t;
 
 #ifndef __FUNCTION_NAME__

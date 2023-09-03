@@ -572,29 +572,40 @@ void arp_request(int argc, char* argv[]) {
     }
 
     struct arp arp;
-    uint8_t length[2];
+    uint16_t length;
     uint8_t type[2];
     init_arp(&arp, nic->mac, "10.0.1.2", argv[2]);
-    size_arp(&arp, length);
+    length = size_arp(&arp);
     ethertype_arp(type);
 
-    uint8_t * arp_data = malloc(length[0] << 8 | length[1]); //No se si este cast falla para numeros mas grandes que 2^8 idk
+    uint8_t * arp_data = malloc(length); //No se si este cast falla para numeros mas grandes que 2^8 idk
     data_arp(&arp, arp_data);
 
     printf("ARP initialized\n");
     dump_arp(&arp);
     //Ethernet initialization
     struct eth eth;
-    init_eth(&eth, nic->mac, (uint8_t*)"\xff\xff\xff\xff\xff\xff", arp_data, type, length);
+    eth_create(&eth, nic->mac, (uint8_t*)"\xff\xff\xff\xff\xff\xff", arp_data, type, length);
 
-    struct packet * pkt = create_tx_packet(nic, *length);
-    memcpy(pkt->data, eth.data, *length);
+
+    uint64_t size = eth_get_packet_size(&eth);
+    uint8_t * buffer = malloc(size);
+    memset(buffer, 0, size);
+
+    uint16_t eth_packet_size = eth_to_packet(&eth, buffer, size);
+    if (eth_packet_size == 0) {
+        printf("Could not create ethernet packet\n");
+        return;
+    }
+
+    struct packet * pkt = create_tx_packet(nic, eth_packet_size);
+    memcpy(pkt->data, buffer, eth_packet_size);
+
     flush_tx(nic);
 
     printf("Packet sent\n");
 
     //Freeing resources
-    destroy_eth(&eth);
     free(arp_data);
     if (arp.sha == 0) {
         printf("SHA\n");
@@ -608,6 +619,45 @@ void arp_request(int argc, char* argv[]) {
 
 }
 
+void nicc(int argc, char* argv[]) {
+    if (argc < 7) {
+        printf("Configures a nic\n");
+        printf("Usage: nicc <nic> <ip> <subnet> <gw> <dns> <dhcp>\n");
+        printf("Note: Value 0 means 0.0.0.0, on dhcp means disable (1 enable)\n");
+        return;
+    }
+
+    struct nic * nic = get_nic(argv[1]);
+    if (nic == 0) {
+        printf("Could not find NIC %s\n", argv[1]);
+        return;
+    }
+
+    uint8_t ip[4] = {0};
+    uint8_t subnet[4] = {0};
+    uint8_t gw[4] = {0};
+    uint8_t dns[4] = {0};
+    uint8_t dhcp = 0;
+
+    if (strcmp(argv[2], "0") != 0)
+        inet_pton(AF_INET, argv[2], ip);
+
+    if (strcmp(argv[3], "0") != 0) 
+        inet_pton(AF_INET, argv[3], subnet);
+
+    if (strcmp(argv[4], "0") != 0)
+        inet_pton(AF_INET, argv[4], gw);
+
+    if (strcmp(argv[5], "0") != 0)
+        inet_pton(AF_INET, argv[5], dns);
+
+    if (strcmp(argv[6], "0") != 0)
+        dhcp = 1;
+
+    nic_configure(nic, ip, subnet, gw, dns, dhcp);
+    print_nic(nic);
+}
+
 void dwrite(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Writes to a device\n");
@@ -617,6 +667,22 @@ void dwrite(int argc, char* argv[]) {
 
     printf("NOT IMPLEMENTED YET -\\_(-.-)_/-\n");
 
+}
+
+void nicp(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Prints the configuration of a nic\n");
+        printf("Usage: nicp <nic name>\n");
+        return;
+    }
+
+    struct nic * nic = get_nic(argv[1]);
+    if (nic == 0) {
+        printf("Could not find NIC %s\n", argv[1]);
+        return;
+    }
+
+    print_nic(nic);
 }
 
 void cd(int argc, char* argv[]) {
@@ -671,6 +737,10 @@ struct command cmdlist[] = {
     {
         .keyword = "nic",
         .handler = nict
+    },
+    {
+        .keyword = "nicc",
+        .handler = nicc
     },
     {
         .keyword = "ls",
@@ -737,6 +807,10 @@ struct command cmdlist[] = {
         .handler = ptasks
     },
     {
+        .keyword = "nicp",
+        .handler = nicp
+    },
+    {
         .keyword = "ioctl",
         .handler = ioctl
     },
@@ -787,16 +861,26 @@ struct command cmdlist[] = {
 };
 
 void help(int argc, char* argv[]) {
-    (void)argc;
-    (void)argv;
-    printf("Available commands:\n");
-    for (long unsigned int i = 0; i < sizeof(cmdlist) / sizeof(struct command); i++) {
-        printf("%s ", cmdlist[i].keyword);
-        if (i > 1 && i % 5 == 0) {
-            printf("\n");
+    if (argc < 2) {
+        printf("Available commands:\n");
+        for (long unsigned int i = 0; i < sizeof(cmdlist) / sizeof(struct command); i++) {
+            printf("%s ", cmdlist[i].keyword);
+            if (i > 1 && i % 5 == 0) {
+                printf("\n");
+            }
+        }
+        printf("\n");
+    } else {
+        //Search for command, print all matches, even if partial
+        for (long unsigned int i = 0; i < sizeof(cmdlist) / sizeof(struct command); i++) {
+            if (strstr(cmdlist[i].keyword, argv[1]) != 0) {
+                printf("%s\n", cmdlist[i].keyword);
+                if (i > 1 && i % 5 == 0) {
+                    printf("\n");
+                }
+            }
         }
     }
-    printf("\n");
 }
 
 //TODO: Remove this, it's utterly stupid

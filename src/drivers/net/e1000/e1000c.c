@@ -290,11 +290,16 @@ void e1000_rxinit(struct e1000 *e)
 	e->rx_cur = 0;
 
 	//enable receiving
-	//uint32_t flags = (2 << 16) | (1 << 25) | (1 << 26) | (1 << 15) | (1 << 5) | (0 << 8) | (1 << 4) | (1 << 3) | ( 1 << 2);
-uint32_t flags = (2 << 16) | (1 << 25) | (1 << 26) | (1 << 15) | (1 << 5) | (0 << 8) | (0 << 4) | (0 << 3) | ( 1 << 2);
-//	uint32_t flags = (2 << 16) | (1 << 25) | (1 << 26) | (1 << 15) | (1 << 5) | (0 << 8) | (1 << 4) | ( 1 << 2);
-//	WriteRegister(REG_RCTRL, RCTRL_8192 | RCTRL_MPE);
-	WriteRegister(e, REG_RCTRL, flags);//RCTRL_8192 | RCTRL_MPE | RCTRL_UPE |RCTRL_EN);
+	//(2 << 16) | (1 << 25) RCTL_BSIZE_8192
+	//(1 << 26) RCTL_SECRC
+	//(1 << 15) RCTL_BAM
+	//(1 << 5) RCTL_LPE
+	//(0 << 8) RDMTS_HALF
+	//(0 << 4) RCTL_MPE = 0
+	//(0 << 3) RCTL_UPE = 0
+	//(1 << 2) RCTL_SBP = 1
+	uint32_t flags = (2 << 16) | (1 << 25) | (1 << 26) | (1 << 15) | (1 << 5) | (0 << 8) | (0 << 4) | (0 << 3) | ( 1 << 2);
+	WriteRegister(e, REG_RCTRL, flags);
 }
 void e1000_txinit(struct e1000 *e)
 {

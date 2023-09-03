@@ -1,5 +1,7 @@
 #include "kernel_boot.h"
 
+#include "../test/tests.h"
+
 #include "../arch/simd.h"
 #include "../arch/gdt.h"
 
@@ -33,6 +35,8 @@
 #include "../vfs/generic/fat32/generic_f32.h"
 #include "../vfs/generic/ext2/generic_ext2.h"
 #include "../vfs/generic/tty/generic_tty.h"
+
+#include "../dev/net/netstack.h"
 
 #include "string.h"
 #include "printf.h"
@@ -81,6 +85,7 @@ void boot() {
     init_vfs();
     init_scheduler();
     add_task(create_task((void*)init_dbgshell, "ttya"));
+    add_task(create_task((void*)spawn_network_worker, "ttya"));
     go(3); //The number is the number of ticks for preemption, zero for cooperative scheduling
 
     panic("Kernel returned to boot() (this should never happen!)\n");

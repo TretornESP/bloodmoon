@@ -9,7 +9,11 @@
 #define AF_INET 0x2
 #define AF_INET6 0x1C
 
+#define RX_CLEAN_THRESHOLD 16
+#define RX_HARD_THRESHOLD 128
+
 #include <stdint.h>
+#include "../../scheduling/concurrency.h"
 
 #define NET_RX_QUEUE 0
 #define NET_TX_QUEUE 1
@@ -17,14 +21,15 @@
 struct packet {
     uint16_t len;
     uint8_t * data;
-    struct packet * next;
+    int8_t processed;
+    volatile struct packet * next;
 };
 
 struct arp_cache {
     uint8_t hlen;
     uint8_t plen;
-    uint8_t *ip;
-    uint8_t *mac;
+    uint8_t ip[4];
+    uint8_t mac[6];
     struct arp_cache *next;
 };
 
@@ -40,25 +45,29 @@ struct nic {
 
     struct arp_cache * arp_cache;
 
-    uint8_t status; 
-    
-    struct packet * rx_queue;
-    struct packet * tx_queue;
+    volatile uint8_t status; 
+    volatile lock_t rx_queue_lock;
+    volatile atomic_uint64_t rx_queue_size;
+    volatile atomic_uint64_t dropped_rx;
+    volatile struct packet * rx_queue;
+    volatile struct packet * tx_queue;
 };
 
+void print_nic(struct nic* nic);
 void dump_nics();
 void dump_packets(struct nic * n);
 
 struct nic* get_nic(const char* name);
 struct nic* create_nic(const char* name, const char * devname);
+void nic_configure(struct nic* nic, uint8_t * ip, uint8_t * subnet, uint8_t * gw, uint8_t * dns, uint8_t dhcp);
 void change_nic_status(struct nic * n, uint8_t status);
 void dump_arp_cache(struct nic * n);
 void get_mac_for_ip(struct nic * n, uint8_t * ip, uint8_t * mac);
 void clear_arp_cache(struct nic * n);
-struct packet* create_rx_packet(struct nic * n, uint16_t len);
+volatile struct packet* create_rx_packet(struct nic * n, uint16_t len);
 struct packet* create_tx_packet(struct nic * n, uint16_t len);
-struct packet* peek_rx(struct nic * n);
-struct packet* get_packet_head(struct nic * n, uint8_t queue);
+volatile struct packet* peek_rx(struct nic * n);
+volatile struct packet* get_packet_head(struct nic * n, uint8_t queue);
 void flush_tx(struct nic * n);
 void tx_n(struct nic * n, uint16_t num);
 
@@ -99,4 +108,5 @@ void get_mac_for_ip(struct nic * n, uint8_t * ip, uint8_t * mac);
 void clear_arp_cache(struct nic * n);
 
 void force_network_worker();
+void spawn_network_worker();
 #endif // _NETSTACK_H

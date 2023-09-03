@@ -57,10 +57,8 @@ void destroy_arp(struct arp* arp) {
     free(arp->tpa);
 }
 
-void size_arp(struct arp* arp, uint8_t* size) {
-    uint16_t len = 8+2*(arp->hlen+arp->plen);
-    size[0] = len;
-    size[1] = len >> 8;
+uint16_t size_arp(struct arp* arp) {
+    return 8 + 2*(arp->hlen + arp->plen);
 }
 
 void ethertype_arp(uint8_t *type) {
@@ -68,7 +66,7 @@ void ethertype_arp(uint8_t *type) {
     type[1] = 0x06;
 }
 
-uint8_t get_arp_payload_size(void * buffer) {
+int get_arp_payload_size(void * buffer) {
     uint8_t * packet = (uint8_t *) buffer;
     uint8_t hlen = packet[4];
     uint8_t plen = packet[5];

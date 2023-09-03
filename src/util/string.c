@@ -77,7 +77,21 @@ char *strrchr(const char *str, int ch) {
     return last;
 }
 size_t strspn(const char *s, const char *accept) {__UNDEFINED();}
-char *strstr(const char *haystack, const char *needle) {__UNDEFINED();}
+char *strstr(const char *haystack, const char *needle) {
+    while (*haystack != '\0') {
+        const char *h = haystack;
+        const char *n = needle;
+        while (*h == *n && *n != '\0') {
+            h++;
+            n++;
+        }
+        if (*n == '\0') {
+            return (char *)haystack;
+        }
+        haystack++;
+    }
+    return 0;
+}
 size_t strxfrm(char *dest, const char *src, size_t n) {__UNDEFINED();}
 
 uint8_t atou8(const char *nptr) {
