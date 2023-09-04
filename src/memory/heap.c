@@ -178,7 +178,8 @@ void free(void* address) {
     if (address == 0) return;
 
     struct heap_segment_header* header = (struct heap_segment_header*)((uint64_t)address - sizeof(struct heap_segment_header));
-    if (header->signature != HEAP_SIGNATURE || header->free) {ready = 0; panic("Invalid free");}
+    if (header->signature != HEAP_SIGNATURE) {ready = 0; panic("Invalid free, signature");}
+    if (header->free) {ready = 0; panic("Invalid free, double free");}
     header->free = 1;
     globalHeap.freeSize += header->length + sizeof(struct heap_segment_header);
     globalHeap.usedSize -= header->length + sizeof(struct heap_segment_header);

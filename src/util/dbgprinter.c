@@ -23,9 +23,29 @@ void putchar(char chr) {
     writer(&chr, 1);
 }
 
-void panic(const char * str) {
+void set_debug_data(const char * file, int line, const char * func) {
+    memset(dbgmsg, 0, BUFFERSIZE);
+    strncpy(dbgmsg, file, BUFFERSIZE);
+    dbgmsg[BUFFERSIZE - 1] = 0;
+    strncat(dbgmsg, ":", BUFFERSIZE - strlen(dbgmsg));
+    strncat(dbgmsg, itoa(line, 10), BUFFERSIZE - strlen(dbgmsg));
+    strncat(dbgmsg, ":", BUFFERSIZE - strlen(dbgmsg));
+    strncat(dbgmsg, func, BUFFERSIZE - strlen(dbgmsg));
+    //Add \\n
+    strncat(dbgmsg, "\n", BUFFERSIZE - strlen(dbgmsg));
+    dbgmsg[BUFFERSIZE - 1] = 0;
+}
+
+void panic(const char * str, ...) {
+
+    char buffer[1024] = {0};
+    va_list args;
+    va_start(args, str);
+    vsnprintf(buffer, 1024, str, args);
+    va_end(args);
+    
     dbg_print("\nKERNEL PANIC!\n");
-    dbg_print(str);
+    dbg_print(buffer);
     dbg_print("\n");
     dbg_print(dbgmsg);
 
@@ -41,7 +61,7 @@ void panic(const char * str) {
         if (!dbg("[KERNEL PANIC!]\n")) {
             goto fallback;
         }
-        if (!dbg("[str: %s]\n", str)) {
+        if (!dbg("[str: %s]\n", buffer)) {
             goto fallback;
         }
         if (!dbg("[dbgmsg: %s]\n", dbgmsg)) {

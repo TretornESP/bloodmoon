@@ -84,7 +84,8 @@ void boot() {
     register_filesystem(tty_registrar);
     init_vfs();
     init_scheduler();
-    add_task(create_task((void*)init_dbgshell, "ttya"));
+    set_current_tty("ttya");
+    init_dbgshell("ttya");
     add_task(create_task((void*)spawn_network_worker, "ttya"));
     go(3); //The number is the number of ticks for preemption, zero for cooperative scheduling
 

@@ -67,7 +67,7 @@ void sleep_ticks(uint64_t ticks) {
     uint64_t start_time = pit.timer_ticks;
     //This is obsolete in the multitasking world!!!
     while (pit.timer_ticks - start_time < ticks) {
-        __asm__ volatile("hlt");
+        yield();
     }
 }
 

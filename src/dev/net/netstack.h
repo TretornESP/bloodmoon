@@ -9,7 +9,7 @@
 #define AF_INET 0x2
 #define AF_INET6 0x1C
 
-#define RX_CLEAN_THRESHOLD 16
+#define RX_CLEAN_THRESHOLD 64
 #define RX_HARD_THRESHOLD 128
 
 #include <stdint.h>
@@ -21,7 +21,7 @@
 struct packet {
     uint16_t len;
     uint8_t * data;
-    int8_t processed;
+    volatile struct packet * prev;
     volatile struct packet * next;
 };
 
@@ -66,7 +66,6 @@ void get_mac_for_ip(struct nic * n, uint8_t * ip, uint8_t * mac);
 void clear_arp_cache(struct nic * n);
 volatile struct packet* create_rx_packet(struct nic * n, uint16_t len);
 struct packet* create_tx_packet(struct nic * n, uint16_t len);
-volatile struct packet* peek_rx(struct nic * n);
 volatile struct packet* get_packet_head(struct nic * n, uint8_t queue);
 void flush_tx(struct nic * n);
 void tx_n(struct nic * n, uint16_t num);

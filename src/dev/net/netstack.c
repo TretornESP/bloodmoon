@@ -11,12 +11,14 @@
 #include "../../net/arp.h"
 #include "../../net/crc.h"
 
+#include "../../scheduling/pit.h"
+
 #include "../../memory/heap.h"
 
 #include "../devices.h"
 
 
-
+uint8_t global = 0;
 struct nic * nics[16] = {0};
 
 void dump_arp_cache(struct nic* nic) {
@@ -60,22 +62,25 @@ void add_arp_cache_entry(struct nic* nic, uint8_t * ip, uint8_t * mac) {
 }
 
 void process_packet(volatile struct packet * p, struct nic* c) {
+    READY_TO_DIE();
     if (p != 0 && p->len >= 14) {
 
         printf("Processing packet\n");
         //Dump packet
-        for (int i = 0; i < p->len; i++) {
-            printf("%02x ", p->data[i]);
-            if (i % 16 == 15) {
-                printf("\n");
-            }
-        }
-        printf("\n");
+        //for (int i = 0; i < p->len; i++) {
+        //    printf("%02x ", p->data[i]);
+        //    if (i % 16 == 15) {
+        //        printf("\n");
+        //    }
+        //}
+        //printf("\n");
+    READY_TO_DIE();
 
         struct eth eth;
         if (!eth_from_packet(&eth, p->data, p->len))
             return;
-        eth_dump(&eth);
+        //eth_dump(&eth);
+    READY_TO_DIE();
 
         switch (eth_get_version(p->data, p->len)) {
             case ETH_802_3: {
@@ -89,6 +94,7 @@ void process_packet(volatile struct packet * p, struct nic* c) {
             }
 
             case ETH_II: {
+
                 printf("Ethernet II frame detected!\n");
                 uint16_t eth_data_size = 0;
                 uint8_t * eth_raw_data = eth_get_data(&eth, &eth_data_size);
@@ -97,8 +103,8 @@ void process_packet(volatile struct packet * p, struct nic* c) {
                     case ETHERT_ARP: {
                         struct arp arp;
                         parse_arp(&arp, eth_raw_data, eth_data_size);
-                        dump_arp(&arp);
-                        
+                        //dump_arp(&arp);
+
                         if (arp.oper == ARP_REQUEST) {
                             printf("ARP request detected!\n");
                             if (memcmp(arp.tpa, c->ip, 4) == 0) {
@@ -135,8 +141,9 @@ void process_packet(volatile struct packet * p, struct nic* c) {
                                     return;
                                 }
 
+                                eth_destroy(&reply_eth);
                                 printf("Sending ARP reply\n");
-                                eth_dump(&reply_eth);
+                                //eth_dump(&reply_eth);
                                 tx_n(c, 1);
                             }
 
@@ -145,6 +152,7 @@ void process_packet(volatile struct packet * p, struct nic* c) {
                             if (memcmp(arp.tpa, c->ip, 4) == 0) {
                                 printf("ARP reply for me!\n");
                                 add_arp_cache_entry(c, arp.spa, arp.sha);
+
                             } else {
                                 printf("ARP Was for %d.%d.%d.%d\n", arp.tpa[0], arp.tpa[1], arp.tpa[2], arp.tpa[3]);
                                 printf("But im %d.%d.%d.%d\n", c->ip[0], c->ip[1], c->ip[2], c->ip[3]);
@@ -165,11 +173,11 @@ void process_packet(volatile struct packet * p, struct nic* c) {
                         break;
                     }
                 }
-                
-                free(eth_raw_data);
+
+                eth_destroy(&eth);
                 break;
             }
-
+    
             default: {
                 printf("Unknown packet arrived!\n");
                 break;
@@ -179,18 +187,50 @@ void process_packet(volatile struct packet * p, struct nic* c) {
 }
 
 void network_worker() {
+    READY_TO_DIE();
     for (int i = 0; i < 16; i++) {
         struct nic* c = nics[i];
         if (c != 0) {
+            
+            uint64_t rounds = 0;
+
             volatile struct packet * p = get_packet_head(c, NET_RX_QUEUE);
+
             while (p != 0) {
-                if (p->processed == 0) {
-                    //printf("Processing packet %p, next: %p\n", p, p->next);
-                    process_packet(p, c);
-                    p->processed = 1;
+                if (rounds++ > 200) {
+                    printf("WARNING: network_worker loop detected!\n");
+                    break;
                 }
-                p = p->next;
+
+                if (!try_acquire_lock(&(c->rx_queue_lock))) {
+                    printf("WARNING: RX queue is locked, cant process rn\n");
+                    break;
+                }
+                
+                process_packet(p, c);
+                volatile struct packet * prev = p->prev;
+                volatile struct packet * next = p->next;
+
+                free(p->data);
+                free((void*)p);
+
+                if (prev != 0) {
+                    prev->next = next;
+                } else {
+                    c->rx_queue = next;
+                }
+
+                if (next != 0) {
+                    next->prev = prev;
+                }
+
+                p = next;
+
+                c->rx_queue_size--;
+
+                release_lock(&(c->rx_queue_lock));
             }
+
             flush_tx(c);
         }
     }
@@ -198,7 +238,9 @@ void network_worker() {
 
 void spawn_network_worker() {
     while (1) {
-        network_worker(force_network_worker);
+        printf("Network worker starting...\n");
+        network_worker();
+        printf("Network worker finished...\n");
     }
 }
 
@@ -217,8 +259,13 @@ void dump_nics() {
 
 void print_packet_queue(volatile struct packet * head) {
     volatile struct packet * p = head;
+    uint64_t loops = 0;
     while (p != 0) {
-        printf("  Packet %p: len=%d, data=%p, next=%p\n", p, p->len, p->data, p->next);
+        if (loops++ > 200) {
+            printf("WARNING: print_packet_queue Loop detected\n");
+            break;
+        }
+        printf("  Packet %p: len=%d, data=%p, prev= %p, next=%p\n", p, p->len, p->data, p->prev, p->next);
         p = p->next;
     }
 }
@@ -254,61 +301,61 @@ void inject_nic_status_callback(uint8_t *mac, uint8_t status) {
 }
 
 void inject_packet_callback(uint8_t * mac, uint8_t * buffer, uint16_t len) {
+    READY_TO_DIE();
+
     for (int i = 0; i < 16; i++) {
         if (nics[i] != 0) {
+
+    READY_TO_DIE();
             if (memcmp(nics[i]->mac, mac, 6) == 0) {
+                    READY_TO_DIE();
+
                 if (nics[i]->rx_queue_size > RX_HARD_THRESHOLD) {
+    READY_TO_DIE();
+
                     atomic_increment_u64(&(nics[i]->dropped_rx));
+    READY_TO_DIE();
+
                     printf("WARNING: RX queue is full, dropping packet\n");
+    READY_TO_DIE();
+
                     return;
                 }
                 
+    READY_TO_DIE();
+
                 if (len > 1500) {
+    READY_TO_DIE();
+
                     atomic_increment_u64(&(nics[i]->dropped_rx));
+    READY_TO_DIE();
+
                     printf("WARNING: Packet is too large, dropping packet\n");
+    READY_TO_DIE();
+
                     return;
+    READY_TO_DIE();
+
                 }
+    READY_TO_DIE();
 
                 volatile struct packet * p = create_rx_packet(nics[i], len);
+    READY_TO_DIE();
+
                 if (p == 0) {
+    READY_TO_DIE();
+
                     printf("WARNING: Failed to create packet\n");
+    READY_TO_DIE();
                     return;
+    READY_TO_DIE();
+
                 }
+    READY_TO_DIE();
 
                 memcpy(p->data, buffer, len);
 
-
-                if (nics[i]->rx_queue_size > RX_CLEAN_THRESHOLD) {
-                    uint64_t freed = 0;
-                    printf("Trying to free space in rx queue\n", nics[i]->name);
-
-                    if (!try_acquire_lock(&(nics[i]->rx_queue_lock))) {
-                        printf("WARNING: RX queue is locked, cant free space\n");
-                        return;
-                    }
-
-                    volatile struct packet * p = get_packet_head(nics[i], NET_RX_QUEUE);
-                    while (p != 0) {
-                        if (p->processed == 1) {
-                            volatile struct packet * next = p->next;
-                            free(p->data);
-                            free((void*)p);
-                            p = next;
-                            freed++;
-                        } else {
-                            p = p->next;
-                        }
-                    }
-                    printf("Freed %d packets\n", freed);
-                    atomic_sub_u64(&(nics[i]->rx_queue_size), freed);
-
-                    release_lock(&(nics[i]->rx_queue_lock));
-
-                    if (nics[i]->rx_queue_size > RX_CLEAN_THRESHOLD) {
-                        printf("WARNING: RX queue is over capacity, we recommend processing ASAP\n");
-                    }
-                }
-
+    READY_TO_DIE();
                 return;
             }
         }
@@ -370,60 +417,93 @@ void change_nic_status(struct nic * n, uint8_t status) {
 }
 
 volatile struct packet* create_rx_packet(struct nic * n, uint16_t len) {
+    READY_TO_DIE();
     volatile struct packet * p = (struct packet*)malloc(sizeof(struct packet));
+        READY_TO_DIE();
+
     p->len = len;
+    READY_TO_DIE();
+
     p->data = (uint8_t*)malloc(len);
+    READY_TO_DIE();
+
+    p->prev = 0;
     p->next = 0;
-    p->processed = 0;
+    READY_TO_DIE();
 
-
+    READY_TO_DIE();
     if (!try_acquire_lock(&(n->rx_queue_lock))) {
+            READY_TO_DIE();
+
         printf("WARNING: RX queue is locked, dropping packet\n");
+    READY_TO_DIE();
+
         n->dropped_rx++;
+    READY_TO_DIE();
+
         free(p->data);
+    READY_TO_DIE();
+
         free((void*)p);
+    READY_TO_DIE();
+
         return;
     }
 
-    //Insert packet at the beginning of the queue
-    volatile struct packet * head = n->rx_queue;
-    p->next = head;
+    //Insert packet at the end of the queue
+    READY_TO_DIE();
+
+    p->next = n->rx_queue;
+    READY_TO_DIE();
+
+    if (n->rx_queue != 0) {
+        n->rx_queue->prev = p;
+    }
+
+    p->prev = 0;
+    READY_TO_DIE();
+
     n->rx_queue = p;
+
+    READY_TO_DIE();
     n->rx_queue_size++;
 
+    READY_TO_DIE();
+
     release_lock(&(n->rx_queue_lock));
+    READY_TO_DIE();
 
     return p;
 }
 
 struct packet* create_tx_packet(struct nic * n, uint16_t len) {
+    READY_TO_DIE();
+
     struct packet * p = (struct packet*)malloc(sizeof(struct packet));
     p->len = len;
     p->data = (uint8_t*)malloc(len);
     memset(p->data, 0, len);
     p->next = 0;
-    p->processed = 0;
+    p->prev = 0;
 
     //Insert packet at the beginning of the queue
     volatile struct packet * head = n->tx_queue;
     p->next = head;
+    if (head != 0) {
+        head->prev = p;
+    }
+
+    p->prev = 0;
     n->tx_queue = p;
     
-    return p;
-}
 
-volatile struct packet* peek_rx(struct nic * n) {
-    volatile struct packet * p = n->rx_queue;
-    if (p == 0) return 0;
-    //Get first packet that has not been processed
-    while (p->processed == 1) {
-        p = p->next;
-        if (p == 0) return 0;
-    }
+
     return p;
 }
 
 volatile struct packet* get_packet_head(struct nic * n, uint8_t queue) {
+    READY_TO_DIE();
+
     if (queue == NET_RX_QUEUE) {
         return n->rx_queue;
     } else if (queue == NET_TX_QUEUE){
@@ -433,6 +513,8 @@ volatile struct packet* get_packet_head(struct nic * n, uint8_t queue) {
 }
 
 void flush_tx(struct nic * n) {
+    READY_TO_DIE();
+
     volatile struct packet * p = n->tx_queue;
     while (p != 0) {
         //Send packet
@@ -443,7 +525,6 @@ void flush_tx(struct nic * n) {
         eth_dump(&test);
 
         device_write(n->device_name, p->len, 0x0, p->data);
-        p->processed = 1;
         volatile struct packet * next = p->next;
         free(p->data);
         free((void*)p);
@@ -454,11 +535,12 @@ void flush_tx(struct nic * n) {
 
 //Send and free num packets
 void tx_n(struct nic * n, uint16_t num) {
+    READY_TO_DIE();
+
     volatile struct packet * p = n->tx_queue;
     for (int i = 0; i < num; i++) {
         //Send packet
         device_write(n->device_name, p->len, 0x0, p->data);
-        p->processed = 1;
         volatile struct packet * next = p->next;
         free(p->data);
         free((void*)p);

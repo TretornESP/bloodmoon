@@ -52,7 +52,8 @@ struct task* create_task(void * init_func, const char* tty);
 void kill_task(int16_t pid);
 void init_scheduler();
 void pseudo_ps();
+void exit();
 void yield();
 void task_test();
-void go(uint8_t preempt);
+void go(uint32_t preempt);
 #endif

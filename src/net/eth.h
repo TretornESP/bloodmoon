@@ -43,6 +43,7 @@ struct eth {
 //uint8_t eth_check_crc(struct eth* eth);
 
 void eth_create(struct eth *eth, uint8_t* sa, uint8_t *da, uint8_t *data, uint8_t *type, uint16_t length);
+void eth_destroy(struct eth *eth);
 uint16_t eth_to_packet(struct eth* eth, uint8_t * buffer, uint16_t max_size);
 uint8_t eth_from_packet(struct eth *eth, uint8_t* data, uint64_t size);
 

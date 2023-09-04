@@ -21,7 +21,9 @@ uint16_t eth_get_type(struct eth *eth) {
 }
 
 void eth_create(struct eth *eth, uint8_t* sa, uint8_t *da, uint8_t *data, uint8_t *type, uint16_t length) {
-    eth->data = data;
+    eth->data = malloc(length);
+    memcpy(eth->data, data, length);
+    
     if (length < 46) {
         length = 46;
     }
@@ -104,6 +106,11 @@ uint8_t eth_from_packet(struct eth *eth, uint8_t* data, uint64_t size) {
     #endif
     
     return 1;
+}
+
+void eth_destroy(struct eth *eth) {
+    if (eth == 0) return;
+    if (eth->data) free(eth->data);
 }
 
 uint64_t eth_get_data_size(struct eth *eth) {

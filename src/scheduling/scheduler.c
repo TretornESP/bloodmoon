@@ -101,10 +101,12 @@ void unblock_task(struct task * task) {
 }
 
 void __attribute__((noinline)) yield() {
+    __asm__ volatile("cli");
     if (current_task->last_scheduled != 0)
         current_task->cpu_time += (get_ticks_since_boot() - current_task->last_scheduled);
 
     struct task * prev = schedule();
+    //printf("Switching from task %d to %d\n", prev->pid, current_task->pid);
 
     current_task->last_scheduled = get_ticks_since_boot();
 
@@ -116,10 +118,12 @@ void __attribute__((noinline)) yield() {
 }
 
 void add_task(struct task* task) {
+    lock_scheduler();
     printf("Adding task %d\n", task->pid);
 
     if (task_head == 0) {
         task_head = task;
+        unlock_scheduler();
         return;
     }
 
@@ -130,14 +134,17 @@ void add_task(struct task* task) {
 
     current->next = task;
     task->prev = current;
+    unlock_scheduler();
 }
 
 void remove_task(struct task* task) {
+    lock_scheduler();
     if (task->prev == 0) {
         task_head = task->next;
         if (task_head != 0) {
             task_head->prev = 0;
         }
+        unlock_scheduler();
         return;
     }
 
@@ -145,45 +152,56 @@ void remove_task(struct task* task) {
     if (task->next != 0) {
         task->next->prev = task->prev;
     }
+    unlock_scheduler();
 }
 
 struct task* get_task(int16_t pid) {
+    lock_scheduler();
     struct task* current = task_head;
     if (current == 0) {
+        unlock_scheduler();
         return 0;
     }
 
     if (current->pid == pid) {
+        unlock_scheduler();
         return current;
     }
 
     while (current->next != 0) {
         if (current->next->pid == pid) {
+            unlock_scheduler();
             return current->next;
         }
         current = current->next;
     }
 
+    unlock_scheduler();
     return 0;
 }
 
 struct task* get_status(long state) {
+    lock_scheduler();
     struct task* current = task_head;
     if (current == 0) {
+        unlock_scheduler();
         return 0;
     }
 
     if (current->state == state) {
+        unlock_scheduler();
         return current;
     }
 
     while (current->next != 0) {
         if (current->next->state == state) {
+            unlock_scheduler();
             return current->next;
         }
         current = current->next;
     }
 
+    unlock_scheduler();
     return 0;
 }
 
@@ -210,18 +228,18 @@ void pseudo_ps() {
     return;
 }
 
-struct task* get_current_task() {
+struct task* get_current_task() {   
     return current_task;
 }
 
 //void go(uint8_t preempt) {
-void go(uint8_t preempt) {
+void go(uint32_t preempt) {
+    __asm__("cli");
 
     shithole_task = malloc(sizeof(struct task));
     memset(shithole_task, 0, sizeof(struct task));
     schedule();
     if (preempt) {
-        __asm__("cli");
         set_preeption_ticks(preempt);
         enable_preemption();
     }
@@ -247,15 +265,19 @@ void idle() {
 }
 
 void exit() {
-    //printf("Exiting task %d\n", current_task->pid);
+    __asm__ volatile("cli");
+    printf("Exiting task %d\n", current_task->pid);
+    current_task->exit_code = 0;
     current_task->state = TASK_ZOMBIE;
     yield();
 }
 
 void kill_task(int16_t pid) {
+    lock_scheduler();
     struct task* task = get_task(pid);
     if (task == 0) {
         printf("No such task\n");
+        unlock_scheduler();
         return;
     }
 
@@ -263,12 +285,13 @@ void kill_task(int16_t pid) {
     task->exit_code = 0;
     task->exit_signal = SIGKILL;
     task->state = TASK_ZOMBIE;
+    unlock_scheduler();
 }
 
 void atask() {
     int i = 10;
-    while (i--) {
-        printf("atask: %d\n", i);
+    while (1) {
+        printf("atask: %d\n", i++);
         yield();
     }
     exit();
@@ -276,14 +299,15 @@ void atask() {
 
 void btask() {
     int i = 20;
-    while (i--) {
-        printf("btask: %d\n", i);
+    while (1) {
+        printf("btask: %d\n", i++);
         yield();
     }
     exit();
 }
 
 struct task* create_task(void * init_func, const char * tty) {
+    lock_scheduler();
     struct task * task = malloc(sizeof(struct task));
     task->state = TASK_READY;
     task->flags = 0;
@@ -379,12 +403,13 @@ struct task* create_task(void * init_func, const char * tty) {
     task->prev = 0;
 
     printf("Created task for address %p\n", init_func);
-
+    unlock_scheduler();
     return task;
 }
 
 void init_scheduler() {
     printf("### SCHEDULER STARTUP ###\n");
+    lock_scheduler();
     struct task * idle_task = create_task(idle, "default"); //Spawn idle task
     idle_task->pid = 0;
     idle_task->state = TASK_IDLE;
@@ -394,16 +419,20 @@ void init_scheduler() {
     current_task = task_head;
 
     printf("### SCHEDULER STARTUP DONE ###\n");
+    unlock_scheduler();
 }
 
 void set_current_tty(char * tty) {
+    lock_scheduler();
     if (current_task == 0) {
+        unlock_scheduler();
         return;
     }
     memset(current_task->tty, 0, 32);
     strncpy(current_task->tty, tty, strlen(tty));
     //Make sure it's null terminated
     current_task->tty[strlen(tty)] = '\0';
+    unlock_scheduler();
 }
 
 void task_test() {
@@ -412,9 +441,12 @@ void task_test() {
 }
 
 void reset_current_tty() {
+    lock_scheduler();
     if (current_task == 0) {
+        unlock_scheduler();
         return;
     }
     memset(current_task->tty, 0, 32);
     strncpy(current_task->tty, "default\0", 8);
+    unlock_scheduler();
 }
