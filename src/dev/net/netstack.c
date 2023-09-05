@@ -12,13 +12,24 @@
 #include "../../net/crc.h"
 
 #include "../../scheduling/pit.h"
+#include "../../scheduling/sline.h"
 
 #include "../../memory/heap.h"
 
 #include "../devices.h"
 
+//Set last_lock to the name of the function and line number of the lock, first memset to 0
+#define LL() { \
+    memset(last_lock, 0, 64); \
+    sprintf(last_lock, "%s:%d", __FUNCTION__, __LINE__); \
+}
+
 
 uint8_t global = 0;
+
+char last_lock[64] = {0};
+
+
 struct nic * nics[16] = {0};
 
 void dump_arp_cache(struct nic* nic) {
@@ -194,16 +205,18 @@ void network_worker() {
             
             uint64_t rounds = 0;
 
+            if (!try_acquire_lock(&(c->rx_queue_lock))) {
+                printf("WARNING: RX queue is locked, cant process rn, last_lock: %s\n", last_lock);
+                break;
+            } else {
+                LL();
+            }
+
             volatile struct packet * p = get_packet_head(c, NET_RX_QUEUE);
 
             while (p != 0) {
-                if (rounds++ > 200) {
+                if (rounds++ > RX_HARD_THRESHOLD) {
                     printf("WARNING: network_worker loop detected!\n");
-                    break;
-                }
-
-                if (!try_acquire_lock(&(c->rx_queue_lock))) {
-                    printf("WARNING: RX queue is locked, cant process rn\n");
                     break;
                 }
                 
@@ -228,8 +241,11 @@ void network_worker() {
 
                 c->rx_queue_size--;
 
-                release_lock(&(c->rx_queue_lock));
             }
+
+            release_lock(&(c->rx_queue_lock));
+            if (rounds > 0)
+                printf("[WORKER] Processed %d packets\n", rounds);
 
             flush_tx(c);
         }
@@ -237,10 +253,18 @@ void network_worker() {
 }
 
 void spawn_network_worker() {
+    uint64_t ticks;
     while (1) {
-        printf("Network worker starting...\n");
+        printf("Network worker\n");
+        ticks = get_ticks_since_boot();
         network_worker();
-        printf("Network worker finished...\n");
+        ticks = ticks_to_ms(get_ticks_since_boot() - ticks);
+        if (ticks < RX_WORKER_MS) {
+            MSLEEP(RX_WORKER_MS - ticks);
+        } else {
+            printf("WARNING: network_worker took too long (%d ms)\n", ticks);
+            MSLEEP(RX_WORKER_MS);
+        }
     }
 }
 
@@ -261,11 +285,11 @@ void print_packet_queue(volatile struct packet * head) {
     volatile struct packet * p = head;
     uint64_t loops = 0;
     while (p != 0) {
-        if (loops++ > 200) {
+        if (loops++ > RX_HARD_THRESHOLD) {
             printf("WARNING: print_packet_queue Loop detected\n");
             break;
         }
-        printf("  Packet %p: len=%d, data=%p, prev= %p, next=%p\n", p, p->len, p->data, p->prev, p->next);
+        printf("  Packet %p: len=%d, data=%p, prev=%p, next=%p\n", p, p->len, p->data, p->prev, p->next);
         p = p->next;
     }
 }
@@ -435,7 +459,7 @@ volatile struct packet* create_rx_packet(struct nic * n, uint16_t len) {
     if (!try_acquire_lock(&(n->rx_queue_lock))) {
             READY_TO_DIE();
 
-        printf("WARNING: RX queue is locked, dropping packet\n");
+        printf("WARNING: RX queue is locked, dropping packet, last_lock: %s\n", last_lock);
     READY_TO_DIE();
 
         n->dropped_rx++;
@@ -448,6 +472,8 @@ volatile struct packet* create_rx_packet(struct nic * n, uint16_t len) {
     READY_TO_DIE();
 
         return;
+    } else {
+        LL();
     }
 
     //Insert packet at the end of the queue

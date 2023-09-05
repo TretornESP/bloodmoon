@@ -9,8 +9,9 @@
 #define AF_INET 0x2
 #define AF_INET6 0x1C
 
-#define RX_CLEAN_THRESHOLD 64
-#define RX_HARD_THRESHOLD 128
+//Max of 163k packets per second
+#define RX_HARD_THRESHOLD 0x2000
+#define RX_WORKER_MS      50
 
 #include <stdint.h>
 #include "../../scheduling/concurrency.h"

@@ -180,6 +180,11 @@ $(OBJDIR)/drivers/serial/serial.o: $(SRCDIR)/drivers/serial/serial.c
 	@ mkdir -p $(@D)
 	@$(CC) $(CFLAGS) -mgeneral-regs-only -c $^ -o $@
 
+$(OBJDIR)/util/dbgprinter.o: $(SRCDIR)/util/dbgprinter.c
+#	@ echo !==== COMPILING $^
+	@ mkdir -p $(@D)
+	@$(CC) $(CFLAGS) -mgeneral-regs-only -c $^ -o $@
+
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 #	@ echo !==== COMPILING $^
 	@ mkdir -p $(@D)

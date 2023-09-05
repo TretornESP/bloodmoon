@@ -14,6 +14,7 @@
 
 #include "../scheduling/pit.h"
 #include "../scheduling/scheduler.h"
+#include "../scheduling/sline.h"
 
 #include "../io/interrupts.h"
 
@@ -70,7 +71,7 @@ void boot() {
     init_paging();
     init_heap();
     init_gdt();
-    init_pit(100);
+    init_pit(100000);
     init_interrupts(0); //One disables pit
     init_drive();
     init_serial_dd();
@@ -84,10 +85,11 @@ void boot() {
     register_filesystem(tty_registrar);
     init_vfs();
     init_scheduler();
+    //init_sline();
     set_current_tty("ttya");
     init_dbgshell("ttya");
     add_task(create_task((void*)spawn_network_worker, "ttya"));
-    go(3); //The number is the number of ticks for preemption, zero for cooperative scheduling
+    go(10); //The number is the number of ticks for preemption, zero for cooperative scheduling
 
     panic("Kernel returned to boot() (this should never happen!)\n");
 }

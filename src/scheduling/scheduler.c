@@ -44,7 +44,7 @@ struct task * schedule() {
     }
 
     if (next_task == 0) {
-        printf("No tasks found, running idle task\n");
+        //printf("No tasks found, running idle task\n");
         next_task = task_head;
         if (next_task->state != TASK_IDLE) {
             panic("Idle task is not valid or at head\n");
@@ -87,6 +87,7 @@ void unlock_scheduler(void) {
 }
 
 void block_task(long reason) {
+    printf("Blocking task %d\n", current_task->pid);
     lock_scheduler();
     current_task->state = reason;
     yield();
@@ -94,6 +95,7 @@ void block_task(long reason) {
 }
 
 void unblock_task(struct task * task) {
+    printf("Unblocking task %d\n", task->pid);
     lock_scheduler();
     task->state = TASK_READY;
     yield();
@@ -206,11 +208,13 @@ struct task* get_status(long state) {
 }
 
 int16_t get_free_pid() {
+    lock_scheduler();
     int16_t pid = 1;
     while (get_task(pid) != 0) {
         pid++;
     }
-
+    printf("Free pid: %d\n", pid);
+    unlock_scheduler();
     return pid;
 }
 
@@ -402,9 +406,22 @@ struct task* create_task(void * init_func, const char * tty) {
     task->next = 0;
     task->prev = 0;
 
-    printf("Created task for address %p\n", init_func);
+    printf("Created task with pid %d for address %p\n", task->pid, init_func);
     unlock_scheduler();
     return task;
+}
+
+void pause_task(struct task* task) {
+    lock_scheduler();
+    printf("Pausing task %d\n", task->pid);
+    task->state = TASK_UNINTERRUPTIBLE;
+    unlock_scheduler();
+}
+void resume_task(struct task* task) {
+    lock_scheduler();
+    printf("Resuming task %d\n", task->pid);
+    task->state = TASK_READY;
+    unlock_scheduler();
 }
 
 void init_scheduler() {

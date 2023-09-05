@@ -28,12 +28,18 @@ void timer_phase(int hz) {
 
 void init_pit(int hertz) {
     printf("### PIT STARTUP ###\n");
+    if (hertz < 100 || hertz % SUBTICKS_PER_TICK || (hertz / SUBTICKS_PER_TICK) < 1000) {
+        printf("Invalid PIT frequency %d\n", hertz);
+        return;
+    }
     pit.boot_epoch = get_boot_time();
     pit.timer_ticks = 0;
     pit.timer_subticks = 0;
     pit.preemption_ticks = 0;
     pit.preemption_enabled = 0;
-    pit.ticks_per_second = hertz;
+    pit.ticks_per_second = hertz / SUBTICKS_PER_TICK;
+    pit.wakeup_handler = (void*)0x0;
+    pit.wakeup_ticks = 0;
     
     timer_phase(hertz);
 }
@@ -43,6 +49,29 @@ void tick() {
     if (++pit.timer_subticks == SUBTICKS_PER_TICK) {
         pit.timer_ticks++;
         pit.timer_subticks = 0;
+        if (pit.wakeup_handler != 0x0 && pit.wakeup_ticks != 0 && pit.timer_ticks % pit.wakeup_ticks) {
+            pit.wakeup_handler();
+        }
+    }
+}
+
+uint64_t ticks_to_ms(uint64_t ticks) {
+    float ms_per_tick = 1000.0 / pit.ticks_per_second;
+    return (ticks * ms_per_tick);
+}
+
+uint64_t ms_to_ticks(uint64_t ms) {
+    float ticks_per_ms = pit.ticks_per_second / 1000.0;
+    return (ms * ticks_per_ms);
+}
+
+void set_wakeup_call(void (* handler)(), uint64_t ticks) {
+    if (handler == 0x0) {
+        pit.wakeup_handler = (void*)0x0;
+        pit.wakeup_ticks = 0;
+    } else {
+        pit.wakeup_handler = handler;
+        pit.wakeup_ticks = ticks;
     }
 }
 
@@ -77,6 +106,10 @@ void sleep(uint64_t seconds) {
 
 uint64_t get_ticks_since_boot() {
     return pit.timer_ticks;
+}
+
+uint64_t get_ticks_per_second() {
+    return pit.ticks_per_second;
 }
 
 uint64_t get_epoch() {

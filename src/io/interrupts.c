@@ -26,7 +26,7 @@
 
 #define PIC_EOI 0x20
 
-#define __UNDEFINED_HANDLER dbg_print(__func__); (void)frame; __asm__ ("cli"); panic("Undefined interrupt handler: %s", __func__);
+#define __UNDEFINED_HANDLER  __asm__ ("cli"); dbg_print(__func__); (void)frame; set_debug_msg(__func__); panic("Undefined interrupt handler");
 
 struct idtr idtr;
 volatile int dynamic_interrupt = -1;
@@ -86,7 +86,10 @@ void remap_pic() {
 __attribute__((interrupt)) void PageFault_Handler(struct interrupt_frame * frame) {
    uint64_t faulting_address;
    __asm__ volatile("mov %%cr2, %0" : "=r" (faulting_address));
-   panic("Page fault at address: 0x%lx\n", faulting_address);
+   char buffer[20];
+   sprintf(buffer, "Page Fault Address: %x\n", faulting_address);
+   set_debug_msg(buffer);
+   panic("Page fault\n");
 }
 
 __attribute__((interrupt)) void DoubleFault_Handler(struct interrupt_frame * frame) {
@@ -199,10 +202,13 @@ __attribute__((interrupt)) void Syscall_Handler(struct interrupt_frame* frame) {
 
 //you may need save_all here
 __attribute__((interrupt)) void PitInt_Handler(struct interrupt_frame * frame) {
+    __asm__ volatile("cli");
     tick();
     pic_end_master();
-    if (requires_preemption())
+    if (requires_preemption()) {
         yield();
+    }
+    __asm__ volatile("sti");
 }
 
 __attribute__((interrupt)) void Serial1Int_Handler(struct interrupt_frame * frame) {
@@ -290,6 +296,10 @@ void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uin
 void hook_interrupt(uint8_t interrupt, void* handler, uint8_t dynamic) {
     __asm__("cli");
     if (dynamic) {
+        if (dynamic_interrupt_handlers[interrupt] != 0) {
+            dbg_print("Dynamic interrupt already hooked\n");
+            return;
+        }
         dynamic_interrupt_handlers[interrupt] = handler;
     } else {
         set_idt_gate((uint64_t)handler, interrupt, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());

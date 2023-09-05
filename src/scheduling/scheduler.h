@@ -50,10 +50,15 @@ void reset_current_tty();
 void add_task(struct task* task);
 struct task* create_task(void * init_func, const char* tty);
 void kill_task(int16_t pid);
+void pause_task(struct task* task);
+void resume_task(struct task* task);
 void init_scheduler();
 void pseudo_ps();
 void exit();
 void yield();
 void task_test();
 void go(uint32_t preempt);
+
+void lock_scheduler(void);
+void unlock_scheduler(void);
 #endif
