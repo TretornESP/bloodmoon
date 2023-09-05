@@ -259,12 +259,13 @@ void spawn_network_worker() {
         ticks = get_ticks_since_boot();
         network_worker();
         ticks = ticks_to_ms(get_ticks_since_boot() - ticks);
-        if (ticks < RX_WORKER_MS) {
-            MSLEEP(RX_WORKER_MS - ticks);
-        } else {
-            printf("WARNING: network_worker took too long (%d ms)\n", ticks);
-            MSLEEP(RX_WORKER_MS);
-        }
+        MSLEEP(5000);
+        //if (ticks < RX_WORKER_MS) {
+        //    MSLEEP(RX_WORKER_MS - ticks);
+        //} else {
+        //    printf("WARNING: network_worker took too long (%d ms)\n", ticks);
+        //    MSLEEP(RX_WORKER_MS);
+        //}
     }
 }
 
