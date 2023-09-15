@@ -11,7 +11,7 @@
 
 //Max of 163k packets per second
 #define RX_HARD_THRESHOLD 0x2000
-#define RX_WORKER_MS      50
+#define RX_WORKER_MS      500
 
 #include <stdint.h>
 #include "../../scheduling/concurrency.h"

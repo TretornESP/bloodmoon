@@ -29,7 +29,8 @@ void set_preeption_ticks(uint64_t ticks);
 void enable_preemption();
 void preempt_toggle();
 uint8_t requires_preemption();
-
+uint8_t requires_wakeup();
+void wakeup();
 uint64_t get_ticks_since_boot();
 uint64_t get_epoch();
 

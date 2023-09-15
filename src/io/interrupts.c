@@ -13,6 +13,7 @@
 #include "../drivers/net/e1000/e1000c.h"
 #include "../scheduling/scheduler.h"
 #include "../scheduling/pit.h"
+#include "../scheduling/sline.h"
 #include "../syscall/syscall.h"
 
 #define PIC1_COMMAND 0x20
@@ -207,6 +208,8 @@ __attribute__((interrupt)) void PitInt_Handler(struct interrupt_frame * frame) {
     pic_end_master();
     if (requires_preemption()) {
         yield();
+    } else if (requires_wakeup()) {
+        wakeup();
     }
     __asm__ volatile("sti");
 }

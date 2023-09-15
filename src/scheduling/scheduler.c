@@ -413,13 +413,13 @@ struct task* create_task(void * init_func, const char * tty) {
 
 void pause_task(struct task* task) {
     lock_scheduler();
-    printf("Pausing task %d\n", task->pid);
+    //printf("Pausing task %d\n", task->pid);
     task->state = TASK_UNINTERRUPTIBLE;
     unlock_scheduler();
 }
 void resume_task(struct task* task) {
     lock_scheduler();
-    printf("Resuming task %d\n", task->pid);
+    //printf("Resuming task %d\n", task->pid);
     task->state = TASK_READY;
     unlock_scheduler();
 }

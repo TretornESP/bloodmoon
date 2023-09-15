@@ -3,9 +3,13 @@
 #include "../debugger/debug.h"
 #include "string.h"
 #define BUFFERSIZE 128
+#define MSG_NUM 0x1000
 
-char dbgmsg[BUFFERSIZE] = {0};
+struct dmsg * head = 0;
+char dbgmsg[MSG_NUM][BUFFERSIZE] = {0};
 char boot_conversor_buffer[BUFFERSIZE] = {0};
+int dbgmsg_index = 0;
+int dbgmsg_index2 = 0;
 
 void dbg_print(const char * str) {
     void (*writer)(const char*, uint64_t) = get_terminal_writer();
@@ -13,9 +17,11 @@ void dbg_print(const char * str) {
 }
 
 void set_debug_msg(const char * str) {
-    memset(dbgmsg, 0, BUFFERSIZE);
-    strncpy(dbgmsg, str, BUFFERSIZE);
-    dbgmsg[BUFFERSIZE - 1] = 0;
+    memset(dbgmsg[dbgmsg_index], 0, BUFFERSIZE);
+    strncpy(dbgmsg[dbgmsg_index], str, BUFFERSIZE);
+    dbgmsg[dbgmsg_index][BUFFERSIZE - 1] = 0;
+    dbgmsg_index = (dbgmsg_index + 1) % MSG_NUM;
+    dbgmsg_index2++;
 }
 
 void putchar(char chr) {
@@ -24,23 +30,36 @@ void putchar(char chr) {
 }
 
 void set_debug_data(const char * file, int line, const char * func) {
-    memset(dbgmsg, 0, BUFFERSIZE);
-    strncpy(dbgmsg, file, BUFFERSIZE);
-    dbgmsg[BUFFERSIZE - 1] = 0;
-    strncat(dbgmsg, ":", BUFFERSIZE - strlen(dbgmsg));
-    strncat(dbgmsg, itoa(line, 10), BUFFERSIZE - strlen(dbgmsg));
-    strncat(dbgmsg, ":", BUFFERSIZE - strlen(dbgmsg));
-    strncat(dbgmsg, func, BUFFERSIZE - strlen(dbgmsg));
+    memset(dbgmsg[dbgmsg_index], 0, BUFFERSIZE);
+    strncpy(dbgmsg[dbgmsg_index], file, BUFFERSIZE);
+    dbgmsg[dbgmsg_index][BUFFERSIZE - 1] = 0;
+    strncat(dbgmsg[dbgmsg_index], ":", BUFFERSIZE - strlen(dbgmsg[dbgmsg_index]));
+    strncat(dbgmsg[dbgmsg_index], itoa(line, 10), BUFFERSIZE - strlen(dbgmsg[dbgmsg_index]));
+    strncat(dbgmsg[dbgmsg_index], ":", BUFFERSIZE - strlen(dbgmsg[dbgmsg_index]));
+    strncat(dbgmsg[dbgmsg_index], func, BUFFERSIZE - strlen(dbgmsg[dbgmsg_index]));
     //Add \\n
-    strncat(dbgmsg, "\n", BUFFERSIZE - strlen(dbgmsg));
-    dbgmsg[BUFFERSIZE - 1] = 0;
+    strncat(dbgmsg[dbgmsg_index], "\n", BUFFERSIZE - strlen(dbgmsg[dbgmsg_index]));
+    dbgmsg[dbgmsg_index][BUFFERSIZE - 1] = 0;
+    dbgmsg_index = (dbgmsg_index + 1) % MSG_NUM;
+    dbgmsg_index2++;
 }
 
 void panic(const char * str) {
     
     dbg_print("\nKERNEL PANIC!\n");
     dbg_print(str);
-    dbg_print(dbgmsg);
+
+    dbg_print("\n\n");
+
+    dbg_print("Stack trace, calls: ");
+    dbg_print(itoa(dbgmsg_index2, 10));
+    dbg_print("\n");
+    for (int i = 0; i < MSG_NUM; i++) {
+        if (dbgmsg[i][0] != 0) {
+            dbg_print(dbgmsg[i]);
+        }
+    }
+    dbg_print("\n");
 
     if (!dbg_is_present()) {
         dbg_print("Debugger not present\n");

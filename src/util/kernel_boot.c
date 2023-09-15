@@ -71,7 +71,7 @@ void boot() {
     init_paging();
     init_heap();
     init_gdt();
-    init_pit(100000);
+    init_pit(50);
     init_interrupts(0); //One disables pit
     init_drive();
     init_serial_dd();
@@ -85,11 +85,11 @@ void boot() {
     register_filesystem(tty_registrar);
     init_vfs();
     init_scheduler();
-    //init_sline();
+    init_sline();
     set_current_tty("ttya");
     init_dbgshell("ttya");
-    //add_task(create_task((void*)spawn_network_worker, "ttya"));
-    go(100); //The number is the number of ticks for preemption, zero for cooperative scheduling
+    add_task(create_task((void*)spawn_network_worker, "ttya"));
+    go(5); //The number is the number of ticks for preemption, zero for cooperative scheduling
 
     panic("Kernel returned to boot() (this should never happen!)\n");
 }

@@ -198,12 +198,14 @@ void process_packet(volatile struct packet * p, struct nic* c) {
 }
 
 void network_worker() {
+    //printf("[WORKER] Starting network worker\n");
     READY_TO_DIE();
     for (int i = 0; i < 16; i++) {
         struct nic* c = nics[i];
         if (c != 0) {
             
             uint64_t rounds = 0;
+    READY_TO_DIE();
 
             if (!try_acquire_lock(&(c->rx_queue_lock))) {
                 printf("WARNING: RX queue is locked, cant process rn, last_lock: %s\n", last_lock);
@@ -211,6 +213,7 @@ void network_worker() {
             } else {
                 LL();
             }
+    READY_TO_DIE();
 
             volatile struct packet * p = get_packet_head(c, NET_RX_QUEUE);
 
@@ -219,33 +222,45 @@ void network_worker() {
                     printf("WARNING: network_worker loop detected!\n");
                     break;
                 }
-                
+               READY_TO_DIE();
+
                 process_packet(p, c);
                 volatile struct packet * prev = p->prev;
                 volatile struct packet * next = p->next;
+    READY_TO_DIE();
 
                 free(p->data);
+    READY_TO_DIE();
+
                 free((void*)p);
 
                 if (prev != 0) {
                     prev->next = next;
+          READY_TO_DIE();
+
                 } else {
                     c->rx_queue = next;
                 }
+    READY_TO_DIE();
 
                 if (next != 0) {
                     next->prev = prev;
                 }
+    READY_TO_DIE();
 
                 p = next;
 
                 c->rx_queue_size--;
+    READY_TO_DIE();
 
             }
 
             release_lock(&(c->rx_queue_lock));
+           READY_TO_DIE();
+
             if (rounds > 0)
                 printf("[WORKER] Processed %d packets\n", rounds);
+    READY_TO_DIE();
 
             flush_tx(c);
         }
@@ -255,17 +270,16 @@ void network_worker() {
 void spawn_network_worker() {
     uint64_t ticks;
     while (1) {
-        printf("Network worker\n");
         ticks = get_ticks_since_boot();
         network_worker();
         ticks = ticks_to_ms(get_ticks_since_boot() - ticks);
-        MSLEEP(5000);
-        //if (ticks < RX_WORKER_MS) {
-        //    MSLEEP(RX_WORKER_MS - ticks);
-        //} else {
-        //    printf("WARNING: network_worker took too long (%d ms)\n", ticks);
-        //    MSLEEP(RX_WORKER_MS);
-        //}
+        //MSLEEP(5000);
+        if (ticks < RX_WORKER_MS) {
+            MSLEEP(RX_WORKER_MS - ticks);
+        } else {
+            printf("WARNING: network_worker took too long (%d ms)\n", ticks);
+            MSLEEP(RX_WORKER_MS);
+        }
     }
 }
 

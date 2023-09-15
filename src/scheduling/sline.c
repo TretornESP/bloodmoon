@@ -23,10 +23,10 @@ struct sleep_queue * sleep_reason_queue_head = 0x0;
 void wakeup_handler() {
     //Remove all elements which have expired
     lock_scheduler();
-    printf("Wakeup handler called\n");
     struct sleep_queue * sq = sleep_time_queue_head;
+    uint32_t res = 0;
     while (sq != 0x0) {
-        printf("Task %d has been sleeping for %d ticks out of %d\n", sq->task->pid, get_ticks_since_boot() - sq->started_at, sq->expires_in);
+        //printf("Task %d has been sleeping for %d ticks out of %d\n", sq->task->pid, get_ticks_since_boot() - sq->started_at, sq->expires_in);
         if (sq->expires_in != 0 && get_ticks_since_boot() - sq->started_at >= sq->expires_in) {
             //resume task
             resume_task(sq->task);
@@ -44,12 +44,14 @@ void wakeup_handler() {
             struct sleep_queue * tmp = sq;
             sq = sq->next;
             free(tmp);
+
+            res++;
         } else {
             sq = sq->next;
         }
     }
     unlock_scheduler();
-    yield();
+    if (res) yield();
 }
 
 void init_sline() {
@@ -57,7 +59,7 @@ void init_sline() {
 }
 
 void _tsleep(uint64_t ticks) {
-    printf("I want to sleep for %d ticks\n", ticks);
+    //printf("I want to sleep for %d ticks\n", ticks);
     struct sleep_queue * sq = (struct sleep_queue *)malloc(sizeof(struct sleep_queue));
     sq->started_at = get_ticks_since_boot();
     sq->expires_in = ticks;
@@ -82,7 +84,7 @@ void _ssleep(uint64_t seconds) {
 }
 
 void _msleep(uint64_t milliseconds) {
-    printf("I want to sleep for %d ms\n", milliseconds);
+    //printf("I want to sleep for %d ms\n", milliseconds);
     _tsleep(ms_to_ticks(milliseconds));
 }
 
