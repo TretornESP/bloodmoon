@@ -51,6 +51,11 @@ uint64_t virtual_to_physical(struct page_directory *pml4, void* virtual_memory) 
     return physical;
 }
 
+uint64_t virtual_to_physical_current(void* virtual_memory) {
+    struct page_directory *pml4 = get_pml4();
+    return virtual_to_physical(pml4, virtual_memory);
+}
+
 void debug_memory_map(struct page_directory *pml4, void* virtual_memory, void* physical_memory) {
     struct page_map_index map;
     address_to_map((uint64_t)virtual_memory, &map);

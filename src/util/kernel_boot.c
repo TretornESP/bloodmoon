@@ -8,6 +8,8 @@
 #include "../debugger/debug.h"
 #include "../debugger/dbgshell.h"
 
+#include "../cpus/cpus.h"
+
 #include "../memory/memory.h"
 #include "../memory/paging.h"
 #include "../memory/heap.h"
@@ -20,6 +22,7 @@
 
 #include "../dev/smbios/smbios_interface.h"
 #include "../dev/devices.h"
+#include "../dev/acpi/acpi.h"
 
 #include "../drivers/disk/disk.h"
 #include "../drivers/serial/serial_dd.h"
@@ -67,6 +70,7 @@ void enable_debug(uint8_t reserved) {
 
 void boot() {
     init_simd();
+    init_cpus();
     init_memory();
     init_paging();
     init_heap();

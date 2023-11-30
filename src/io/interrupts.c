@@ -3,12 +3,15 @@
 
 #include "../arch/gdt.h"
 #include "../arch/tss.h"
+#include "../arch/getcpuid.h"
 #include "../util/dbgprinter.h"
 #include "../memory/memory.h"
 #include "../memory/heap.h"
 #include "../memory/paging.h"
 #include "../util/string.h"
 #include "../dev/pci/pci.h"
+#include "../dev/acpi/acpi.h"
+#include "../dev/apic/apic.h"
 #include "../drivers/keyboard/keyboard.h"
 #include "../drivers/net/e1000/e1000c.h"
 #include "../scheduling/scheduler.h"
@@ -324,7 +327,17 @@ void unhook_interrupt(uint8_t interrupt, uint8_t dynamic) {
 
 void init_interrupts(uint8_t pit_disable) {
     dbg_print("### INTERRUPTS STARTUP ###\n");
-    __asm__("cli");
+    //__asm__("cli");
+
+    
+    if (check_apic()) {
+        struct madt_header* madt = get_acpi_madt();
+        if (madt != 0) {
+            register_apic(madt, 0x0);
+        }
+        return;
+    }
+
     idtr.limit = 256 * sizeof(struct idtdescentry) - 1;
     idtr.offset = (uint64_t)request_current_page_identity();
     memset((void*)idtr.offset, 0, 256 * sizeof(struct idtdescentry));

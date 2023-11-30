@@ -92,3 +92,19 @@ void set_terminal_writer(uint64_t terminal) {
     }
     terminal_writer = terminal;
 }
+
+uint32_t get_smp_flags() {
+    return CALL_SERVICE(SMP)->flags;
+}
+
+uint32_t get_smp_bsp_lapic_id() {
+    return CALL_SERVICE(SMP)->bsp_lapic_id;
+}
+
+uint64_t get_smp_cpu_count() {
+    return CALL_SERVICE(SMP)->cpu_count;
+}
+
+struct bmoon_smp_info ** get_smp_cpus() {
+    return (struct bmoon_smp_info**)(CALL_SERVICE(SMP)->cpus);
+}

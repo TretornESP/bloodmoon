@@ -19,11 +19,14 @@ ASMC := nasm
 
 # This are specific to my setup, please modify them!!!!
 #########################DESKTOP SETTINGS#################################
-QEMU := "/mnt/c/Program Files/qemu/qemu-system-x86_64.exe"
+#QEMU := "/mnt/c/Program Files/qemu/qemu-system-x86_64.exe"
 #GDB := "/mnt/c/Users/85562/crossgdb/gdb-12.1/gdb/gdb"
+#WSLHOSTIP := $(shell ipconfig.exe | grep 'vEthernet (WSL)' -a -A4 | tail -n1 | cut -d":" -f 2 | tail -n1 | sed -e 's/\s*//g')
+
 #########################LAPTOP SETTINGS###################################
-#QEMU := qemu-system-x86_64
+QEMU := qemu-system-x86_64
 GDB := gdb
+WSLHOSTIP := 127.0.0.1
 ###########################################################################
 VBOXMANAGE := "/mnt/c/Program Files/Oracle/VirtualBox/VBoxManage.exe"
 VBOXHEADLESS := "/mnt/c/Program Files/Oracle/VirtualBox/VBoxHeadless.exe"
@@ -34,34 +37,51 @@ VBOXCOM4PORT := 4444
 CMDNEWSCREEN := cmd.exe /c start cmd /c wsl -e
 MNTDIR := /mnt/bloodmoon
 
-WSLHOSTIP := $(shell ipconfig.exe | grep 'vEthernet (WSL)' -a -A4 | tail -n1 | cut -d":" -f 2 | tail -n1 | sed -e 's/\s*//g')
 
 KERNEL_ENTRY := _start
 
 BLOCKSIZE := 1024
-MEMSIZE := 1024
+MEMSIZE := 4G
 VMEMSIZE := 128
-QFLAGS ?= -cpu qemu64 -d cpu_reset -machine q35 -m $(MEMSIZE) -boot d -serial stdio -serial telnet::4444,server,nowait -cdrom 
-QFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 -m $(MEMSIZE) -boot d -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -netdev tap,id=mynet0,ifname=tap,script=no,downscript=no -serial stdio -device e1000,netdev=mynet0,mac=51:52:53:54:55:56 -drive file=
+NUMAFLAGS := \
+-smp cpus=16
+#-object memory-backend-ram,size=1G,id=mem0 \
+#-object memory-backend-ram,size=1G,id=mem1 \
+#-object memory-backend-ram,size=1G,id=mem2 \
+#-object memory-backend-ram,size=1G,id=mem3 \
+#-numa node,memdev=mem0,cpus=0-3,nodeid=0 \
+#-numa node,memdev=mem1,cpus=4-7,nodeid=1 \
+#-numa node,memdev=mem2,cpus=8-11,nodeid=2 \
+#-numa node,memdev=mem3,cpus=12-15,nodeid=3 \
+#-numa dist,src=0,dst=1,val=15 \
+#-numa dist,src=2,dst=3,val=15 \
+#-numa dist,src=0,dst=2,val=20 \
+#-numa dist,src=0,dst=3,val=20 \
+#-numa dist,src=1,dst=2,val=20 \
+#-numa dist,src=1,dst=3,val=20
+
+QFLAGS ?= -cpu qemu64 -d cpu_reset -machine q35 $(NUMAFLAGS) -m $(MEMSIZE) -boot d -serial stdio -serial telnet::4444,server,nowait -cdrom 
+#-netdev tap,id=mynet0,ifname=tap,script=no,downscript=no -serial stdio -device e1000,netdev=mynet0,mac=51:52:53:54:55:56 
+QFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 $(NUMAFLAGS) -m $(MEMSIZE) -boot d -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -drive file=
 
 CFLAGS ?= -O2 -g -Wall -Wextra -pipe -std=c11
 NASMFLAGS ?= -F dwarf -g
 LDFLAGS ?=
 CPPFLAGS ?=
-GDBFLAGS ?=  --nx --command=$(GDBCFG)
+GDBFLAGS ?=  --nx --command=$(ABSDIR)/$(GDBCFG)
 GDBPORT ?= 1234
 
 ABSDIR := $(shell pwd)
-LMNDIR := limine
-SRCDIR := src
-BUILDHOME := build
-BUILDDIR := build/bin
-OBJDIR := build/lib
-ISOBUILDDIR := build/iso_root
-ISODIR := build/image
-PROGSDIR := progs/sources
-PROGSBUILDDIR := progs/export
-PROGSDATADIR := progs/data
+LMNDIR := $(ABSDIR)/limine
+SRCDIR := $(ABSDIR)/src
+BUILDHOME := $(ABSDIR)/build
+BUILDDIR := $(ABSDIR)/build/bin
+OBJDIR := $(ABSDIR)/build/lib
+ISOBUILDDIR := $(ABSDIR)/build/iso_root
+ISODIR := $(ABSDIR)/build/image
+PROGSDIR := $(ABSDIR)/progs/sources
+PROGSBUILDDIR := $(ABSDIR)/progs/export
+PROGSDATADIR := $(ABSDIR)/progs/data
 
 PROGS := $(wildcard $(PROGSDIR)/*)
 
@@ -223,7 +243,7 @@ setup:
 	@dd if=/dev/zero of=$(ISODIR)/$(IMG_RAW) bs=4096 count=102400
 	@git clone $(LMNREPO) --branch=$(LMNBRCH) --depth=1
 	@cp -v $(LMNDIR)/limine.sys $(LMNDIR)/limine-cd.bin $(LMNDIR)/limine-cd-efi.bin $(ISOBUILDDIR)
-	@echo file $(ABSDIR)/$(BUILDDIR)/$(KERNEL) > debug.gdb
+	@echo file $(BUILDDIR)/$(KERNEL) > debug.gdb
 	@echo target remote $(WSLHOSTIP):$(GDBPORT) >> debug.gdb
 	@echo set disassembly-flavor intel >> debug.gdb
 	@echo b $(KERNEL_ENTRY) >> debug.gdb
@@ -349,8 +369,7 @@ debugpt:
 # Due to eval weird behaviour
 	@make buildimggpt
 	@echo "Running GPT QEMU..."
-	$(CMDNEWSCREEN) $(GDB) $(GDBFLAGS) &
-	$(QEMU) -S -s $(QFLAGSEXP)$(ISODIR)/$(IMG)
+	$(CMDNEWSCREEN) $(GDB) $(GDBFLAGS) & $(QEMU) -S -s $(QFLAGSEXP)$(ISODIR)/$(IMG)
 
 debuge:
 	@make kernel

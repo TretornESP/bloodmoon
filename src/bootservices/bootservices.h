@@ -3,6 +3,18 @@
 #include "limine.h"
 #include <stdint.h>
 
+struct bmoon_smp_info;
+
+typedef void (*bmoon_goto_address)(struct bmoon_smp_info *);
+
+struct bmoon_smp_info {
+    uint32_t processor_id;
+    uint32_t lapic_id;
+    uint64_t reserved;
+    bmoon_goto_address goto_address;
+    uint64_t extra_argument;
+};
+
 void   (*get_terminal_writer())(const char*, uint64_t);
 
 char*    get_bootloader_name();
@@ -25,6 +37,11 @@ uint64_t get_rsdp_address();
 
 uint64_t get_smbios32_address();
 uint64_t get_smbios64_address();
+
+uint32_t get_smp_flags();
+uint32_t get_smp_bsp_lapic_id();
+uint64_t get_smp_cpu_count();
+struct bmoon_smp_info ** get_smp_cpus();
 
 void     set_terminal_extra_handler(); //TODO
 void     set_terminal_writer(uint64_t terminal);

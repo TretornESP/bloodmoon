@@ -3,6 +3,7 @@
 #include "../util/dbgprinter.h"
 #include "../util/string.h"
 #include "../util/printf.h"
+#include "../arch/getcpuid.h"
 
 struct device_driver char_device_drivers[256] = {0};
 struct device_driver block_device_drivers[256] = {0};
@@ -112,21 +113,19 @@ void unregister_network(uint8_t major) {
 
 void init_devices() {
     printf("### DEVICES STARTUP ###\n");
-    init_acpi();
     devices = (struct device*)request_page();
     memset(devices, 0, sizeof(struct device));
+
     struct fadt_header* fadt = get_acpi_fadt();
     if (fadt != 0) {
         register_fadt(fadt, insert_device_cb);
     }
+
     struct mcfg_header* mcfg = get_acpi_mcfg();
     if (mcfg != 0) {
         register_pci(mcfg, insert_device_cb);
     }
-    struct madt_header* madt = get_acpi_madt();
-    if (madt != 0) {
-        register_apic(madt, insert_device_cb);
-    }
+    
     register_comm(insert_device_cb);
 }
 

@@ -3,7 +3,7 @@
 #include "ext2_dentry.h"
 
 #include "ext2_inode.h"
-#include "ext2_bLock.h"
+#include "ext2_block.h"
 
 #include "ext2_util.h"
 #include "ext2_integrity.h"

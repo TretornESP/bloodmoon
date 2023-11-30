@@ -13,8 +13,7 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-
-#ifdef CUAK
+/*
 
 #include "stddef.h"
 #include "stdint.h"
@@ -88,12 +87,14 @@ static uint16_t net_i825xx_eeprom_read( i825xx_device_t *dev, uint8_t ADDR )
 	DATA = (uint16_t)((tmp >> 16) & 0xFFFF);
 	return DATA;
 }
+*/
 
 /****************************************************
  ** Management Data Input/Output (MDI/O) Interface **
  ** "This interface allows upper-layer devices to  **
  **  monitor and control the state of the PHY."    **
  ****************************************************/
+/*
 #define MDIC_PHYADD			(1 << 21)
 #define MDIC_OP_WRITE		(1 << 26)
 #define MDIC_OP_READ		(2 << 26)
@@ -372,10 +373,11 @@ static void i825xx_interrupt_handler( CPUContext *ctx )
 	// clearing the pending interrupts
 	mmio_read32(dev->mmio_address + 0xC0);
 }
-
+*/
 /***************************************************
  ** Intel 825xx-series Chipset Driver Entry Point **
  ***************************************************/
+/*
 int net_i825xx_init( pci_device_t *pcidev )
 {
 	net_device_t *netdev = (net_device_t *)malloc(sizeof(net_device_t));
@@ -460,5 +462,4 @@ int net_i825xx_init( pci_device_t *pcidev )
 	
 	return 0;
 }
-
-#endif
+*/

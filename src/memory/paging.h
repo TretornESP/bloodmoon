@@ -69,6 +69,7 @@ struct page_map_index{
 void init_paging();
 //void debug_memory_map(void*, void*);
 uint64_t virtual_to_physical(struct page_directory *, void*);
+uint64_t virtual_to_physical_current(void*);
 
 struct page_directory* allocate_pml4();
 struct page_directory* duplicate_current_pml4();

@@ -8,6 +8,7 @@
 #define RSDP        rsdp_request
 #define SMBIOS      smbios_request
 #define TIME        time_request
+#define SMP         smp_request
 
 static volatile struct limine_boot_time_request time_request = {
     .id = LIMINE_BOOT_TIME_REQUEST,
@@ -27,6 +28,11 @@ static volatile struct limine_memmap_request memmap_request = {
 };
 static volatile struct limine_kernel_address_request kernel_address_request = {
     .id = LIMINE_KERNEL_ADDRESS_REQUEST,
+    .revision = 0
+};
+static volatile struct limine_smp_request smp_request = {
+    .id = LIMINE_SMP_REQUEST,
+    .flags = 1,
     .revision = 0
 };
 static volatile struct limine_rsdp_request rsdp_request = {

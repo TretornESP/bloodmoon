@@ -7,6 +7,63 @@
 #include "../../util/dbgprinter.h"
 #include "../../util/timeout.h"
 
+const char acpi_signatures[][4] = {
+    BERT_SIGNATURE,
+    BOOT_SIGNATURE,
+    BGRT_SIGNATURE,
+    CPEP_SIGNATURE,
+    CSRT_SIGNATURE,
+    DBG2_SIGNATURE,
+    DBGP_SIGNATURE,
+    DSDT_SIGNATURE,
+    DMAR_SIGNATURE,
+    DRTM_SIGNATURE,
+    ECDT_SIGNATURE,
+    EINJ_SIGNATURE,
+    ERST_SIGNATURE,
+    ETDT_SIGNATURE,
+    FACS_SIGNATURE,
+    FADT_SIGNATURE,
+    FPDT_SIGNATURE,
+    GTDT_SIGNATURE,
+    HEST_SIGNATURE,
+    HPET_SIGNATURE,
+    IBFT_SIGNATURE,
+    IORT_SIGNATURE,
+    IVRS_SIGNATURE,
+    LPIT_SIGNATURE,
+    MADT_SIGNATURE,
+    MCFG_SIGNATURE,
+    MCHI_SIGNATURE,
+    MPST_SIGNATURE,
+    MSCT_SIGNATURE,
+    MSDM_SIGNATURE,
+    NFIT_SIGNATURE,
+    OEMx_SIGNATURE,
+    PCCT_SIGNATURE,
+    PMTT_SIGNATURE,
+    PSDT_SIGNATURE,
+    RASF_SIGNATURE,
+    SBST_SIGNATURE,
+    SLIC_SIGNATURE,
+    SLIT_SIGNATURE,
+    SPCR_SIGNATURE,
+    SPMI_SIGNATURE,
+    SRAT_SIGNATURE,
+    SSDT_SIGNATURE,
+    STAO_SIGNATURE,
+    TCPA_SIGNATURE,
+    TPM2_SIGNATURE,
+    UEFI_SIGNATURE,
+    WAET_SIGNATURE,
+    WDAT_SIGNATURE,
+    WDRT_SIGNATURE,
+    WPBT_SIGNATURE,
+    XENV_SIGNATURE,
+    XSDT_SIGNATURE
+};
+uint8_t acpi_signature_count = sizeof(acpi_signatures) / 4;
+
 uint8_t acpi_sdt_checksum(struct acpi_sdt_header* table_header)
 {
     uint8_t sum = 0;
@@ -198,6 +255,29 @@ struct fadt_header* get_acpi_fadt() {
     return fadt_header;
 }
 
+void enumerate_tables() {
+    void* rsdp_address = (void*)get_rsdp_address();
+    struct rsdp_descriptor* prev_rsdp = (struct rsdp_descriptor*)rsdp_address;
+    struct acpi_sdt_header * table;
+    if (prev_rsdp->revision == 0) {
+        for (uint32_t i = 0; i < acpi_signature_count; i++) {
+            table  = init_acpi_vz(rsdp_address, acpi_signatures[i]);
+            if (table) {
+                printf("Table %d vz => %s\n", i, table->signature);
+            }
+        }
+    } else if (prev_rsdp->revision == 2) {
+        for (uint32_t i = 0; i < acpi_signature_count; i++) {
+            table = init_acpi_vt(rsdp_address, acpi_signatures[i]);
+            if (table) {
+                printf("Table %d vt => %s\n", i, table->signature);
+            }
+        }
+    } else {
+        panic("RSDP revision not supported");
+    }
+}
+
 uint8_t is_enabled(struct fadt_header* fadt_header) {
     //Check if ACPI is enabled
     if (fadt_header->smi_command_port != 0) return 0;
@@ -209,10 +289,11 @@ uint8_t is_enabled(struct fadt_header* fadt_header) {
 
 void init_acpi() {
     struct fadt_header* fadt_header = get_acpi_fadt();
-    if (is_enabled(fadt_header)) {printf("ACPI is enabled\n"); return;}
+    if (is_enabled(fadt_header)) {printf("ACPI is enabled\n"); enumerate_tables(); return;}
     printf("ACPI is not enabled, trying to enable...\n");
-    if (inw(fadt_header->pm1a_control_block) & 1) {printf("ACPI is enabled\n"); return;}
+    if (inw(fadt_header->pm1a_control_block) & 1) {printf("ACPI is enabled\n"); enumerate_tables(); return;}
     outb(fadt_header->smi_command_port, fadt_header->acpi_enable);
     printf("Waiting 3 seconds for ACPI to enable...\n");
     while (((inw(fadt_header->pm1a_control_block) & 1) == 0));
+    enumerate_tables();
 }
