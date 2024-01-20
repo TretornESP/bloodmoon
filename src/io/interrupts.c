@@ -331,6 +331,9 @@ void init_interrupts(uint8_t pit_disable) {
 
     
     if (check_apic()) {
+        outb(PIC1_DATA, 0xff);
+        outb(PIC2_DATA, 0xff);
+
         struct madt_header* madt = get_acpi_madt();
         if (madt != 0) {
             register_apic(madt, 0x0);

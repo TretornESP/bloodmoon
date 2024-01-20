@@ -5,11 +5,11 @@
 #define _GETCPUID_H
 //Check if we are using gcc compiler
 
-/* Example: Get CPU's model number */
 int get_model(void);
  
-/* Example: Check for builtin local APIC. */
 int check_apic(void);
+
+int check_msr(void);
 
 #endif
 #endif

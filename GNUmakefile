@@ -284,8 +284,8 @@ buildimggpt:
 	@sudo sgdisk --new 2:0:+100M -t 2:8300 $(LOOP_DEV_PATH)
 	@sudo sgdisk --new 3:0:0  -t 3:8300 $(LOOP_DEV_PATH)
 	@sudo sgdisk -p $(LOOP_DEV_PATH)
-	@sudo partprobe $(LOOP_DEV_PATH)
 	@sudo fdisk -l $(LOOP_DEV_PATH)
+	@-sudo partprobe
 	@sudo mkfs.fat -n PATATA -F32 $(LOOP_DEV_PATH)p1
 	@sudo mkfs.fat -n FDATA -F32 $(LOOP_DEV_PATH)p2
 	@sudo mkfs.ext2 -L FDATA2 $(LOOP_DEV_PATH)p3 -b $(BLOCKSIZE)
@@ -335,7 +335,7 @@ gpt:
 	@echo "Building GPT..."
 #This is required to be before buildimggpt!
 	@cp $(ISODIR)/$(IMG_RAW) $(ISODIR)/$(IMG)
-	@sudo losetup -f $(ISODIR)/$(IMG)
+	@sudo losetup -fP $(ISODIR)/$(IMG)
 # Due to eval weird behaviour
 	@make buildimggpt
 	@echo "Running GPT QEMU..."
@@ -365,7 +365,7 @@ debugpt:
 	@echo "Building GPT..."
 #This is required to be before buildimggpt!
 	@cp $(ISODIR)/$(IMG_RAW) $(ISODIR)/$(IMG)
-	@sudo losetup -f $(ISODIR)/$(IMG)
+	@sudo losetup -Pf $(ISODIR)/$(IMG)
 # Due to eval weird behaviour
 	@make buildimggpt
 	@echo "Running GPT QEMU..."
