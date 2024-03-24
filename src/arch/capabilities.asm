@@ -43,6 +43,21 @@ getRflags:
     pushfq
     pop rax
 
+;This code belongs to kot
+need_cpuid:
+    mov rax, 0x1
+    cpuid
+    shr rbx, 24
+    mov rax, rbx
+    ret
+
+getApicId:
+    mov ax, gs
+    cmp ax, 0x0
+    jnz need_cpuid
+    mov rax, [gs:0x0]
+    ret
+
 GLOBAL getCr0
 GLOBAL getCr2
 GLOBAL getCr3
@@ -53,3 +68,4 @@ GLOBAL getFsBase
 GLOBAL getGsBase
 GLOBAL getKernelGsBase
 GLOBAL getRflags
+GLOBAL getApicId

@@ -11,5 +11,5 @@ extern uint64_t getFsBase();
 extern uint64_t getGsBase();
 extern uint64_t getKernelGsBase();
 extern uint64_t getRflags();
-
+extern uint8_t  getApicId();
 #endif

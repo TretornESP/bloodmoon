@@ -19,17 +19,6 @@
 #include "../scheduling/sline.h"
 #include "../syscall/syscall.h"
 
-#define PIC1_COMMAND 0x20
-#define PIC1_DATA 0x21
-#define PIC2_COMMAND 0xA0
-#define PIC2_DATA 0xA1
-
-#define ICW1_INIT 0x10
-#define ICW1_ICW4 0x01
-#define ICW4_8086 0x01
-
-#define PIC_EOI 0x20
-
 #define __UNDEFINED_HANDLER  __asm__ ("cli"); dbg_print(__func__); (void)frame; set_debug_msg(__func__); panic("Undefined interrupt handler");
 
 struct idtr idtr;
@@ -327,17 +316,17 @@ void unhook_interrupt(uint8_t interrupt, uint8_t dynamic) {
 
 void init_interrupts(uint8_t pit_disable) {
     dbg_print("### INTERRUPTS STARTUP ###\n");
-    //__asm__("cli");
+    __asm__("cli");
 
     
     if (check_apic()) {
-        outb(PIC1_DATA, 0xff);
-        outb(PIC2_DATA, 0xff);
 
         struct madt_header* madt = get_acpi_madt();
         if (madt != 0) {
             register_apic(madt, 0x0);
         }
+
+        __asm__("sti");
         return;
     }
 

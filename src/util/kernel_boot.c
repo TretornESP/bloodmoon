@@ -77,23 +77,23 @@ void boot() {
     init_gdt();
     init_pit(50);
     init_interrupts(0); //One disables pit
-    init_drive();
-    init_serial_dd();
-    init_tty_dd();
-    init_e1000_dd();
-    init_smbios_interface();
-    init_devices();
-    enable_debug(0);
-    register_filesystem(fat32_registrar);
-    register_filesystem(ext2_registrar);
-    register_filesystem(tty_registrar);
-    init_vfs();
-    init_scheduler();
-    init_sline();
-    set_current_tty("ttya");
-    init_dbgshell("ttya");
-    add_task(create_task((void*)spawn_network_worker, "ttya"));
-    go(5); //The number is the number of ticks for preemption, zero for cooperative scheduling
+    //init_drive();
+    //init_serial_dd();
+    //init_tty_dd();
+    //init_e1000_dd();
+    //init_smbios_interface();
+    //init_devices();
+    //enable_debug(0);
+    //register_filesystem(fat32_registrar);
+    //register_filesystem(ext2_registrar);
+    //register_filesystem(tty_registrar);
+    //init_vfs();
+    //init_scheduler();
+    //init_sline();
+    //set_current_tty("ttya");
+    //init_dbgshell("ttya");
+    //add_task(create_task((void*)spawn_network_worker, "ttya"));
+    //go(5); //The number is the number of ticks for preemption, zero for cooperative scheduling
 
     panic("Kernel returned to boot() (this should never happen!)\n");
 }
