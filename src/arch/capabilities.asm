@@ -1,4 +1,9 @@
 [bits 64]
+
+%define fs_base             0xc0000100
+%define gs_base             0xc0000101
+%define gs_kernel_base      0xc0000102
+
 ;Get the cr0 register
 getCr0:
     mov rax, cr0
@@ -58,6 +63,20 @@ getApicId:
     mov rax, [gs:0x0]
     ret
 
+reloadGsFs:
+    mov ax, 0x0
+    mov gs, ax
+    mov fs, ax
+    ret
+
+setGsBase:
+    mov eax, edi
+    shr rdi, 32
+    mov edx, edi
+    mov ecx, gs_base
+    wrmsr
+    ret
+
 GLOBAL getCr0
 GLOBAL getCr2
 GLOBAL getCr3
@@ -69,3 +88,5 @@ GLOBAL getGsBase
 GLOBAL getKernelGsBase
 GLOBAL getRflags
 GLOBAL getApicId
+GLOBAL reloadGsFs
+GLOBAL setGsBase

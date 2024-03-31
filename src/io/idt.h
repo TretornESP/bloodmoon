@@ -1,6 +1,9 @@
 #ifndef _IDT_H
 #define _IDT_H
 #include <stdint.h>
+#include "../memory/paging.h"
+
+#define IDT_ENTRY_COUNT (PAGESIZE / sizeof(struct idtdescentry))
 
 #define IDT_TA_InterruptGate        0x8E
 #define IDT_TA_InterruptGateUser    0xEE

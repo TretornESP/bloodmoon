@@ -1,4 +1,5 @@
 #include "interrupts.h"
+#include "idt.h"
 #include "io.h"
 
 #include "../arch/gdt.h"
@@ -21,6 +22,9 @@
 
 #define __UNDEFINED_HANDLER  __asm__ ("cli"); dbg_print(__func__); (void)frame; set_debug_msg(__func__); panic("Undefined interrupt handler");
 
+extern void* interrupt_vector[IDT_ENTRY_COUNT];
+
+uint8_t interrupts_ready = 0;
 struct idtr idtr;
 volatile int dynamic_interrupt = -1;
 
@@ -40,40 +44,6 @@ void pic_end_master() {
 void pic_end_slave() {
     outb(PIC2_COMMAND, PIC_EOI);
     outb(PIC1_COMMAND, PIC_EOI);
-}
-
-void remap_pic() {
-    uint8_t a1, a2;
-
-    a1 = inb(PIC1_DATA);
-    io_wait();
-    a2 = inb(PIC2_DATA);
-    io_wait();
-
-    outb(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);
-    io_wait();
-    outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
-    io_wait();
-
-    outb(PIC1_DATA, 0x20);
-    io_wait();
-    outb(PIC2_DATA, get_kernel_code_selector());
-    io_wait();
-
-    outb(PIC1_DATA, 4);
-    io_wait();
-    outb(PIC2_DATA, 2);
-    io_wait();
-
-    outb(PIC1_DATA, ICW4_8086);
-    io_wait();
-    outb(PIC2_DATA, ICW4_8086);
-    io_wait();
-
-    outb(PIC1_DATA, a1);
-    io_wait();
-    outb(PIC2_DATA, a2);
-    io_wait();
 }
 
 __attribute__((interrupt)) void PageFault_Handler(struct interrupt_frame * frame) {
@@ -314,80 +284,57 @@ void unhook_interrupt(uint8_t interrupt, uint8_t dynamic) {
     __asm__("sti");
 }
 
+void enable_interrupts() {
+    __asm__("sti");
+}
+
+void load_interrupts_for_local_cpu() {
+    if (interrupts_ready) {
+        __asm__("cli");
+        __asm__("lidt %0" : : "m"(idtr));
+    }
+}
+
+__attribute__((interrupt)) void testisr(struct interrupt_frame * frame) {
+    (void)frame;
+    while (1) {
+        __asm__("hlt");
+    }
+}
+
 void init_interrupts(uint8_t pit_disable) {
     dbg_print("### INTERRUPTS STARTUP ###\n");
     __asm__("cli");
 
     
-    if (check_apic()) {
-
-        struct madt_header* madt = get_acpi_madt();
-        if (madt != 0) {
-            register_apic(madt, 0x0);
-        }
-
-        __asm__("sti");
-        return;
+    if (!check_apic()) {
+        panic("APIC not found\n");
     }
 
     idtr.limit = 256 * sizeof(struct idtdescentry) - 1;
     idtr.offset = (uint64_t)request_current_page_identity();
     memset((void*)idtr.offset, 0, 256 * sizeof(struct idtdescentry));
-
+    
     for (int i = 0; i < 256; i++) {
-        set_idt_gate((uint64_t)UncaughtInt_Handler, i, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+        set_idt_gate((uint64_t)testisr, i, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
     }
-
-    set_idt_gate((uint64_t)PageFault_Handler,   0xE,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)DoubleFault_Handler, 0x8,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)GPFault_Handler,     0xD,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)KeyboardInt_Handler, 0x21,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)MouseInt_Handler,    0x2C,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)Serial1Int_Handler,   0x24,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)Serial2Int_Handler,  0x23,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)PitInt_Handler,      0x20,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)DivByZero_Handler,   0x0,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)NMI_Handler,         0x2,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)Overflow_Handler,    0x4,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)BoundRangeExceeded_Handler, 0x5, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)InvalidOpc_Handler,  0x6,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)NoCoproc_Handler,    0x7,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)CoprocSegmentOverrun_Handler, 0x9, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)INVTSS_Handler,      0xA,    IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)Network_Handler, 0xB,  IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)StackSegmentFault_Handler, 0xC, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)x87FPE_Handler,      0x10,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)AlignCheck_Handler,  0x11,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)MachineCheck_Handler, 0x12,  IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)SIMD_FPE_Handler,    0x13,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)Virtualization_Handler, 0x14, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)Security_Handler,    0x1E,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)Syscall_Handler,     0x80,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)DynamicInt_Handler,  0x90,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-    set_idt_gate((uint64_t)KReturn_Handler,  0x8A,   IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
     
-
-    uint64_t stackinterrupts = (uint64_t)stackalloc(STACKSIZE) + STACKSIZE;
-    tss_set_ist(0, IST_Interrupts, stackinterrupts);
-
-    __asm__ volatile("lidt %0" : : "m"(idtr));
-
-    remap_pic();
-
-    init_keyboard();
-    
-    //0xe is on binary 1110, so we mask the first 4 bits
-    outb(PIC1_DATA, 0xe0 + pit_disable); //PIT IS DISABLED
-    outb(PIC2_DATA, 0xef);
-
-    irq_clear_mask(0xb);
-
-    dbg_print("Interrupts initialized\n");
-    __asm__("sti");
-
+    interrupts_ready = 1;
+    return;
 }
 
 void raise_interrupt(uint8_t interrupt) {
     dynamic_interrupt = interrupt;
     __asm__("int %0" : : "i"(DYNAMIC_HANDLER));
+}
+
+//New interrupt code for apic down here!!
+
+//static void interrupt_exception_handler() {
+//    dbg_print("Exception received\n");
+//}
+
+void global_interrupt_handler() {
+    dbg_print("Interrupt received\n");
+    while(1);
 }

@@ -1,15 +1,19 @@
 #include "gdt.h"
 #include "tss.h"
+#include "../memory/paging.h"
+#include "../memory/heap.h"
 #include "../util/string.h"
 #include "../util/printf.h"
 
 static __attribute__((aligned(0x1000))) struct gdt_entry gdt[GDT_MAX_CPU][MAX_GDT_ENTRIES];
-static struct gdt_descriptor gdt_desc[GDT_MAX_CPU];
-struct tss tss[GDT_MAX_CPU];
-int gdt_size[GDT_MAX_CPU];
+static __attribute__((aligned(0x1000))) struct gdt_descriptor descriptor[GDT_MAX_CPU];
+static __attribute__((aligned(0x1000))) struct tss tss[GDT_MAX_CPU];
+int size[GDT_MAX_CPU];
 
-uint16_t create_code_descriptor(uint8_t cpu, uint8_t dpl) {
-    struct gdt_entry *entry = &gdt[cpu][gdt_size[cpu]++];    
+extern void _load_gdt(struct gdt_descriptor *gdt);
+
+uint16_t create_code_descriptor(uint8_t cpuid, uint8_t dpl) {
+    struct gdt_entry *entry = &gdt[cpuid][size[cpuid]++];
     entry->limit0 = 0;
     entry->base0 = 0;
     entry->base1 = 0;
@@ -31,11 +35,11 @@ uint16_t create_code_descriptor(uint8_t cpu, uint8_t dpl) {
     flags->g = 1;
 
     entry->base2 = 0;
-    return (gdt_size[cpu] - 1) * sizeof(struct gdt_entry);
+    return (size[cpuid] - 1) * sizeof(struct gdt_entry);
 }
 
-uint16_t create_data_descriptor(uint8_t cpu, uint8_t dpl) {
-    struct gdt_entry *entry = &gdt[cpu][gdt_size[cpu]++];    
+uint16_t create_data_descriptor(uint8_t cpuid, uint8_t dpl) {
+    struct gdt_entry *entry = &gdt[cpuid][size[cpuid]++];
     entry->limit0 = 0;
     entry->base0 = 0;
     entry->base1 = 0;
@@ -57,11 +61,11 @@ uint16_t create_data_descriptor(uint8_t cpu, uint8_t dpl) {
     flags->g = 1;
 
     entry->base2 = 0;
-    return (gdt_size[cpu] - 1) * sizeof(struct gdt_entry);
+    return (size[cpuid] - 1) * sizeof(struct gdt_entry);
 }
 
-uint16_t create_tss_descriptor(uint8_t cpu, uint64_t base, uint64_t limit) {
-    struct gdt_tss_entry *entry = (struct gdt_tss_entry *) &gdt[cpu][gdt_size[cpu]];
+uint16_t create_tss_descriptor(uint8_t cpuid, uint64_t base, uint64_t limit) {
+    struct gdt_tss_entry *entry = (struct gdt_tss_entry *) &gdt[cpuid][size[cpuid]++];
 
 
     entry->limit0 = limit & 0xFFFF;
@@ -79,12 +83,12 @@ uint16_t create_tss_descriptor(uint8_t cpu, uint64_t base, uint64_t limit) {
     entry->base3 = (base >> 32) & 0xFFFFFFFF;
     entry->reserved = 0;
 
-    gdt_size[cpu]+=2; // TSS takes 2 entries
-    return (gdt_size[cpu] - 2) * sizeof(struct gdt_entry);
+    size[cpuid]+=2; // TSS takes 2 entries
+    return (size[cpuid] - 2) * sizeof(struct gdt_entry);
 }
 
-uint16_t create_null_descriptor(uint8_t cpu) {
-    struct gdt_entry *entry = &gdt[cpu][gdt_size[cpu]++];    
+uint16_t create_null_descriptor(uint8_t cpuid) {
+    struct gdt_entry *entry = &gdt[cpuid][size[cpuid]++];
     entry->limit0 = 0;
     entry->base0 = 0;
     entry->base1 = 0;
@@ -106,49 +110,20 @@ uint16_t create_null_descriptor(uint8_t cpu) {
     flags->g = 0;
 
     entry->base2 = 0;
-    return (gdt_size[cpu] - 1) * sizeof(struct gdt_entry);
-}
-
-void create_gdt() {
-    for (uint8_t i = 0; i < GDT_MAX_CPU; i++) {
-        memset(gdt[i], 0, sizeof(struct gdt_entry) * MAX_GDT_ENTRIES);
-        memset(&tss[i], 0, sizeof(struct tss));
-        tss[i].iopb = 0;
-        gdt_desc[i].size = sizeof(struct gdt_entry) * MAX_GDT_ENTRIES - 1;
-        gdt_desc[i].offset = (uint64_t) gdt[i];
-
-        create_null_descriptor(i);
-        create_code_descriptor(i, GDT_DPL_KERNEL);
-        create_data_descriptor(i, GDT_DPL_KERNEL);
-        create_code_descriptor(i, GDT_DPL_USER);
-        create_data_descriptor(i, GDT_DPL_USER);
-        create_tss_descriptor(i, (uint64_t) &tss[i], sizeof(struct tss));
-    }
-}
-
-void load_gdt(uint8_t cpu) {
-    _load_gdt(&gdt_desc[cpu]);
-    __asm__("movw %%ax, %w0\n\t" "ltr %%ax" :: "a" (GDT_TSS_ENTRY << 3));
-}
-
-struct tss *get_tss(uint64_t index) {
-    return &tss[index];
+    return (size[cpuid] - 1) * sizeof(struct gdt_entry);
 }
 
 uint16_t get_kernel_code_selector() {
-    return GDT_KERNEL_CODE_ENTRY << 3;
+    return GDT_KERNEL_CODE_ENTRY;
 }
 uint16_t get_kernel_data_selector() {
-    return GDT_KERNEL_DATA_ENTRY << 3;
+    return GDT_KERNEL_DATA_ENTRY;
 }
 uint16_t get_user_code_selector() {
-    return GDT_USER_CODE_ENTRY << 3;
+    return GDT_USER_CODE_ENTRY;
 }
 uint16_t get_user_data_selector() {
-    return GDT_USER_DATA_ENTRY << 3;
-}
-uint16_t get_tss_selector() {
-    return GDT_TSS_ENTRY << 3;
+    return GDT_USER_DATA_ENTRY;
 }
 
 void print_gdt_access(struct gdt_access_byte access) {
@@ -201,18 +176,51 @@ void print_tss_entry(struct gdt_tss_entry* entry) {
     printf("Reserved: %x\n", entry->reserved);
 }
 
-void debug_gdt(uint8_t cpu) {
-    printf("GDT at: %p\n", gdt[cpu]);
+void debug_gdt(uint8_t cpuid) {
+    struct gdt_entry* lgdt = gdt[cpuid];
+    printf("GDT at: %p\n", lgdt);
     printf("Null descriptor:\n");
-    print_gdt_entry(&gdt[cpu][0]);
+    print_gdt_entry(&lgdt[0]);
     printf("Kernel code:\n");
-    print_gdt_entry(&gdt[cpu][1]);
+    print_gdt_entry(&lgdt[1]);
     printf("Kernel data:\n");
-    print_gdt_entry(&gdt[cpu][2]);
+    print_gdt_entry(&lgdt[2]);
     printf("User code:\n");
-    print_gdt_entry(&gdt[cpu][3]);
+    print_gdt_entry(&lgdt[3]);
     printf("User data:\n");
-    print_gdt_entry(&gdt[cpu][4]);
+    print_gdt_entry(&lgdt[4]);
     printf("TSS:\n");
-    print_tss_entry((struct gdt_tss_entry*)&gdt[cpu][5]);
+    print_tss_entry((struct gdt_tss_entry*)&lgdt[5]);
+}
+
+void create_gdt() {
+    for (uint8_t i = 0; i < GDT_MAX_CPU; i++) {
+        memset(gdt[i], 0, sizeof(struct gdt_entry) * MAX_GDT_ENTRIES);
+        memset(&tss[i], 0, sizeof(struct tss));
+        descriptor[i].size = sizeof(struct gdt_entry) * MAX_GDT_ENTRIES - 1;
+        descriptor[i].offset = (uint64_t) gdt[i];
+
+        //WARNING: Order matters!!!
+        create_null_descriptor(i);
+        create_code_descriptor(i, GDT_DPL_KERNEL);
+        create_data_descriptor(i, GDT_DPL_KERNEL);
+        create_code_descriptor(i, GDT_DPL_USER);
+        create_data_descriptor(i, GDT_DPL_USER);
+        create_tss_descriptor(i, (uint64_t)tss, sizeof(struct tss));
+    }
+}
+
+void load_gdt(uint8_t cpuid) {
+    if (cpuid >= GDT_MAX_CPU) {
+        return;
+    }
+    _load_gdt(&descriptor[cpuid]);
+    __asm__("movw %%ax, %w0\n\t" "ltr %%ax" :: "a" (GDT_TSS_ENTRY));
+}
+
+struct tss * get_tss(uint64_t index) {
+    if (index >= GDT_MAX_CPU) {
+        return 0;
+    }
+    return &tss[index];
 }

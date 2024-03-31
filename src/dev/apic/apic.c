@@ -135,7 +135,7 @@ void enable_apic(uint8_t cpu_id) {
     actx.lapic_address[cpu_id]->virtual_address = (void*)base_addr;
 
     void * lapic_address = get_lapic_address();
-º
+
     uint64_t current_local_destination = read_lapic_register(lapic_address, LAPIC_LOGICAL_DESTINATION);
     uint64_t current_svr = read_lapic_register(lapic_address, LAPIC_SPURIOUS_INTERRUPT_VECTOR);
 
@@ -170,6 +170,7 @@ void ioapic_init(uint64_t ioapic_id) {
     uint32_t base = ioapic->gsi_base;
 
     for (uint64_t i = 0; i < max_interrupts; i++) {
+        //printf("Setting up redirection entry %d\n", i);
         struct ioapic_redirection_entry entry = {
             .vector = IRQ_START + i,
             .delivery_mode = IOAPIC_REDIRECTION_DELIVERY_MODE_FIXED,
@@ -238,7 +239,7 @@ void register_apic(struct madt_header * madt, char* (*cb)(void*, uint8_t, uint64
         }
     }
 
-    for (uint64_t i = 0; actx.ioapic_count; i++) {
+    for (uint64_t i = 0; i < actx.ioapic_count; i++) {
         ioapic_init(i);
     }
 

@@ -70,13 +70,13 @@ void enable_debug(uint8_t reserved) {
 
 void boot() {
     init_simd();
-    init_cpus();
     init_memory();
     init_paging();
     init_heap();
-    init_gdt();
-    init_pit(50);
-    init_interrupts(0); //One disables pit
+    //init_pit(50);
+    create_gdt(); //For all CPUs
+    init_interrupts(0);
+    init_cpus();
     //init_drive();
     //init_serial_dd();
     //init_tty_dd();
@@ -94,7 +94,10 @@ void boot() {
     //init_dbgshell("ttya");
     //add_task(create_task((void*)spawn_network_worker, "ttya"));
     //go(5); //The number is the number of ticks for preemption, zero for cooperative scheduling
-
+    enable_interrupts();
+    int a = 5;
+    int b = a / 0;
+    printf("Div by zero: %d\n", b);
     panic("Kernel returned to boot() (this should never happen!)\n");
 }
 

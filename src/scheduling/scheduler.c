@@ -9,6 +9,7 @@
 #include "../util/string.h"
 #include "../arch/tss.h"
 #include "../vfs/vfs_interface.h"
+#include "../cpus/cpus.h"
 
 #define MAX_TASKS 255
 
@@ -112,7 +113,8 @@ void __attribute__((noinline)) yield() {
 
     current_task->last_scheduled = get_ticks_since_boot();
 
-    tss_set_stack(current_task->processor, (void*)current_task->rsp, 0);
+    struct cpu * cpu = get_cpu(current_task->processor);
+    tss_set_stack(cpu->tss, (void*)current_task->rsp, 0);
     ctxswtch(
         prev,
         current_task
@@ -247,7 +249,8 @@ void go(uint32_t preempt) {
         set_preeption_ticks(preempt);
         enable_preemption();
     }
-    tss_set_stack(current_task->processor, (void*)current_task->rsp, 0);
+    struct cpu * cpu = get_cpu(current_task->processor);
+    tss_set_stack(cpu->tss, (void*)current_task->rsp, 0);
     ctxswtch(
         shithole_task,
         current_task
