@@ -161,7 +161,6 @@ void load_interrupts_for_local_cpu() {
 void init_interrupts(uint8_t pit_disable) {
     dbg_print("### INTERRUPTS STARTUP ###\n");
     __asm__("cli");
-
     
     if (!check_apic()) {
         panic("APIC not found\n");
@@ -202,7 +201,7 @@ void raise_interrupt(uint8_t interrupt) {
 void global_interrupt_handler(struct cpu_context* ctx, uint8_t cpu_id) {
     __asm__("cli");
     
-    void (*handler)(struct cpu_context* ctx, uint8_t cpu_id) = (void*)interrupt_vector[ctx->interrupt_number];
+    void (*handler)(struct cpu_context* ctx, uint8_t cpu_id) = (void*)dynamic_interrupt_handlers[ctx->interrupt_number];
     
     if (ctx->interrupt_number == DYNAMIC_HANDLER) {
         if (dynamic_interrupt != 0 && dynamic_interrupt != DYNAMIC_HANDLER) {   
