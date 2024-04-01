@@ -11,10 +11,10 @@ donot%1:
 %endmacro
 
 %macro interrupt_entry 1
-    ;cmp	qword [rsp + 0x18], 0x8
-    ;jz donot%1
-    ;swapgs
-    ;donot%1:
+    cmp	qword [rsp + 0x18], 0x8
+    jz donot%1
+    swapgs
+    donot%1:
     push    r15
     push    r14
     push    r13
@@ -60,10 +60,10 @@ donot%1:
     pop    r14
     pop    r15
 
-    ;cmp	qword [rsp + 0x18], 0x8
-    ;jz donot_%1
-    ;swapgs
-    ;donot_%1:
+    cmp	qword [rsp + 0x18], 0x8
+    jz donot_%1
+    swapgs
+    donot_%1:
 
     add rsp, 16
     iretq

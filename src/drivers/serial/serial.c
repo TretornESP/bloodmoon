@@ -1,5 +1,6 @@
 #include "serial.h"
 
+#include "../../cpus/cpus.h"
 #include "../../io/io.h"
 #include "../../memory/heap.h"
 
@@ -13,16 +14,18 @@
 void _serial_flush(int port);
 void serial_discard(int port);
 
-__attribute__((interrupt)) void COM1_HANDLER(struct interrupt_frame * frame);
-__attribute__((interrupt)) void COM2_HANDLER(struct interrupt_frame * frame);
-__attribute__((interrupt)) void COM3_HANDLER(struct interrupt_frame * frame);
-__attribute__((interrupt)) void COM4_HANDLER(struct interrupt_frame * frame);
+void COM1_HANDLER(struct cpu_context* ctx, uint8_t cpuid);
+void COM2_HANDLER(struct cpu_context* ctx, uint8_t cpuid);
+void COM3_HANDLER(struct cpu_context* ctx, uint8_t cpuid);
+void COM4_HANDLER(struct cpu_context* ctx, uint8_t cpuid);
+
 
 volatile struct serial_device* interrupted_serial_device = 0;
 
 //The handler for a dynamic interrupt cannot have __attribute__((interrupt))
-void SERIAL_OF_HANDLER(struct interrupt_frame * frame) {
-   (void)frame;
+void SERIAL_OF_HANDLER(struct cpu_context* ctx, uint8_t cpuid) {
+   (void)ctx;
+   (void)cpuid;
    //Warning: Buffered input from serial device will be lost
    if (interrupted_serial_device) {
       _serial_flush(interrupted_serial_device->port);
@@ -182,44 +185,44 @@ char read_outb(struct serial_device* device) {
    return c;
 }
 
-__attribute__((interrupt)) void COM1_HANDLER(struct interrupt_frame * frame) {
-   (void)frame;
+void COM1_HANDLER(struct cpu_context* ctx, uint8_t cpuid) {
+   (void)ctx;
+   (void)cpuid;
    struct serial_device* device = &(serial_devices[0]);
    if (!device->valid) return;
    interrupted_serial_device = device;
    char c = read_serial(device->port);
    write_inb(device, c);
-   pic_eoi(device->irq);
 }
 
-__attribute__((interrupt)) void COM2_HANDLER(struct interrupt_frame * frame) {
-   (void)frame;
+void COM2_HANDLER(struct cpu_context* ctx, uint8_t cpuid) {
+   (void)ctx;
+   (void)cpuid;
    struct serial_device* device = &(serial_devices[1]);
    if (!device->valid) return;
    interrupted_serial_device = device;
    char c = read_serial(device->port);
    write_inb(device, c);
-   pic_eoi(device->irq);
 }
 
-__attribute__((interrupt)) void COM3_HANDLER(struct interrupt_frame * frame) {
-   (void)frame;
+void COM3_HANDLER(struct cpu_context* ctx, uint8_t cpuid) {
+   (void)ctx;
+   (void)cpuid;
    struct serial_device* device = &(serial_devices[2]);
    if (!device->valid) return;
    interrupted_serial_device = device;
    char c = read_serial(device->port);
    write_inb(device, c);
-   pic_eoi(device->irq);
 }
 
-__attribute__((interrupt)) void COM4_HANDLER(struct interrupt_frame * frame) {
-   (void)frame;
+void COM4_HANDLER(struct cpu_context* ctx, uint8_t cpuid) {
+   (void)ctx;
+   (void)cpuid;
    struct serial_device* device = &(serial_devices[3]);
    if (!device->valid) return;
    interrupted_serial_device = device;
    char c = read_serial(device->port);
    write_inb(device, c);
-   pic_eoi(device->irq);
 }
 
 struct serial_device* get_serial_by_comm(int comm) {
@@ -272,14 +275,14 @@ int init_serial_comm(int port) {
 
 void enable_serial_int(struct serial_device* device) {
    if (device) {
-      hook_interrupt(device->irq, device->handler, 0);
+      hook_interrupt(device->irq, device->handler);
       outb(device->port + 1, 0x01);    // Enable all interrupts
    }
 }
  
 void disable_serial_int(struct serial_device* device) {
    if (device) {
-      unhook_interrupt(device->irq, 0);
+      unhook_interrupt(device->irq);
       outb(device->port + 1, 0x00);    // Disable all interrupts
    }
 }
@@ -316,7 +319,7 @@ void init_serial(int inbs, int outbs) {
          }
       }
    }
-   hook_interrupt(SERIAL_OF_IRQ, SERIAL_OF_HANDLER, 1);
+   hook_interrupt(SERIAL_OF_IRQ, SERIAL_OF_HANDLER);
    initialized = 1;
 }
 

@@ -6,6 +6,7 @@
 //#define _VBOX_COMPAT
 
 #include "../../io/interrupts.h"
+#include "../../cpus/cpus.h"
 
 #define SERIAL_READ 1
 #define SERIAL_WRITE 2
@@ -37,7 +38,7 @@ struct serial_device {
     int irq;
     int echo;
 
-    void (*handler)(struct interrupt_frame *frame);
+    void (*handler)(struct cpu_context* ctx, uint8_t cpuid);
     struct serial_subscriber * read_subscribers;
     struct serial_subscriber * write_subscribers;
 

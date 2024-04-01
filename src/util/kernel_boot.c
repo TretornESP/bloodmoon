@@ -73,31 +73,33 @@ void boot() {
     init_memory();
     init_paging();
     init_heap();
-    //init_pit(50);
+    init_pit(50);
     create_gdt(); //For all CPUs
     init_interrupts(0);
     init_cpus();
-    //init_drive();
-    //init_serial_dd();
-    //init_tty_dd();
-    //init_e1000_dd();
-    //init_smbios_interface();
-    //init_devices();
-    //enable_debug(0);
-    //register_filesystem(fat32_registrar);
-    //register_filesystem(ext2_registrar);
-    //register_filesystem(tty_registrar);
-    //init_vfs();
-    //init_scheduler();
-    //init_sline();
-    //set_current_tty("ttya");
-    //init_dbgshell("ttya");
-    //add_task(create_task((void*)spawn_network_worker, "ttya"));
-    //go(5); //The number is the number of ticks for preemption, zero for cooperative scheduling
+    struct madt_header* madt = get_acpi_madt();
+    if (madt != 0) {
+        register_apic(madt, 0x0);
+    }
     enable_interrupts();
-    int a = 5;
-    int b = a / 0;
-    printf("Div by zero: %d\n", b);
+    init_drive();
+    init_serial_dd();
+    init_tty_dd();
+    init_e1000_dd();
+    init_smbios_interface();
+    init_devices();
+    enable_debug(0);
+    register_filesystem(fat32_registrar);
+    register_filesystem(ext2_registrar);
+    register_filesystem(tty_registrar);
+    init_vfs();
+    init_scheduler();
+    init_sline();
+    set_current_tty("ttya");
+    init_dbgshell("ttya");
+    add_task(create_task((void*)spawn_network_worker, "ttya"));
+    go(5); //The number is the number of ticks for preemption, zero for cooperative scheduling
+    
     panic("Kernel returned to boot() (this should never happen!)\n");
 }
 

@@ -92,10 +92,6 @@ void init_cpus() {
     startup_cpu(bsp_lapic_id);
 
     printf("BSP Reporting for duty!!!\n");
-    struct madt_header* madt = get_acpi_madt();
-    if (madt != 0) {
-        register_apic(madt, 0x0);
-    }
 }
 
 struct cpu *get_cpu(uint64_t index) {

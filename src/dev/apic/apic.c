@@ -29,6 +29,19 @@ void ioapic_write_register(void* apic_ptr, uint8_t offset, uint32_t value) {
     *(volatile uint32_t*)((uint64_t)apic_ptr+0x10) = value;
 }
 
+void debug_redirection_entry(struct ioapic_redirection_entry entry) {
+    printf("Redirection Entry:\n");
+    printf("Vector: %d\n", entry.vector);
+    printf("Delivery Mode: %d\n", entry.delivery_mode);
+    printf("Destination Mode: %d\n", entry.destination_mode);
+    printf("Delivery Status: %d\n", entry.delivery_status);
+    printf("Pin Polarity: %d\n", entry.pin_polarity);
+    printf("Remote IRR: %d\n", entry.remote_irr);
+    printf("Trigger Mode: %d\n", entry.trigger_mode);
+    printf("Mask: %d\n", entry.mask);
+    printf("Destination: %d\n", entry.destination);
+}
+
 void ioapic_set_redirection_entry(void* apic_ptr, uint64_t index, struct ioapic_redirection_entry entry) {
     volatile uint32_t low = (
         (entry.vector << IOAPIC_REDIRECTION_BITS_VECTOR) |
@@ -44,6 +57,9 @@ void ioapic_set_redirection_entry(void* apic_ptr, uint64_t index, struct ioapic_
     volatile uint32_t high = (
         (entry.destination << IOAPIC_REDIRECTION_BITS_DESTINATION)
     );
+
+    //printf("Setting up redirection entry %d\n", index);
+    //debug_redirection_entry(entry);
 
     ioapic_write_register(apic_ptr, IOAPIC_REDIRECTION_TABLE + (index * 2), low);
     ioapic_write_register(apic_ptr, IOAPIC_REDIRECTION_TABLE + (index * 2) + 1, high);
@@ -141,7 +157,7 @@ void enable_apic(uint8_t cpu_id) {
 
     write_lapic_register(lapic_address, LAPIC_DESTINATION_FORMAT, 0xffffffff);
     write_lapic_register(lapic_address, LAPIC_LOGICAL_DESTINATION, ((current_local_destination & ~((0xff << 24))) | (cpu_id << 24)));
-    write_lapic_register(lapic_address, LAPIC_SPURIOUS_INTERRUPT_VECTOR, current_svr | LOCAL_APIC_SPURIOUS_ALL | LOCAL_APIC_SPURIOUS_ENABLE_APIC);
+    write_lapic_register(lapic_address, LAPIC_SPURIOUS_INTERRUPT_VECTOR, current_svr | (LOCAL_APIC_SPURIOUS_ALL | LOCAL_APIC_SPURIOUS_ENABLE_APIC));
     write_lapic_register(lapic_address, LAPIC_TASK_PRIORITY, 0);
 
     uint64_t value = ((uint64_t)actx.lapic_address[cpu_id]->physical_address) | (LOCAL_APIC_ENABLE & ~((1 << 10)));
@@ -166,6 +182,10 @@ void ioapic_init(uint64_t ioapic_id) {
 
     uint8_t max_interrupts = ((ioapic_version >> 16) & 0xff) + 1;
     ioapic->max_interrupts = max_interrupts;
+
+    //printf("IOAPIC: %x\n", ioapic_address);
+    //printf("IOAPIC Version: %x\n", (uint8_t)ioapic_version);
+    //printf("IOAPIC Max Interrupts: %d\n", max_interrupts);
 
     uint32_t base = ioapic->gsi_base;
 
@@ -213,9 +233,9 @@ void register_apic(struct madt_header * madt, char* (*cb)(void*, uint8_t, uint64
     actx.ioapic_iso_count = 0;
     actx.max_apic_id = 0;
 
-    printf("APIC: %x\n", madt->local_apic_address);
-    printf("flags: %x\n", madt->flags);
-    printf("length: %x\n", madt->header.length);
+    //printf("APIC: %x\n", madt->local_apic_address);
+    //printf("flags: %x\n", madt->flags);
+    //printf("length: %x\n", madt->header.length);
 
     uint64_t entry = (((uint64_t)madt)+sizeof(struct madt_header));
     uint64_t end = ((uint64_t)madt)+madt->header.length;
@@ -243,4 +263,8 @@ void register_apic(struct madt_header * madt, char* (*cb)(void*, uint8_t, uint64
         ioapic_init(i);
     }
 
+}
+
+void local_apic_eoi(uint8_t cpu_id){        
+    write_lapic_register(actx.lapic_address[cpu_id]->virtual_address, LAPIC_EOI, 0);
 }

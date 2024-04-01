@@ -44,7 +44,7 @@ BLOCKSIZE := 1024
 MEMSIZE := 4G
 VMEMSIZE := 128
 NUMAFLAGS := \
--smp cpus=16
+-smp cpus=8
 #-object memory-backend-ram,size=1G,id=mem0 \
 #-object memory-backend-ram,size=1G,id=mem1 \
 #-object memory-backend-ram,size=1G,id=mem2 \

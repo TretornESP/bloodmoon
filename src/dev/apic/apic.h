@@ -28,6 +28,8 @@
 #define LAPIC_DESTINATION_FORMAT                0xE0
 #define LAPIC_SPURIOUS_INTERRUPT_VECTOR         0xF0
 
+#define LAPIC_EOI                               0xB0
+
 #define IOAPIC_VERSION                          0x01
 
 #define IOAPIC_REDIRECTION_BITS_VECTOR              0x00
@@ -156,5 +158,5 @@ struct apic_context {
 };
 
 void register_apic(struct madt_header *, char* (*cb)(void*, uint8_t, uint64_t));
-
+void local_apic_eoi(uint8_t cpu_id);
 #endif

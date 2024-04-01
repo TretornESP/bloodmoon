@@ -2,6 +2,7 @@
 #include "idt.h"
 #include "io.h"
 
+#include "../cpus/cpus.h"
 #include "../arch/gdt.h"
 #include "../arch/tss.h"
 #include "../arch/getcpuid.h"
@@ -28,129 +29,47 @@ uint8_t interrupts_ready = 0;
 struct idtr idtr;
 volatile int dynamic_interrupt = -1;
 
-void (*dynamic_interrupt_handlers[256])(struct interrupt_frame* frame) = {0};
+void (*dynamic_interrupt_handlers[256])(struct cpu_context* ctx, uint8_t cpuid) = {0};
 
-void pic_eoi(unsigned char irq) {
-    if (irq >= 12) {
-        outb(PIC2_COMMAND, PIC_EOI);
-    }
-    outb(PIC1_COMMAND, PIC_EOI);
+void PageFault_Handler(struct cpu_context* ctx, uint8_t cpuid) {
+    (void)ctx;
+    (void)cpuid;
+    uint64_t faulting_address;
+    __asm__ volatile("mov %%cr2, %0" : "=r" (faulting_address));
+    char buffer[20];
+    sprintf(buffer, "Page Fault Address: %x\n", faulting_address);
+    set_debug_msg(buffer);
+    panic("Page fault\n");
 }
 
-void pic_end_master() {
-    outb(PIC1_COMMAND, PIC_EOI);
+void DoubleFault_Handler(struct cpu_context* ctx, uint8_t cpuid) {
+    (void)ctx;
+    (void)cpuid;
+    panic("Double fault\n");
 }
 
-void pic_end_slave() {
-    outb(PIC2_COMMAND, PIC_EOI);
-    outb(PIC1_COMMAND, PIC_EOI);
+void GPFault_Handler(struct cpu_context* ctx, uint8_t cpuid) {
+    (void)ctx;
+    (void)cpuid;
+    panic("General protection fault\n");
 }
 
-__attribute__((interrupt)) void PageFault_Handler(struct interrupt_frame * frame) {
-   uint64_t faulting_address;
-   __asm__ volatile("mov %%cr2, %0" : "=r" (faulting_address));
-   char buffer[20];
-   sprintf(buffer, "Page Fault Address: %x\n", faulting_address);
-   set_debug_msg(buffer);
-   panic("Page fault\n");
-}
-
-__attribute__((interrupt)) void DoubleFault_Handler(struct interrupt_frame * frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void GPFault_Handler(struct interrupt_frame * frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void KeyboardInt_Handler(struct interrupt_frame * frame) {
-    (void)frame;
+void KeyboardInt_Handler(struct cpu_context* ctx, uint8_t cpuid) {
+    (void)ctx;
+    (void)cpuid;
     uint8_t scancode = inb(0x60);
     handle_keyboard(scancode);
-    pic_end_master();
 }
 
-__attribute__((interrupt)) void MouseInt_Handler(struct interrupt_frame * frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void DivByZero_Handler(struct interrupt_frame * frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void UncaughtInt_Handler(struct interrupt_frame* frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void NMI_Handler(struct interrupt_frame* frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void Overflow_Handler(struct interrupt_frame* frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void BoundRangeExceeded_Handler(struct interrupt_frame* frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void InvalidOpc_Handler(struct interrupt_frame* frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void NoCoproc_Handler(struct interrupt_frame* frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void CoprocSegmentOverrun_Handler(struct interrupt_frame* frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void INVTSS_Handler(struct interrupt_frame* frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void SegNotPresent_Handler(struct interrupt_frame* frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void StackSegmentFault_Handler(struct interrupt_frame* frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void x87FPE_Handler(struct interrupt_frame* frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void AlignCheck_Handler(struct interrupt_frame* frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void MachineCheck_Handler(struct interrupt_frame* frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void SIMD_FPE_Handler(struct interrupt_frame* frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void Virtualization_Handler(struct interrupt_frame* frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void Security_Handler(struct interrupt_frame* frame) {
-    __UNDEFINED_HANDLER
-}
-
-__attribute__((interrupt)) void Network_Handler(struct interrupt_frame* frame) {
-    (void)frame;
-    __asm__ volatile("cli");
+void Network_Handler(struct cpu_context* ctx, uint8_t cpuid) {
+    (void)ctx;
+    (void)cpuid;
     trigger_pci_interrupt();
-    __asm__ volatile("sti");
-    pic_end_master();
 }
 
-__attribute__((interrupt)) void Syscall_Handler(struct interrupt_frame* frame) {
+void Syscall_Handler(struct cpu_context* ctx, uint8_t cpuid) {
+    (void)ctx;
+    (void)cpuid;
     volatile uint64_t syscall_number, arg1, arg2, arg3, arg4, arg5, arg6;
     __asm__ volatile("mov %%rax, %0" : "=r"(syscall_number));
     __asm__ volatile("mov %%rdi, %0" : "=r"(arg1));
@@ -164,90 +83,42 @@ __attribute__((interrupt)) void Syscall_Handler(struct interrupt_frame* frame) {
 }
 
 //you may need save_all here
-__attribute__((interrupt)) void PitInt_Handler(struct interrupt_frame * frame) {
-    __asm__ volatile("cli");
+void PitInt_Handler(struct cpu_context* ctx, uint8_t cpuid) {
+    (void)ctx;
+    (void)cpuid;
     tick();
-    pic_end_master();
     if (requires_preemption()) {
         yield();
     } else if (requires_wakeup()) {
         wakeup();
     }
-    __asm__ volatile("sti");
 }
 
-__attribute__((interrupt)) void Serial1Int_Handler(struct interrupt_frame * frame) {
-    (void)frame;
+void Serial1Int_Handler(struct cpu_context* ctx, uint8_t cpuid) {
+    (void)ctx;
+    (void)cpuid;
     char c = inb(0x3f8);
     dbg_print("Serial1: ");
     dbg_print(itoa(c, 16));
     dbg_print("\n");
-    pic_end_master();
-
 }
 
-__attribute__((interrupt)) void Serial2Int_Handler(struct interrupt_frame * frame) {
-    (void)frame;
+void Serial2Int_Handler(struct cpu_context* ctx, uint8_t cpuid) {
+    (void)ctx;
+    (void)cpuid;
     char c = inb(0x3f8);
     dbg_print("Serial2: ");
     dbg_print(itoa(c, 16));
     dbg_print("\n");
-    pic_end_master();
 }
 
-__attribute__((interrupt)) void KReturn_Handler(struct interrupt_frame_error * frame) {
-    __asm__ volatile("cli");
-    panic("NOT IMPLEMENTED");
-    //return_from_kernel(frame);
-    __asm__ volatile("sti");
-}
-
-__attribute__((interrupt)) void DynamicInt_Handler(struct interrupt_frame * frame) {
-    (void)frame;
-    if (dynamic_interrupt < 0) {
-        dbg_print("Dynamic interrupt called without being hooked\n");
-        return;
-    }
-    
-    void (*handler)(struct interrupt_frame * frame) = (void*)dynamic_interrupt_handlers[dynamic_interrupt];
-    if (handler == 0 || handler == (void*)DynamicInt_Handler) {
-        dbg_print("Dynamic interrupt called without being hooked\n");
-        return;
-    }
-
-    handler(frame);
+static void interrupt_exception_handler(struct cpu_context* ctx, uint8_t cpu_id) {
+    printf("GENERIC EXCEPTION %d ON CPU %d\n", ctx->interrupt_number, cpu_id);
+    panic("Exception\n");
 }
 
 struct idtdescentry * get_idt_gate(uint8_t entry_offset) {
     return (struct idtdescentry*)(idtr.offset + (entry_offset * sizeof(struct idtdescentry)));
-}
-
-void irq_set_mask(unsigned char interrupt) {
-    uint16_t port;
-    uint8_t value;
- 
-    if(interrupt < 8) {
-        port = PIC1_DATA;
-    } else {
-        port = PIC2_DATA;
-        interrupt -= 8;
-    }
-    value = inb(port) | (1 << interrupt);
-    outb(port, value);        
-}
- 
-void irq_clear_mask(unsigned char interrupt) {
-    uint16_t port;
-    uint8_t value;
- 
-    if(interrupt < 8) {
-        port = PIC1_DATA;
-    } else {
-        port = PIC2_DATA;
-        interrupt -= 8;
-    }
-    value = inb(port) & ~(1 << interrupt);
-    outb(port, value);        
 }
 
 void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uint8_t ist, uint16_t selector) {
@@ -258,29 +129,19 @@ void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uin
     interrupt->ist = ist;
 }
 
-void hook_interrupt(uint8_t interrupt, void* handler, uint8_t dynamic) {
+void hook_interrupt(uint8_t interrupt, void* handler) {
     __asm__("cli");
-    if (dynamic) {
-        if (dynamic_interrupt_handlers[interrupt] != 0) {
-            dbg_print("Dynamic interrupt already hooked\n");
-            return;
-        }
-        dynamic_interrupt_handlers[interrupt] = handler;
-    } else {
-        set_idt_gate((uint64_t)handler, interrupt, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-        irq_clear_mask(interrupt);
+    if (dynamic_interrupt_handlers[interrupt] != 0) {
+        dbg_print("Dynamic interrupt already hooked\n");
+        return;
     }
+    dynamic_interrupt_handlers[interrupt] = handler;
     __asm__("sti");
 }
 
-void unhook_interrupt(uint8_t interrupt, uint8_t dynamic) {
+void unhook_interrupt(uint8_t interrupt) {
     __asm__("cli");
-    if (dynamic) {
-        dynamic_interrupt_handlers[interrupt] = (void*)0;
-    } else {
-        set_idt_gate((uint64_t)UncaughtInt_Handler, interrupt, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
-        irq_set_mask(interrupt);
-    }
+    dynamic_interrupt_handlers[interrupt] = (void*)0;
     __asm__("sti");
 }
 
@@ -292,13 +153,8 @@ void load_interrupts_for_local_cpu() {
     if (interrupts_ready) {
         __asm__("cli");
         __asm__("lidt %0" : : "m"(idtr));
-    }
-}
-
-__attribute__((interrupt)) void testisr(struct interrupt_frame * frame) {
-    (void)frame;
-    while (1) {
-        __asm__("hlt");
+    } else {
+        panic("Interrupts not ready\n");
     }
 }
 
@@ -316,25 +172,55 @@ void init_interrupts(uint8_t pit_disable) {
     memset((void*)idtr.offset, 0, 256 * sizeof(struct idtdescentry));
     
     for (int i = 0; i < 256; i++) {
-        set_idt_gate((uint64_t)testisr, i, IDT_TA_InterruptGate, IST_Interrupts, get_kernel_code_selector());
+        set_idt_gate((uint64_t)interrupt_vector[i], i, IDT_TA_InterruptGate, 0, get_kernel_code_selector());
     }
+
+    for (int i = 0; i < 32; i++) {
+        dynamic_interrupt_handlers[i] = interrupt_exception_handler;
+    }
+
+    dynamic_interrupt_handlers[0x8] = DoubleFault_Handler;    
+    dynamic_interrupt_handlers[0xB] = Network_Handler;
+    dynamic_interrupt_handlers[0xD] = GPFault_Handler;
+    dynamic_interrupt_handlers[0xE] = PageFault_Handler;
+    dynamic_interrupt_handlers[0x20] = PitInt_Handler;
+    dynamic_interrupt_handlers[0x21] = KeyboardInt_Handler;
+    dynamic_interrupt_handlers[0x23] = Serial2Int_Handler;
+    dynamic_interrupt_handlers[0x24] = Serial1Int_Handler;
+    dynamic_interrupt_handlers[0x80] = Syscall_Handler;
     
     interrupts_ready = 1;
     return;
 }
 
 void raise_interrupt(uint8_t interrupt) {
+    __asm__("cli");
     dynamic_interrupt = interrupt;
     __asm__("int %0" : : "i"(DYNAMIC_HANDLER));
 }
 
-//New interrupt code for apic down here!!
+void global_interrupt_handler(struct cpu_context* ctx, uint8_t cpu_id) {
+    __asm__("cli");
+    
+    void (*handler)(struct cpu_context* ctx, uint8_t cpu_id) = (void*)interrupt_vector[ctx->interrupt_number];
+    
+    if (ctx->interrupt_number == DYNAMIC_HANDLER) {
+        if (dynamic_interrupt != 0 && dynamic_interrupt != DYNAMIC_HANDLER) {   
+            handler = (void*)dynamic_interrupt_handlers[dynamic_interrupt];
+            dynamic_interrupt = 0;
+        } else {
+            panic("Invalid dynamic interrupt\n");
+        }
+    }
 
-//static void interrupt_exception_handler() {
-//    dbg_print("Exception received\n");
-//}
+    printf("Interrupt %d received on CPU %d\n", ctx->interrupt_number, cpu_id);
 
-void global_interrupt_handler() {
-    dbg_print("Interrupt received\n");
-    while(1);
+    if (handler == 0) {
+        panic("No handler for interrupt\n");
+    }
+
+    handler(ctx, cpu_id);
+
+    local_apic_eoi(cpu_id);
+    __asm__("sti");
 }
