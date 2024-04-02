@@ -1,7 +1,8 @@
 #include "pit.h"
+#include "scheduler.h"
 #include "../util/printf.h"
 #include "../io/io.h"
-#include "scheduler.h"
+#include "../io/interrupts.h"
 #include "../bootservices/bootservices.h"
 
 struct pit pit;
@@ -37,6 +38,7 @@ void init_pit(int hertz) {
     printf("Hertz: %d\n", hertz);
     
     timer_phase(hertz);
+    unmask_interrupt(PIT_IRQ);
 }
 
 void tick() {

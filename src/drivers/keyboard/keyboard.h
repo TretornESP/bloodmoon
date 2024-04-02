@@ -8,6 +8,7 @@
 #define Enter 0x1C
 #define Backspace 0x0E
 #define Spacebar 0x39
+#define KEYBOARD_IRQ 0x21
 
 struct keyboard {
     char * ASCII_table;

@@ -35,7 +35,7 @@ getFsBase:
 
 ;Get the gs base msr
 getGsBase:
-    mov rax, 0xC0000101
+    mov rax, 0xc0000101
     rdmsr
 
 ;Get the kernel gs base msr

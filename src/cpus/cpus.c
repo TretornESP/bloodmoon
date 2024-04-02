@@ -7,7 +7,7 @@
 #include "../memory/heap.h"
 #include "../util/printf.h"
 #include "../util/string.h"
-
+#include "../util/dbgprinter.h"
 extern void reloadGsFs();
 extern void setGsBase(uint64_t base);
 
@@ -65,6 +65,7 @@ void startup_cpu(uint8_t cpuid) {
 
     load_gdt(cpuid);
     load_interrupts_for_local_cpu();
+    lcpu->ready = 1;
 }
 
 void callback(struct bmoon_smp_info *cpu) {
@@ -95,5 +96,23 @@ void init_cpus() {
 }
 
 struct cpu *get_cpu(uint64_t index) {
+    if (index >= cpu_count) {
+        return 0;
+    }
+    if (cpu[index].ready == 0) {
+        return 0;
+    }
     return &cpu[index];
+}
+
+extern uint64_t getGsBase();
+uint8_t get_cpu_index() {
+    //Get gs base
+    uint64_t base = getGsBase();
+    for (uint64_t i = 0; i < cpu_count; i++) {
+        if (cpu[i].ctx == (struct cpu_context *) base) {
+            return i;
+        }
+    }
+    panic("CPU not found");
 }

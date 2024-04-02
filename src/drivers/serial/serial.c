@@ -2,8 +2,8 @@
 
 #include "../../cpus/cpus.h"
 #include "../../io/io.h"
+#include "../../io/interrupts.h"
 #include "../../memory/heap.h"
-
 #include "../../util/printf.h"
 #include "../../util/dbgprinter.h"
 #include "../../util/string.h"
@@ -276,12 +276,14 @@ int init_serial_comm(int port) {
 void enable_serial_int(struct serial_device* device) {
    if (device) {
       hook_interrupt(device->irq, device->handler);
+      unmask_interrupt(device->irq);
       outb(device->port + 1, 0x01);    // Enable all interrupts
    }
 }
  
 void disable_serial_int(struct serial_device* device) {
    if (device) {
+      mask_interrupt(device->irq);
       unhook_interrupt(device->irq);
       outb(device->port + 1, 0x00);    // Disable all interrupts
    }

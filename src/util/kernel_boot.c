@@ -23,6 +23,7 @@
 #include "../dev/smbios/smbios_interface.h"
 #include "../dev/devices.h"
 #include "../dev/acpi/acpi.h"
+#include "../dev/apic/apic.h"
 
 #include "../drivers/disk/disk.h"
 #include "../drivers/serial/serial_dd.h"
@@ -73,7 +74,6 @@ void boot() {
     init_memory();
     init_paging();
     init_heap();
-    init_pit(50);
     create_gdt(); //For all CPUs
     init_interrupts(0);
     init_cpus();
@@ -82,12 +82,14 @@ void boot() {
         register_apic(madt, 0x0);
     }
     enable_interrupts();
+    init_pit(50);
     init_drive();
     init_serial_dd();
     init_tty_dd();
     init_e1000_dd();
     init_smbios_interface();
     init_devices();
+    init_keyboard();
     enable_debug(0);
     register_filesystem(fat32_registrar);
     register_filesystem(ext2_registrar);
@@ -96,10 +98,10 @@ void boot() {
     init_scheduler();
     init_sline();
     set_current_tty("ttya");
-    init_dbgshell("ttya");
-    add_task(create_task((void*)spawn_network_worker, "ttya"));
+    //init_dbgshell("ttya");
+    //add_task(create_task((void*)spawn_network_worker, "ttya"));
+    add_task(create_task((void*)init_dbgshell, "ttya"));
     go(5); //The number is the number of ticks for preemption, zero for cooperative scheduling
-    
     panic("Kernel returned to boot() (this should never happen!)\n");
 }
 

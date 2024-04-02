@@ -130,22 +130,21 @@ void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uin
 }
 
 void hook_interrupt(uint8_t interrupt, void* handler) {
+    if (!interrupts_ready) panic("Interrupts not ready\n");
     __asm__("cli");
-    if (dynamic_interrupt_handlers[interrupt] != 0) {
-        dbg_print("Dynamic interrupt already hooked\n");
-        return;
-    }
     dynamic_interrupt_handlers[interrupt] = handler;
     __asm__("sti");
 }
 
 void unhook_interrupt(uint8_t interrupt) {
+    if (!interrupts_ready) panic("Interrupts not ready\n");
     __asm__("cli");
-    dynamic_interrupt_handlers[interrupt] = (void*)0;
+    dynamic_interrupt_handlers[interrupt] = (void*)interrupt_exception_handler;
     __asm__("sti");
 }
 
 void enable_interrupts() {
+    if (!interrupts_ready) panic("Interrupts not ready\n");
     __asm__("sti");
 }
 
@@ -179,13 +178,13 @@ void init_interrupts(uint8_t pit_disable) {
     }
 
     dynamic_interrupt_handlers[0x8] = DoubleFault_Handler;    
-    dynamic_interrupt_handlers[0xB] = Network_Handler;
     dynamic_interrupt_handlers[0xD] = GPFault_Handler;
     dynamic_interrupt_handlers[0xE] = PageFault_Handler;
-    dynamic_interrupt_handlers[0x20] = PitInt_Handler;
-    dynamic_interrupt_handlers[0x21] = KeyboardInt_Handler;
-    dynamic_interrupt_handlers[0x23] = Serial2Int_Handler;
-    dynamic_interrupt_handlers[0x24] = Serial1Int_Handler;
+    dynamic_interrupt_handlers[PCIA_IRQ] = Network_Handler;
+    dynamic_interrupt_handlers[PIT_IRQ] = PitInt_Handler;
+    dynamic_interrupt_handlers[KBD_IRQ] = KeyboardInt_Handler;
+    dynamic_interrupt_handlers[SR2_IRQ] = Serial2Int_Handler;
+    dynamic_interrupt_handlers[SR1_IRQ] = Serial1Int_Handler;
     dynamic_interrupt_handlers[0x80] = Syscall_Handler;
     
     interrupts_ready = 1;
@@ -193,6 +192,7 @@ void init_interrupts(uint8_t pit_disable) {
 }
 
 void raise_interrupt(uint8_t interrupt) {
+    if (!interrupts_ready) panic("Interrupts not ready\n");
     __asm__("cli");
     dynamic_interrupt = interrupt;
     __asm__("int %0" : : "i"(DYNAMIC_HANDLER));
@@ -212,7 +212,7 @@ void global_interrupt_handler(struct cpu_context* ctx, uint8_t cpu_id) {
         }
     }
 
-    printf("Interrupt %d received on CPU %d\n", ctx->interrupt_number, cpu_id);
+    //printf("Interrupt %d received on CPU %d\n", ctx->interrupt_number, cpu_id);
 
     if (handler == 0) {
         panic("No handler for interrupt\n");
@@ -222,4 +222,19 @@ void global_interrupt_handler(struct cpu_context* ctx, uint8_t cpu_id) {
 
     local_apic_eoi(cpu_id);
     __asm__("sti");
+}
+
+void mask_interrupt(uint8_t irq) {
+    if (!interrupts_ready) panic("Interrupts not ready\n");
+    if (!ioapic_mask(irq, 0x0)) {
+        panic("Failed to mask interrupt\n");
+    }
+}
+
+void unmask_interrupt(uint8_t irq) {
+    if (!interrupts_ready) panic("Interrupts not ready\n");
+    printf("Unmasking interrupt %d\n", irq);
+    if (!ioapic_mask(irq, 0x1)) {
+        panic("Failed to unmask interrupt\n");
+    }
 }

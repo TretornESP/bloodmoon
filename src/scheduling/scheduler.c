@@ -1,5 +1,6 @@
 #include "scheduler.h"
 #include "pit.h"
+#include "../cpus/cpus.h"
 #include "../memory/heap.h"
 #include "../memory/paging.h"
 #include "../arch/gdt.h"
@@ -250,7 +251,7 @@ void go(uint32_t preempt) {
         enable_preemption();
     }
     struct cpu * cpu = get_cpu(current_task->processor);
-    tss_set_stack(cpu->tss, (void*)current_task->rsp, 0);
+    current_task->rsp = tss_get_stack(cpu->tss, GDT_DPL_KERNEL);
     ctxswtch(
         shithole_task,
         current_task
@@ -325,7 +326,7 @@ struct task* create_task(void * init_func, const char * tty) {
 
     task->frame = 0;
 
-    task->processor = 0;
+    task->processor = get_cpu_index();
     task->cpu_time = 0;
     task->last_scheduled = 0;
     task->sleep_time = 0;

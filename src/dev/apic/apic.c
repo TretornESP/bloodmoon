@@ -183,12 +183,12 @@ void ioapic_init(uint64_t ioapic_id) {
     uint8_t max_interrupts = ((ioapic_version >> 16) & 0xff) + 1;
     ioapic->max_interrupts = max_interrupts;
 
-    //printf("IOAPIC: %x\n", ioapic_address);
-    //printf("IOAPIC Version: %x\n", (uint8_t)ioapic_version);
-    //printf("IOAPIC Max Interrupts: %d\n", max_interrupts);
+    printf("IOAPIC: %x\n", ioapic_address);
+    printf("IOAPIC Version: %x\n", (uint8_t)ioapic_version);
+    printf("IOAPIC Max Interrupts: %d\n", max_interrupts);
 
     uint32_t base = ioapic->gsi_base;
-
+    
     for (uint64_t i = 0; i < max_interrupts; i++) {
         //printf("Setting up redirection entry %d\n", i);
         struct ioapic_redirection_entry entry = {
@@ -267,4 +267,39 @@ void register_apic(struct madt_header * madt, char* (*cb)(void*, uint8_t, uint64
 
 void local_apic_eoi(uint8_t cpu_id){        
     write_lapic_register(actx.lapic_address[cpu_id]->virtual_address, LAPIC_EOI, 0);
+}
+
+void io_change_irq_state(uint8_t irq, uint8_t io_apic_id, uint8_t is_enable){
+    struct ioapic* ioapic = actx.ioapics[io_apic_id];
+    if (ioapic == 0) {
+        return;
+    }
+    uint64_t ioapic_address = (uint64_t)ioapic->ioapic_address;
+    uint32_t base = ioapic->gsi_base;
+    size_t index = irq - base;
+    
+    volatile uint32_t low = ioapic_read_register(
+        (void*)ioapic_address,
+        IOAPIC_REDIRECTION_TABLE + 2 * index
+    );
+    
+    if(!is_enable){
+        low |= 1 << IOAPIC_REDIRECTION_BITS_MASK;
+    }else{
+        low &= ~(1 << IOAPIC_REDIRECTION_BITS_MASK);
+    }
+
+    ioapic_write_register((void*)ioapic_address, IOAPIC_REDIRECTION_TABLE + 2 * index, low);
+}
+
+uint8_t ioapic_mask(uint8_t irq, uint8_t enable) {
+    if(irq >= IRQ_START && (actx.ioapics[0]->max_interrupts + IRQ_START) > irq) {
+        io_change_irq_state(irq - IRQ_START, 0, enable);
+        return 1;
+    }
+    return 0;
+}
+
+uint8_t ioapic_get_max_interrupts() {
+    return actx.ioapics[0]->max_interrupts;
 }

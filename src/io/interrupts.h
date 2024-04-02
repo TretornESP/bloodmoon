@@ -2,6 +2,14 @@
 #define _INTERRUPTS_H
 #include "idt.h"
 
+
+//Modify this to your liking or die trying (DSDT AML STUFF)
+#define PIT_IRQ 0x22
+#define KBD_IRQ 0x21
+#define PCIA_IRQ 0x2b
+#define SR1_IRQ 0x23
+#define SR2_IRQ 0x24
+
 #define PIC1_COMMAND 0x20
 #define PIC1_DATA 0x21
 #define PIC2_COMMAND 0xA0
@@ -81,4 +89,6 @@ void hook_interrupt(uint8_t interrupt, void* handler);
 void unhook_interrupt(uint8_t interrupt);
 void pic_eoi(unsigned char irq);
 void raise_interrupt(uint8_t interrupt);
+void mask_interrupt(uint8_t irq);
+void unmask_interrupt(uint8_t irq);
 #endif

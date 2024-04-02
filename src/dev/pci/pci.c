@@ -6,6 +6,7 @@
 #include "../../util/dbgprinter.h"
 #include "../../dev/devices.h"
 #include "../../io/io.h"
+#include "../../io/interrupts.h"
 #include "../../drivers/disk/ahci/ahci.h"
 #include "../../drivers/net/e1000/e1000c.h"
 
@@ -586,5 +587,7 @@ void register_pci(struct mcfg_header *mcfg, char* (*cb)(void*, uint8_t, uint64_t
             enumerate_bus(new_device_config->base_address, bus, cb);
         }
     }
+
+    unmask_interrupt(PCIA_IRQ);
 }
 

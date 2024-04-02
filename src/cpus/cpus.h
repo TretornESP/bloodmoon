@@ -53,10 +53,11 @@ struct cpu {
     void* kstack;
     void* ustack;
     //thread
+    uint8_t ready;
     struct tss *tss;
 };
 
 void init_cpus();
 struct cpu *get_cpu(uint64_t index);
-
+uint8_t get_cpu_index();
 #endif
