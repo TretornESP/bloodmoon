@@ -1,5 +1,6 @@
 #include "cpus.h"
 #include "../arch/gdt.h"
+#include "../arch/msr.h"
 #include "../arch/tss.h"
 #include "../dev/apic/apic.h"
 #include "../memory/paging.h"
@@ -108,7 +109,8 @@ struct cpu *get_cpu(uint64_t index) {
 extern uint64_t getGsBase();
 uint8_t get_cpu_index() {
     //Get gs base
-    uint64_t base = getGsBase();
+    uint64_t base;
+    cpuGetMSR64(MSR_GS_BASE, &base);
     for (uint64_t i = 0; i < cpu_count; i++) {
         if (cpu[i].ctx == (struct cpu_context *) base) {
             return i;

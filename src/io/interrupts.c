@@ -36,8 +36,16 @@ void PageFault_Handler(struct cpu_context* ctx, uint8_t cpuid) {
     (void)cpuid;
     uint64_t faulting_address;
     __asm__ volatile("mov %%cr2, %0" : "=r" (faulting_address));
-    char buffer[20];
+    char buffer[128];
+    char addr[32];
+    uint64_t* rbp = (uint64_t*)ctx->rsp;
     sprintf(buffer, "Page Fault Address: %x\n", faulting_address);
+    for (int i = 0; i < 5; i++) {
+        if (rbp == 0) break;
+        sprintf(addr, "RBP: %x\n", rbp);
+        strcat(buffer, addr);
+        rbp = (uint64_t*)rbp[0];
+    }
     set_debug_msg(buffer);
     panic("Page fault\n");
 }
