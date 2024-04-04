@@ -37,15 +37,7 @@ void PageFault_Handler(struct cpu_context* ctx, uint8_t cpuid) {
     uint64_t faulting_address;
     __asm__ volatile("mov %%cr2, %0" : "=r" (faulting_address));
     char buffer[128];
-    char addr[32];
-    uint64_t* rbp = (uint64_t*)ctx->rsp;
     sprintf(buffer, "Page Fault Address: %x\n", faulting_address);
-    for (int i = 0; i < 5; i++) {
-        if (rbp == 0) break;
-        sprintf(addr, "RBP: %x\n", rbp);
-        strcat(buffer, addr);
-        rbp = (uint64_t*)rbp[0];
-    }
     set_debug_msg(buffer);
     panic("Page fault\n");
 }
@@ -69,7 +61,7 @@ void KeyboardInt_Handler(struct cpu_context* ctx, uint8_t cpuid) {
     handle_keyboard(scancode);
 }
 
-void Network_Handler(struct cpu_context* ctx, uint8_t cpuid) {
+void PCI_Handler(struct cpu_context* ctx, uint8_t cpuid) {
     (void)ctx;
     (void)cpuid;
     trigger_pci_interrupt();
@@ -165,7 +157,7 @@ void load_interrupts_for_local_cpu() {
     }
 }
 
-void init_interrupts(uint8_t pit_disable) {
+void init_interrupts() {
     dbg_print("### INTERRUPTS STARTUP ###\n");
     __asm__("cli");
     
@@ -185,10 +177,10 @@ void init_interrupts(uint8_t pit_disable) {
         dynamic_interrupt_handlers[i] = interrupt_exception_handler;
     }
 
-    dynamic_interrupt_handlers[0x8] = DoubleFault_Handler;    
+    dynamic_interrupt_handlers[0x8] = DoubleFault_Handler;
     dynamic_interrupt_handlers[0xD] = GPFault_Handler;
     dynamic_interrupt_handlers[0xE] = PageFault_Handler;
-    dynamic_interrupt_handlers[PCIA_IRQ] = Network_Handler;
+    dynamic_interrupt_handlers[PCIA_IRQ] = PCI_Handler;
     dynamic_interrupt_handlers[PIT_IRQ] = PitInt_Handler;
     dynamic_interrupt_handlers[KBD_IRQ] = KeyboardInt_Handler;
     dynamic_interrupt_handlers[SR2_IRQ] = Serial2Int_Handler;
@@ -223,7 +215,10 @@ void global_interrupt_handler(struct cpu_context* ctx, uint8_t cpu_id) {
     //printf("Interrupt %d received on CPU %d\n", ctx->interrupt_number, cpu_id);
 
     if (handler == 0) {
-        panic("No handler for interrupt\n");
+        char buffer[32];
+        sprintf(buffer, "No handler for interrupt 0x%x\n", ctx->interrupt_number);
+        set_debug_msg(buffer);
+        panic("No handler for interrupt !\n");
     }
 
     handler(ctx, cpu_id);

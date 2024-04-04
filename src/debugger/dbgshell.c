@@ -948,7 +948,8 @@ void print_prompt() {
     vfs_file_close(fd);
 }
 
-void init_dbgshell(const char* tty) {
+void init_dbgshell() {
+    const char * tty = get_current_tty();
     if (tty == 0) {
         return;
     }
@@ -965,6 +966,8 @@ void init_dbgshell(const char* tty) {
     strcpy(cwd, root);
     print_prompt();
     promt();
+
+    while(1);
 }
 
 void kill_dbgshell() {

@@ -75,18 +75,18 @@ void boot() {
     init_paging();
     init_heap();
     create_gdt(); //For all CPUs
-    init_interrupts(0);
+    init_interrupts();
     init_cpus();
     struct madt_header* madt = get_acpi_madt();
     if (madt != 0) {
         register_apic(madt, 0x0);
     }
     enable_interrupts();
-    init_pit(50);
+    //init_pit(50);
     init_drive();
     init_serial_dd();
     init_tty_dd();
-    init_e1000_dd();
+    init_e1000_dd(); //Careful, without this pci fills the memory!!!
     init_smbios_interface();
     init_devices();
     init_keyboard();

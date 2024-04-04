@@ -45,7 +45,7 @@ struct cpu_context {
     uint64_t ss;
     uint64_t gs;
     uint64_t fs;
-};
+} __attribute__((packed));
 
 struct cpu {
     uint64_t cid;

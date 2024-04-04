@@ -118,3 +118,8 @@ uint8_t get_cpu_index() {
     }
     panic("CPU not found");
 }
+
+struct cpu_context * fork_context(void * init, void * stack) {
+    struct cpu_context * ctx = malloc(sizeof(struct cpu_context));
+    memset(ctx, 0, sizeof(struct cpu_context));
+}

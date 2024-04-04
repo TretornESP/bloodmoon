@@ -111,6 +111,10 @@ uint8_t dbg_flush() {
         return 0;
     }
 
+    if (!started) {
+        return 0;
+    }
+
     struct buffer* current = dbg_buffer;
     while (current != 0) {
         if (current->pos > 0) {

@@ -321,11 +321,12 @@ void trigger_pci_interrupt() {
     //Iterate pci_dev_list_head and check if any of the devices have an interrupt.
     //If so call cb
     struct pci_dev_list* current = pci_dev_list_head;
-    while (current != 0) {
+    while (current != 0 && current->device != 0 && current->cb != 0) {
         if (has_interrupted((struct pci_device_header_0*)current->device)) {
             //printf("[PCI] Device %s has interrupted\n", current->name);
             current->cb(current->data);
         }
+        if (current->next == 0) break;
         current = current->next;
     }
 }

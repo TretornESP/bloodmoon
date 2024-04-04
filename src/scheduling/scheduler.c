@@ -314,18 +314,20 @@ void btask() {
     exit();
 }
 
+extern void ctxsave(struct cpu_context *ctx);
 struct task* create_task(void * init_func, const char * tty) {
     lock_scheduler();
+    struct cpu_context * ctx = malloc(sizeof(struct cpu_context));
+    memset(ctx, 0, sizeof(struct cpu_context));
+    ctxsave(ctx);
+
     struct task * task = malloc(sizeof(struct task));
     task->state = TASK_READY;
     task->flags = 0;
     task->sigpending = 0;
-
     task->nice = 0;
     task->mm = 0;
-
     task->frame = 0;
-
     task->processor = get_cpu_index();
     task->cpu_time = 0;
     task->last_scheduled = 0;
@@ -333,7 +335,7 @@ struct task* create_task(void * init_func, const char * tty) {
     task->exit_code = 0;    
     task->exit_signal = 0;
     task->pdeath_signal = 0;
-
+    
     struct task * parent = get_current_task();
     if (parent == 0) {
         parent = task;
@@ -393,11 +395,20 @@ struct task* create_task(void * init_func, const char * tty) {
     //Push the rsp_top
     __asm__ volatile("pushq %0" : : "r"(task->rsp_top));
 
+    __asm__ volatile("pushq $0x98"); //RAX
     __asm__ volatile("pushq $0x99"); //RBX
+    __asm__ volatile("pushq $0x9A"); //RCX
+    __asm__ volatile("pushq $0x9B"); //RDX
+    __asm__ volatile("pushq $0x88"); //R8
+    __asm__ volatile("pushq $0x89"); //R9
+    __asm__ volatile("pushq $0x90"); //R10
+    __asm__ volatile("pushq $0x91"); //R11
     __asm__ volatile("pushq $0x92"); //R12
     __asm__ volatile("pushq $0x93"); //R13
     __asm__ volatile("pushq $0x94"); //R14
     __asm__ volatile("pushq $0x95"); //R15
+    __asm__ volatile("pushq $0x96"); //RSI
+    __asm__ volatile("pushq $0x97"); //RDI
 
     //Save rsp to the task struct
     __asm__ volatile("movq %%rsp, %0" : "=r"(task->rsp_top));

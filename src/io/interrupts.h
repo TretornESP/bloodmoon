@@ -82,7 +82,7 @@ struct interrupt_frame_error {
     uint64_t ss;
 }__attribute__((packed)); 
 
-void init_interrupts(uint8_t);
+void init_interrupts();
 void enable_interrupts();
 void load_interrupts_for_local_cpu();
 void hook_interrupt(uint8_t interrupt, void* handler);
