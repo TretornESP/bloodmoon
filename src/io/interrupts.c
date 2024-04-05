@@ -70,16 +70,8 @@ void PCI_Handler(struct cpu_context* ctx, uint8_t cpuid) {
 void Syscall_Handler(struct cpu_context* ctx, uint8_t cpuid) {
     (void)ctx;
     (void)cpuid;
-    volatile uint64_t syscall_number, arg1, arg2, arg3, arg4, arg5, arg6;
-    __asm__ volatile("mov %%rax, %0" : "=r"(syscall_number));
-    __asm__ volatile("mov %%rdi, %0" : "=r"(arg1));
-    __asm__ volatile("mov %%rsi, %0" : "=r"(arg2));
-    __asm__ volatile("mov %%rdx, %0" : "=r"(arg3));
-    __asm__ volatile("mov %%r10, %0" : "=r"(arg4));
-    __asm__ volatile("mov %%r8, %0" : "=r"(arg5));
-    __asm__ volatile("mov %%r9, %0" : "=r"(arg6));
-    volatile uint64_t ret = syscall(syscall_number, arg1, arg2, arg3, arg4, arg5, arg6);
-    __asm__ volatile("mov %0, %%rax" : : "r"(ret));
+    ctx->rax = syscall(ctx->rax, ctx->rdi, ctx->rsi, ctx->rdx, ctx->r10, ctx->r8, ctx->r10);
+    __asm__ volatile("mov %0, %%rax" : : "r"(ctx->rax));
 }
 
 //you may need save_all here
@@ -199,7 +191,6 @@ void raise_interrupt(uint8_t interrupt) {
 }
 
 void global_interrupt_handler(struct cpu_context* ctx, uint8_t cpu_id) {
-    __asm__("cli");
     
     void (*handler)(struct cpu_context* ctx, uint8_t cpu_id) = (void*)dynamic_interrupt_handlers[ctx->interrupt_number];
     
@@ -224,7 +215,6 @@ void global_interrupt_handler(struct cpu_context* ctx, uint8_t cpu_id) {
     handler(ctx, cpu_id);
 
     local_apic_eoi(cpu_id);
-    __asm__("sti");
 }
 
 void mask_interrupt(uint8_t irq) {

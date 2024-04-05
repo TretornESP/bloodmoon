@@ -13,6 +13,7 @@
 #include "memory/paging.h"
 #include "memory/memory.h"
 #include "util/timeout.h"
+#include "arch/ssp.h"
 
 void _start(void) {
     boot();

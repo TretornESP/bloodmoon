@@ -44,7 +44,7 @@ void set_debug_data(const char * file, int line, const char * func) {
     dbgmsg_index2++;
 }
 
-void panic(const char * str) {
+__attribute__((noreturn)) void panic(const char * str) {
     
     dbg_print("\nKERNEL PANIC!\n");
     dbg_print(str);

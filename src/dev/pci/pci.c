@@ -321,10 +321,10 @@ void trigger_pci_interrupt() {
     //Iterate pci_dev_list_head and check if any of the devices have an interrupt.
     //If so call cb
     struct pci_dev_list* current = pci_dev_list_head;
-    while (current != 0 && current->device != 0 && current->cb != 0) {
-        if (has_interrupted((struct pci_device_header_0*)current->device)) {
-            //printf("[PCI] Device %s has interrupted\n", current->name);
-            current->cb(current->data);
+    while (current != 0) {
+        struct pci_device_header* device = current->device;
+        if (current->device != 0 && ((device->status & 0b1000) && !(device->command & 0b10000000000))) {
+            if (current->cb != 0) current->cb(current->data);
         }
         if (current->next == 0) break;
         current = current->next;
@@ -589,6 +589,6 @@ void register_pci(struct mcfg_header *mcfg, char* (*cb)(void*, uint8_t, uint64_t
         }
     }
 
-    unmask_interrupt(PCIA_IRQ);
+    //unmask_interrupt(PCIA_IRQ);
 }
 

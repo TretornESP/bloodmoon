@@ -9,7 +9,7 @@ void set_debug_data(const char * file, int line, const char * func);
 void set_debug_msg(const char * str);
 void dbg_print(const char * str);
 void dbg_printd(const char* str, int64_t num);
-void panic(const char * str);
+__attribute__((noreturn)) void panic(const char * str);
 char* itoa(int64_t, int);
 int64_t atoi(const char * str);
 #endif

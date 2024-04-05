@@ -98,8 +98,7 @@ void boot() {
     init_scheduler();
     init_sline();
     set_current_tty("ttya");
-    //init_dbgshell("ttya");
-    //add_task(create_task((void*)spawn_network_worker, "ttya"));
+    add_task(create_task((void*)spawn_network_worker, "ttya"));
     add_task(create_task((void*)init_dbgshell, "ttya"));
     go(5); //The number is the number of ticks for preemption, zero for cooperative scheduling
     panic("Kernel returned to boot() (this should never happen!)\n");

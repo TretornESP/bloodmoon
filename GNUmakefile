@@ -22,11 +22,11 @@ JAIL = 4096M # This is in case qemu crashes windows!
 # This are specific to my setup, please modify them!!!!
 #########################DESKTOP SETTINGS#################################
 QEMU := "/mnt/c/Program Files/qemu/qemu-system-x86_64.exe"
-GDB := "/mnt/c/Users/85562/crossgdb/gdb-12.1/gdb/gdb"
+#GDB := "/mnt/c/Users/85562/crossgdb/gdb-12.1/gdb/gdb"
 WSLHOSTIP := $(shell ipconfig.exe | grep 'WSL' -a -A4 | tail -n1 | cut -d":" -f 2 | tail -n1 | sed -e 's/\s*//g')
 #########################LAPTOP SETTINGS###################################
 #QEMU := qemu-system-x86_64
-#GDB := gdb
+GDB := gdb
 #WSLHOSTIP := 127.0.0.1
 ###########################################################################
 VBOXMANAGE := "/mnt/c/Program Files/Oracle/VirtualBox/VBoxManage.exe"
@@ -112,8 +112,6 @@ override CFLAGS +=       \
     -I.                  \
     -std=c11             \
     -ffreestanding       \
-    -fno-stack-protector \
-    -fno-stack-check     \
     -fno-pie             \
     -fno-pic             \
     -m64                 \
