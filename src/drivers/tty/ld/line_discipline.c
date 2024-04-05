@@ -219,6 +219,14 @@ void line_discipline_apply(struct line_discipline *ld, char c) {
         return;
     }
 
+    if (c == LD_DEL) {//TODO: Fix this
+        line_discipline_delete_last(ld);
+        ld->echo_cb(ld->parent, '\b');
+        ld->echo_cb(ld->parent, ' ');
+        ld->echo_cb(ld->parent, '\b');
+        return;
+    }
+
     for (int i = 0; i < LD_INSERT_SIZE; i++) {
         line_discipline_insert(ld, ld->action_table[(uint8_t)c].inserti[i]);
     }
@@ -230,7 +238,8 @@ void line_discipline_apply(struct line_discipline *ld, char c) {
         }
     }
 
-    ld->action_table[(uint8_t)c].action(ld, c);
+    if (ld->action_table[(uint8_t)c].action != LD_NULL)
+        ld->action_table[(uint8_t)c].action(ld, c);
 }
 
 void line_discipline_read(struct line_discipline *ld, char character) {

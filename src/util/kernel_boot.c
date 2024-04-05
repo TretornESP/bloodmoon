@@ -82,7 +82,7 @@ void boot() {
         register_apic(madt, 0x0);
     }
     enable_interrupts();
-    //init_pit(50);
+    init_pit(50);
     init_drive();
     init_serial_dd();
     init_tty_dd();
@@ -90,7 +90,7 @@ void boot() {
     init_smbios_interface();
     init_devices();
     init_keyboard();
-    enable_debug(0);
+    enable_debug(1);
     register_filesystem(fat32_registrar);
     register_filesystem(ext2_registrar);
     register_filesystem(tty_registrar);
@@ -101,7 +101,7 @@ void boot() {
     //init_dbgshell("ttya");
     //add_task(create_task((void*)spawn_network_worker, "ttya"));
     add_task(create_task((void*)init_dbgshell, "ttya"));
-    go(0); //The number is the number of ticks for preemption, zero for cooperative scheduling
+    go(5); //The number is the number of ticks for preemption, zero for cooperative scheduling
     panic("Kernel returned to boot() (this should never happen!)\n");
 }
 
