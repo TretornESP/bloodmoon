@@ -9,6 +9,7 @@
 #define SMBIOS      smbios_request
 #define TIME        time_request
 #define SMP         smp_request
+#define FRAMEBUFFER framebuffer_request
 
 static volatile struct limine_boot_time_request time_request = {
     .id = LIMINE_BOOT_TIME_REQUEST,
@@ -47,5 +48,9 @@ static volatile struct limine_stack_size_request stack_size_request = {
     .id = LIMINE_STACK_SIZE_REQUEST,
     .revision = 0,
     .stack_size = 0x2000000
+};
+static volatile struct limine_framebuffer_request framebuffer_request = {
+    .id = LIMINE_FRAMEBUFFER_REQUEST,
+    .revision = 1
 };
 #endif // _LIMINE_REQUESTS_H

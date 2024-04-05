@@ -108,3 +108,11 @@ uint64_t get_smp_cpu_count() {
 struct bmoon_smp_info ** get_smp_cpus() {
     return (struct bmoon_smp_info**)(CALL_SERVICE(SMP)->cpus);
 }
+
+uint64_t get_framebuffer_count() {
+    return CALL_SERVICE(FRAMEBUFFER)->framebuffer_count;
+}
+
+struct bmoon_framebuffer ** get_framebuffers() {
+    return (struct bmoon_framebuffer**)(CALL_SERVICE(FRAMEBUFFER)->framebuffers);
+}

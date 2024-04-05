@@ -12,6 +12,8 @@
 #include "../process/process.h"
 #include "../process/raw.h"
 #include "../dev/net/netstack.h"
+#include "../drivers/gui/gui.h"
+#include "../dev/fb/framebuffer.h"
 #include "../net/arp.h"
 #include "../net/eth.h"
 #include "debug.h"
@@ -700,6 +702,135 @@ void cd(int argc, char* argv[]) {
     normalizePath(cwd);
 }
 
+struct ppm {
+    uint16_t magic;
+    uint16_t width;
+    uint16_t height;
+    uint16_t max;
+    uint32_t * buffer;
+};
+
+void ppm(int argc, char* argv[]) {
+    if (argc < 4) {
+        printf("Prints a ppm image\n");
+        printf("Usage: ppm <filename> <x> <y>\n");
+        return;
+    }
+
+    int fd = vfs_file_open(argv[1], 0, 0);
+    if (fd < 0) {
+        printf("Could not open file %s\n", argv[1]);
+        return;
+    }
+
+    vfs_file_seek(fd, 0, 0x2); //SEEK_END
+    uint64_t size = vfs_file_tell(fd);
+    vfs_file_seek(fd, 0, 0x0); //SEEK_SET
+
+    uint8_t* buf = malloc(size);
+    memset(buf, 0, size);
+    vfs_file_read(fd, buf, size);
+    vfs_file_close(fd);
+
+    uint64_t x = atou64(argv[2]);
+    uint64_t y = atou64(argv[3]);
+
+    printf("PPM image %s\n", argv[1]);
+    printf("Coords x: %d\n", x);
+    printf("Coords y: %d\n", y);
+
+//50 36 0a 31 32 38 30 20 38 30 35 0a 32 35 35 0a
+// P  6  .  1  2  8  0     8  0  5  .  2  5  5  .
+    uint16_t magic = (buf[0] << 8) | buf[1];
+    if (magic != 0x5036) {
+        printf("Invalid magic number\n");
+        free(buf);
+        return;
+    }
+
+    uint8_t dots = 0;
+    char mag[32] = {0};
+    char dims[32] = {0};
+    char max[32] = {0};
+    uint8_t* bufstart = 0;
+    
+    for (uint64_t i = 2; i < size; i++) {
+        if (buf[i] == 0x0a) {
+            dots++;
+            if (dots == 1) {
+                memcpy(mag, buf + 2, i - 2);
+                mag[i - 2] = '\0';
+                bufstart = buf + i + 1;
+            } else if (dots == 2) {
+                memcpy(dims, bufstart, i - (bufstart - buf));
+                dims[i - (bufstart - buf)] = '\0';
+                bufstart = buf + i + 1;
+            } else if (dots == 3) {
+                memcpy(max, bufstart, i - (bufstart - buf));
+                max[i - (bufstart - buf)] = '\0';
+                bufstart = buf + i + 1;
+                break;
+            }
+        }
+    }
+
+    //Split dims by space
+    char* token = strtok(dims, " ");
+    uint16_t width = atoi(token);
+    token = strtok(NULL, " ");
+    uint16_t height = atoi(token);
+
+    struct ppm * image = malloc(sizeof(struct ppm));
+    image->magic = magic;
+    image->width = width;
+    image->height = height;
+    image->max = atoi(max);
+    image->buffer = (uint32_t*)(bufstart);
+    
+    printf("Magic: %x\n", image->magic);
+    printf("Width: %d\n", image->width);
+    printf("Height: %d\n", image->height);
+    printf("Max: %d\n", image->max);
+    //void draw_buffer(uint32_t * buffer, uint8_t x, uint8_t y, uint8_t w, uint8_t h);
+    draw_buffer48(image->buffer, x, y, 500, 500);
+}
+
+void fb(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Tests the framebuffer\n");
+        printf("Usage: fb <fbindex>\n");
+        return;
+    }
+
+    uint8_t index = atou8(argv[1]);
+    uint32_t red = 0x00FF0000;
+    uint32_t green = 0x0000FF00;
+    uint32_t blue = 0x000000FF;
+
+    struct framebuffer * fb = get_framebuffer(index);
+    if (fb == 0) {
+        printf("Could not find framebuffer %d\n", index);
+        return;
+    }
+
+    printf("Framebuffer %d\n", index);
+    printf("Width: %d\n", fb->width);
+    printf("Height: %d\n", fb->height);
+
+    //Draw a red square
+    for (uint64_t i = 0; i < fb->width; i++) {
+        for (uint64_t j = 0; j < fb->height; j++) {
+            if (i < fb->width / 2 && j < fb->height / 2) {
+                draw_pixel(index, i, j, red);
+            } else if (i >= fb->width / 2 && j < fb->height / 2) {
+                draw_pixel(index, i, j, green);
+            } else if (i < fb->width / 2 && j >= fb->height / 2) {
+                draw_pixel(index, i, j, blue);
+            }
+        }
+    }
+}
+
 void ticks(int argc, char* argv[]) {
     if (argc < 1) {
         printf("Prints the number of ticks since boot\n");
@@ -735,12 +866,20 @@ struct command cmdlist[] = {
         .handler = readelf
     },
     {
+        .keyword = "ppm",
+        .handler = ppm
+    },
+    {
         .keyword = "nic",
         .handler = nict
     },
     {
         .keyword = "nicc",
         .handler = nicc
+    },
+    {
+        .keyword = "fb",
+        .handler = fb
     },
     {
         .keyword = "ls",

@@ -42,6 +42,7 @@
 #include "../vfs/generic/tty/generic_tty.h"
 
 #include "../dev/net/netstack.h"
+#include "../dev/fb/framebuffer.h"
 
 #include "string.h"
 #include "printf.h"
@@ -82,6 +83,7 @@ void boot() {
         register_apic(madt, 0x0);
     }
     enable_interrupts();
+    init_framebuffer();
     init_pit(50);
     init_drive();
     init_serial_dd();
