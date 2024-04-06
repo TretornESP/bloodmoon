@@ -1,5 +1,6 @@
 #include "comm.h"
 #include "../../drivers/serial/serial.h"
+#include "../../drivers/ps2/ps2.h"
 #include "../../drivers/tty/tty.h"
 #include "../../util/string.h"
 #include "../../memory/heap.h"
@@ -20,4 +21,8 @@ void register_comm(char* (*cb)(void*, uint8_t, uint64_t)) {
     }
 
     free(port_buffer);
+
+    init_ps2();
+    cb((void*)0, PS2_MOUSE_MAJOR, 0x0);
+    cb((void*)0, PS2_KEYBOARD_MAJOR, 0x0);
 }

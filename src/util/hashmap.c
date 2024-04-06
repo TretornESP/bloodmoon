@@ -3,7 +3,7 @@
 #include "printf.h"
 #include "string.h"
 #include "md5.h"
-#include "../drivers/keyboard/keyboard.h"
+#include "../drivers/ps2/keyboard.h"
 
 struct hashmap * create_hashmap(uint64_t items) {
     if (items > HASHMAP_MAX_ITEMS)

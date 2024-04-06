@@ -14,7 +14,7 @@
 #include "../dev/pci/pci.h"
 #include "../dev/acpi/acpi.h"
 #include "../dev/apic/apic.h"
-#include "../drivers/keyboard/keyboard.h"
+#include "../drivers/ps2/keyboard.h"
 #include "../drivers/net/e1000/e1000c.h"
 #include "../scheduling/scheduler.h"
 #include "../scheduling/pit.h"
@@ -52,13 +52,6 @@ void GPFault_Handler(struct cpu_context* ctx, uint8_t cpuid) {
     (void)ctx;
     (void)cpuid;
     panic("General protection fault\n");
-}
-
-void KeyboardInt_Handler(struct cpu_context* ctx, uint8_t cpuid) {
-    (void)ctx;
-    (void)cpuid;
-    uint8_t scancode = inb(0x60);
-    handle_keyboard(scancode);
 }
 
 void PCI_Handler(struct cpu_context* ctx, uint8_t cpuid) {
@@ -174,7 +167,6 @@ void init_interrupts() {
     dynamic_interrupt_handlers[0xE] = PageFault_Handler;
     dynamic_interrupt_handlers[PCIA_IRQ] = PCI_Handler;
     dynamic_interrupt_handlers[PIT_IRQ] = PitInt_Handler;
-    dynamic_interrupt_handlers[KBD_IRQ] = KeyboardInt_Handler;
     dynamic_interrupt_handlers[SR2_IRQ] = Serial2Int_Handler;
     dynamic_interrupt_handlers[SR1_IRQ] = Serial1Int_Handler;
     dynamic_interrupt_handlers[0x80] = Syscall_Handler;

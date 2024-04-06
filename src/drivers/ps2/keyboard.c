@@ -45,7 +45,6 @@ void init_keyboard() {
     keyboard->right_shift_pressed = 0;
     keyboard->intro_buffered = 0;
 
-    unmask_interrupt(KBD_IRQ);
 }
 
 void handle_keyboard(uint8_t scancode) {

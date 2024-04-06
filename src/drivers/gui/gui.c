@@ -17,21 +17,18 @@ uint32_t get(uint8_t x, uint8_t y) {
     return get_pixel(fbi, x, y);
 }
 
-void draw_buffer8(uint32_t * buffer, uint64_t x, uint64_t y, uint64_t w, uint64_t h) {
-    uint8_t * b8 = (uint8_t *)buffer;
-    for (uint64_t i = 0; i < w; i++) {
-        for (uint64_t j = 0; j < h; j++) {
-            uint32_t color = b8[j * w + i];
-            draw_pixel(fbi, x + i, y + j, color);
-        }
-    }
+uint16_t get_gui_width() {
+    return get_framebuffer(fbi)->width; 
+}
+uint16_t get_gui_height() {
+    return get_framebuffer(fbi)->height;
 }
 
 void draw_buffer24(uint32_t * buffer, uint64_t x, uint64_t y, uint64_t w, uint64_t h) {
     uint8_t * b24 = (uint8_t *)buffer;
     for (uint64_t i = 0; i < w; i++) {
         for (uint64_t j = 0; j < h; j++) {
-            uint32_t color = (b24[j * w + i * 3] << 16) | (b24[j * w + i * 3 + 1] << 8) | b24[j * w + i * 3 + 2];
+            uint32_t color = rgb_to_color(b24[j * w * 3 + i * 3], b24[j * w * 3 + i * 3 + 1], b24[j * w * 3 + i * 3 + 2]);
             draw_pixel(fbi, x + i, y + j, color);
         }
     }
@@ -41,16 +38,6 @@ void draw_buffer32(uint32_t * buffer, uint64_t x, uint64_t y, uint64_t w, uint64
     for (uint64_t i = 0; i < w; i++) {
         for (uint64_t j = 0; j < h; j++) {
             uint32_t color = buffer[j * w + i];
-            draw_pixel(fbi, x + i, y + j, color);
-        }
-    }
-}
-
-void draw_buffer48(uint32_t * buffer, uint64_t x, uint64_t y, uint64_t w, uint64_t h) {
-    uint16_t * b48 = (uint16_t *)buffer;
-    for (uint64_t i = 0; i < w; i++) {
-        for (uint64_t j = 0; j < h; j++) {
-            uint32_t color = (b48[j * w + i] << 8) | b48[j * w + i + 1];
             draw_pixel(fbi, x + i, y + j, color);
         }
     }

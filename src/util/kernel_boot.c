@@ -30,7 +30,7 @@
 #include "../drivers/serial/serial_interface.h"
 #include "../drivers/tty/tty_dd.h"
 #include "../drivers/tty/tty_interface.h"
-#include "../drivers/keyboard/keyboard.h"
+#include "../drivers/ps2/ps2.h"
 #include "../drivers/disk/disk_interface.h"
 #include "../drivers/net/e1000/e1000_dd.h"
 
@@ -91,7 +91,6 @@ void boot() {
     init_e1000_dd(); //Careful, without this pci fills the memory!!!
     init_smbios_interface();
     init_devices();
-    init_keyboard();
     enable_debug(1);
     register_filesystem(fat32_registrar);
     register_filesystem(ext2_registrar);

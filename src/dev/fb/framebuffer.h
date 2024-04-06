@@ -25,6 +25,9 @@ struct color {
     unsigned char b;
 };
 
+uint32_t rgb_to_color(uint8_t r, uint8_t g, uint8_t b);
+void color_to_rgb(uint32_t color, struct color *c);
+
 void init_framebuffer();
 struct framebuffer *get_framebuffer(uint8_t index);
 void draw_pixel(uint8_t index, uint64_t x, uint64_t y, uint32_t color);

@@ -6,6 +6,7 @@
 //Modify this to your liking or die trying (DSDT AML STUFF)
 #define PIT_IRQ 0x22
 #define KBD_IRQ 0x21
+#define MSE_IRQ 0x2c
 #define PCIA_IRQ 0x2b
 #define SR1_IRQ 0x23
 #define SR2_IRQ 0x24

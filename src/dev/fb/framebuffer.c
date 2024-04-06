@@ -40,6 +40,16 @@ struct bmoon_limine_framebuffer {
 
 */
 
+uint32_t rgb_to_color(uint8_t r, uint8_t g, uint8_t b) {
+    return (r << 16) | (g << 8) | b;
+}
+
+void color_to_rgb(uint32_t color, struct color *c) {
+    c->r = (color >> 16) & 0xFF;
+    c->g = (color >> 8) & 0xFF;
+    c->b = color & 0xFF;
+}
+
 struct framebuffer * framebuffer[MAX_FRAMEBUFFER_COUNT] = {0};
 void init_framebuffer() {
     printf("### Initializing Framebuffer ###\n");

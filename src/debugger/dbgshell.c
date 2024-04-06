@@ -792,7 +792,7 @@ void ppm(int argc, char* argv[]) {
     printf("Height: %d\n", image->height);
     printf("Max: %d\n", image->max);
     //void draw_buffer(uint32_t * buffer, uint8_t x, uint8_t y, uint8_t w, uint8_t h);
-    draw_buffer48(image->buffer, x, y, 500, 500);
+    draw_buffer24(image->buffer, x, y, 1280, 805);
 }
 
 void fb(int argc, char* argv[]) {
