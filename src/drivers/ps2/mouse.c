@@ -3,24 +3,13 @@
 #include "../../io/io.h"
 #include "../../util/printf.h"
 #include "../gui/gui.h"
-uint8_t MousePointer[] = {
-    0b11111111, 0b11000000,
-    0b11111111, 0b10000000,
-    0b11111110, 0b00000000,
-    0b11111100, 0b00000000,
-    0b11111000, 0b00000000,
-    0b11110000, 0b00000000,
-    0b11100000, 0b00000000,
-    0b11000000, 0b00000000,
-    0b10000000, 0b00000000,
-    0b00000000, 0b00000000,
-    0b00000000, 0b00000000,
-    0b00000000, 0b00000000,
-    0b00000000, 0b00000000,
-    0b00000000, 0b00000000,
-    0b00000000, 0b00000000,
-    0b00000000, 0b00000000,
-};
+#include "../../memory/heap.h"
+#include "../../util/string.h"
+
+uint8_t MouseCycle = 0;
+uint8_t MousePacket[4];
+struct ps2_mouse_status LastMouseStatus;
+uint8_t MousePacketReady = 0;
 
 void MouseWait() {
     uint64_t timeout = 100000;
@@ -52,12 +41,6 @@ uint8_t MouseRead() {
     return inb(0x60);
 }
 
-uint8_t MouseCycle = 0;
-uint8_t MousePacket[4];
-uint8_t MousePacketReady = 0;
-Point MousePosition;
-Point MousePositionOld;
-
 void handle_mouse(uint8_t data) {
     switch(MouseCycle) {
         case 0:
@@ -80,8 +63,19 @@ void handle_mouse(uint8_t data) {
     }
 }
 
-uint8_t process_mouse_packet(struct ps2_mouse_status* status) {
-    if (!MousePacketReady) return 0;
+uint8_t get_mouse(struct ps2_mouse_status* status) {
+    if (status) {
+        memcpy(status, &LastMouseStatus, sizeof(struct ps2_mouse_status));
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+uint8_t process_mouse_packet(struct ps2_mouse_status* status, uint8_t* buffer) {
+    if (!buffer) return 0;
+    if (!status) return 0;
+    Point MousePosition = {LastMouseStatus.x, LastMouseStatus.y};
     uint8_t xNegative, yNegative, xOverflow, yOverflow;
     uint16_t screenWidth = get_gui_width();
     uint16_t screenHeight = get_gui_height();
@@ -92,26 +86,26 @@ uint8_t process_mouse_packet(struct ps2_mouse_status* status) {
     status->scroll = 0;
     status->flags = 0;
 
-    if (MousePacket[0] & PS2XSign) {
+    if (buffer[0] & PS2XSign) {
         xNegative = 1;
     } else {
         xNegative = 0;
     }
 
-    if (MousePacket[0] & PS2YSign) {
+    if (buffer[0] & PS2YSign) {
         yNegative = 1;
     } else {
         yNegative = 0;
     }
 
-    if (MousePacket[0] & PS2XOverflow) {
+    if (buffer[0] & PS2XOverflow) {
         xOverflow = 1;
         status->flags |= MOUSE_X_OVERFLOW;
     } else {
         xOverflow = 0;
     }
 
-    if (MousePacket[0] & PS2YOverflow) {
+    if (buffer[0] & PS2YOverflow) {
         yOverflow = 1;
         status->flags |= MOUSE_Y_OVERFLOW;
     } else {
@@ -119,26 +113,26 @@ uint8_t process_mouse_packet(struct ps2_mouse_status* status) {
     }    
 
     if (!xNegative) {
-        MousePosition.x += MousePacket[1];
+        MousePosition.x += buffer[1];
         if (xOverflow) {
             MousePosition.x  += 256;
         }
     } else {
-        MousePacket[1] = 256 - MousePacket[1];
-        MousePosition.x -= MousePacket[1];
+        buffer[1] = 256 - buffer[1];
+        MousePosition.x -= buffer[1];
         if (xOverflow) {
             MousePosition.x  -= 256;
         }
     }
 
     if (!yNegative) {
-        MousePosition.y -= MousePacket[2];
+        MousePosition.y -= buffer[2];
         if (yOverflow) {
             MousePosition.y  -= 256;
         }
     } else {
-        MousePacket[2] = 256 - MousePacket[2];
-        MousePosition.y += MousePacket[2];
+        buffer[2] = 256 - buffer[2];
+        MousePosition.y += buffer[2];
         if (yOverflow) {
             MousePosition.y  += 256;
         }
@@ -160,30 +154,43 @@ uint8_t process_mouse_packet(struct ps2_mouse_status* status) {
     status->x = MousePosition.x;
     status->y = MousePosition.y;
     //Here: Clear mouse cursor and draw new one at coords
-    printf("\r(%d,%d)", MousePosition.x, MousePosition.y);
+    //printf("\r(%d,%d)", MousePosition.x, MousePosition.y);
     
-    if (MousePacket[0] & PS2LeftButton) {
+    if (buffer[0] & PS2LeftButton) {
         status->buttons |= MOUSE_LEFT_CLICK;
     } else {
         status->buttons &= ~MOUSE_LEFT_CLICK;
     }
 
-    if (MousePacket[0] & PS2MiddleButton) {
+    if (buffer[0] & PS2MiddleButton) {
         status->buttons |= MOUSE_MIDDLE_CLICK;
     } else {
         status->buttons &= ~MOUSE_MIDDLE_CLICK;
     }
 
-    if (MousePacket[0] & PS2RightButton) {
+    if (buffer[0] & PS2RightButton) {
         status->buttons |= MOUSE_RIGHT_CLICK;
     } else {
         status->buttons &= ~MOUSE_RIGHT_CLICK;
     }
-  
-    MousePacketReady = 0;
-    MousePositionOld = MousePosition;
-
+    
+    LastMouseStatus.x = status->x;
+    LastMouseStatus.y = status->y;
+    LastMouseStatus.buttons = status->buttons;
+    LastMouseStatus.scroll = status->scroll;
+    LastMouseStatus.flags = status->flags;
     return 1;
+}
+
+uint8_t process_current_mouse_packet(struct ps2_mouse_status* status) {
+    if (MousePacketReady) {
+        if (process_mouse_packet(status, MousePacket)) {
+            MousePacketReady = 0;
+            return 1;
+        }
+    } else {
+        return 0;
+    }
 }
 
 void init_mouse() {

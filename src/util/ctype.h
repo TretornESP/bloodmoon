@@ -1,7 +1,7 @@
 #ifndef _CTYPE_H
 #define _CTYPE_H
-#define ULLONG_MAX 18446744073709551615ULL
 
+#include <limits.h>
 #include <stdint.h>
 
 int isalnum(int c);

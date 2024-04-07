@@ -32,6 +32,15 @@ struct vfs_file_system_type * init_file_system_type_header() {
     return fst;
 }
 
+uint8_t iterate_mounts(uint8_t (*callback)(struct vfs_mount*, void * data), void * data) {
+    struct vfs_mount * mount = mount_list_head;
+    while (mount != 0 && mount->device != 0 && mount->fst != 0 && mount->partition != 0) {
+        if (callback(mount, data)) return 1;
+        mount = mount->next;
+    }
+    return 0;
+}
+
 void dump_mounts() {
     struct vfs_mount * mount = mount_list_head;
     while (mount != 0 && mount->device != 0 && mount->fst != 0 && mount->partition != 0) {

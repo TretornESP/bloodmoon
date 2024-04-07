@@ -9,6 +9,7 @@
 #include "../memory/heap.h"
 #include "../process/loader.h"
 #include "../drivers/net/e1000/e1000c.h"
+#include "../drivers/ps2/ps2.h"
 #include "../process/process.h"
 #include "../process/raw.h"
 #include "../dev/net/netstack.h"
@@ -37,6 +38,16 @@ void test(int argc, char *argv[]) {
 
 void dump(int argc, char* argv[]) {
     dbg_flush();
+}
+
+void startx_cmd(int argc, char* argv[]) {
+    if (argc < 1) {
+        printf("Starts the GUI\n");
+        printf("Usage: startx\n");
+        return;
+    }
+
+    startx();
 }
 
 void lsdsk(int argc, char* argv[]) {
@@ -235,6 +246,43 @@ void ptasks(int argc, char* argv[]) {
     }
 
     task_test();
+}
+
+void mouse_handler(struct ps2_mouse_status* status) {
+    //static char * tty;
+    //if (!tty) tty = get_current_tty();
+    //if (tty == 0) {
+    //    printf("No tty attached\n");
+    //    return;
+    //}
+
+    //set_current_tty("default");
+    printf("Mouse B:%x X:%d Y:%d F:%x\n", status->buttons, status->x, status->y, status->flags);
+    //set_current_tty(tty);
+}
+
+void mousea(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Attaches the mouse\n");
+        printf("Usage: mousea <device> [event]\n");
+        return;
+    }
+
+    if (argc == 3) {
+        device_ioctl(argv[1], IOCTL_MOUSE_SUBSCRIBE_EVENT, mouse_handler);
+    } else {
+        device_ioctl(argv[1], IOCTL_MOUSE_SUBSCRIBE, mouse_handler);
+    }
+}
+
+void mouseda(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Detaches the mouse\n");
+        printf("Usage: mouseda <device>x\n");
+        return;
+    }
+
+    device_ioctl(argv[1], IOCTL_MOUSE_UNSUBSCRIBE, mouse_handler);
 }
 
 void read(int argc, char* argv[]) {
@@ -687,6 +735,27 @@ void nicp(int argc, char* argv[]) {
     print_nic(nic);
 }
 
+void mouse(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Prints the mouse status\n");
+        printf("Usage: mouse <device>\n");
+        return;
+    }
+
+    struct ps2_mouse_status mouse;
+    uint64_t result = device_ioctl(argv[1], IOCTL_MOUSE_GET_STATUS, &mouse);
+    if (result == 0) {
+        printf("Could not get mouse status\n");
+        return;
+    }
+
+    printf("Mouse status\n");
+    printf("Buttons: %x\n", mouse.buttons);
+    printf("X: %d\n", mouse.x);
+    printf("Y: %d\n", mouse.y);
+    printf("Flags: %x\n", mouse.flags);
+}
+
 void cd(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Changes the current directory\n");
@@ -702,14 +771,6 @@ void cd(int argc, char* argv[]) {
     normalizePath(cwd);
 }
 
-struct ppm {
-    uint16_t magic;
-    uint16_t width;
-    uint16_t height;
-    uint16_t max;
-    uint32_t * buffer;
-};
-
 void ppm(int argc, char* argv[]) {
     if (argc < 4) {
         printf("Prints a ppm image\n");
@@ -717,82 +778,10 @@ void ppm(int argc, char* argv[]) {
         return;
     }
 
-    int fd = vfs_file_open(argv[1], 0, 0);
-    if (fd < 0) {
-        printf("Could not open file %s\n", argv[1]);
-        return;
-    }
-
-    vfs_file_seek(fd, 0, 0x2); //SEEK_END
-    uint64_t size = vfs_file_tell(fd);
-    vfs_file_seek(fd, 0, 0x0); //SEEK_SET
-
-    uint8_t* buf = malloc(size);
-    memset(buf, 0, size);
-    vfs_file_read(fd, buf, size);
-    vfs_file_close(fd);
-
     uint64_t x = atou64(argv[2]);
     uint64_t y = atou64(argv[3]);
 
-    printf("PPM image %s\n", argv[1]);
-    printf("Coords x: %d\n", x);
-    printf("Coords y: %d\n", y);
-
-//50 36 0a 31 32 38 30 20 38 30 35 0a 32 35 35 0a
-// P  6  .  1  2  8  0     8  0  5  .  2  5  5  .
-    uint16_t magic = (buf[0] << 8) | buf[1];
-    if (magic != 0x5036) {
-        printf("Invalid magic number\n");
-        free(buf);
-        return;
-    }
-
-    uint8_t dots = 0;
-    char mag[32] = {0};
-    char dims[32] = {0};
-    char max[32] = {0};
-    uint8_t* bufstart = 0;
-    
-    for (uint64_t i = 2; i < size; i++) {
-        if (buf[i] == 0x0a) {
-            dots++;
-            if (dots == 1) {
-                memcpy(mag, buf + 2, i - 2);
-                mag[i - 2] = '\0';
-                bufstart = buf + i + 1;
-            } else if (dots == 2) {
-                memcpy(dims, bufstart, i - (bufstart - buf));
-                dims[i - (bufstart - buf)] = '\0';
-                bufstart = buf + i + 1;
-            } else if (dots == 3) {
-                memcpy(max, bufstart, i - (bufstart - buf));
-                max[i - (bufstart - buf)] = '\0';
-                bufstart = buf + i + 1;
-                break;
-            }
-        }
-    }
-
-    //Split dims by space
-    char* token = strtok(dims, " ");
-    uint16_t width = atoi(token);
-    token = strtok(NULL, " ");
-    uint16_t height = atoi(token);
-
-    struct ppm * image = malloc(sizeof(struct ppm));
-    image->magic = magic;
-    image->width = width;
-    image->height = height;
-    image->max = atoi(max);
-    image->buffer = (uint32_t*)(bufstart);
-    
-    printf("Magic: %x\n", image->magic);
-    printf("Width: %d\n", image->width);
-    printf("Height: %d\n", image->height);
-    printf("Max: %d\n", image->max);
-    //void draw_buffer(uint32_t * buffer, uint8_t x, uint8_t y, uint8_t w, uint8_t h);
-    draw_buffer24(image->buffer, x, y, 1280, 805);
+    draw_image(argv[1], x, y);
 }
 
 void fb(int argc, char* argv[]) {
@@ -858,6 +847,10 @@ struct command cmdlist[] = {
         .handler = detach
     },
     {
+        .keyword = "startx",
+        .handler = startx_cmd
+    },
+    {
         .keyword = "dmesg",
         .handler = dump
     },
@@ -888,6 +881,14 @@ struct command cmdlist[] = {
     {
         .keyword = "nicw",
         .handler = nicw
+    },
+    {
+        .keyword = "mouseda",
+        .handler = mouseda
+    },
+    {
+        .keyword = "mousea",
+        .handler = mousea
     },
     {
         .keyword = "arpr",
@@ -992,6 +993,10 @@ struct command cmdlist[] = {
     {
         .keyword = "ticks",
         .handler = ticks
+    },
+    {
+        .keyword = "mouse",
+        .handler = mouse
     },
     {
         .keyword = "help",

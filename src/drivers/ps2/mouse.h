@@ -19,7 +19,9 @@ typedef struct {
 extern uint8_t MousePointer[];
 
 void init_mouse();
+uint8_t get_mouse(struct ps2_mouse_status* status);
 void handle_mouse(uint8_t data);
-uint8_t process_mouse_packet(struct ps2_mouse_status* status);
+uint8_t process_mouse_packet(struct ps2_mouse_status* status, uint8_t* packet);
+uint8_t process_current_mouse_packet(struct ps2_mouse_status* status);
 extern Point MousePosition;
 #endif

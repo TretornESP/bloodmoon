@@ -218,13 +218,74 @@ void vfs_dir_list(char* name) {
     printf("Directory %s contents:\n", name);
     char name_buffer[256];
     uint32_t type;
-    uint32_t name_len;
-    while (vfs_dir_read(fd, name_buffer, &type, &name_len) > 0) {
+    uint32_t name_len; 
+    while (vfs_dir_read(fd, name_buffer, &name_len, &type) > 0) {
         printf("DIR ENTRY: %s, %d, %d\n", name_buffer, type, name_len);
     }
 
     vfs_dir_close(fd);
     return;
+}
+
+int vfs_file_search(const char * name, char * path) {
+    if (path == 0 || name == 0) {
+        return -1;
+    }
+    char * new_path = malloc(1024);
+    memset(new_path, 0, 1024);
+    strcpy(new_path, path);
+    strcat(new_path, ".");
+    
+    int fd = vfs_dir_open(new_path);
+    if (fd < 0) {
+        printf("Error opening directory %s\n", new_path);
+        return;
+    }
+
+    int res = vfs_dir_load(fd);
+    if (res < 0) {
+        printf("Error loading directory %s\n", new_path);
+        return;
+    }
+
+    char name_buffer[256];
+    uint32_t type;
+    uint32_t name_len;
+    while (vfs_dir_read(fd, name_buffer, &name_len, &type) > 0) {
+        printf("Searching %s Type %d\n", name_buffer, type);
+        if (strcmp(name_buffer, name) == 0) {
+            printf("Found %s\n", name_buffer);
+            vfs_dir_close(fd);
+            memset(path, 0, 1024);
+            strcpy(path, new_path);
+            //Swap the last dot with a slash
+            path[strlen(path) - 1] = '/';
+            strcat(path, name_buffer);
+            free(new_path);
+            return 1;
+        }
+        if (type == 0x2 && strcmp(name_buffer, ".") != 0 && strcmp(name_buffer, "..") != 0 && strcmp(name_buffer, "lost+found") != 0) {
+            printf("Nesting into %s\n", name_buffer);
+            memset(new_path, 0, 1024);
+            strcpy(new_path, path);
+            if (new_path[strlen(new_path) - 1] != '/') {
+                strcat(new_path, "/");
+            }
+            strcat(new_path, name_buffer);
+            int res = vfs_file_search(name, new_path);
+            if (res == 1) {
+                memset(path, 0, 1024);
+                strcpy(path, new_path);
+                vfs_dir_close(fd);
+                free(new_path);
+                return 1;
+            }
+        }
+    }
+
+    vfs_dir_close(fd);
+    free(new_path);
+    return 0;
 }
 
 int vfs_dir_read(int fd, char* name, uint32_t * name_len, uint32_t * type) {
