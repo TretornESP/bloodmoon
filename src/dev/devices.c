@@ -29,7 +29,7 @@ const char* device_identifiers[] = {
     "cd",   // 9
     "semb", // a
     "pm",   // b
-    "umsd", // c
+    "sd",   // c
     "none", // d
     "tty", // e
     "none", // f
@@ -38,7 +38,8 @@ const char* device_identifiers[] = {
     "fb", // 12
     "none", // 13 
     [0x8d] = "serial", // 80
-    [0x8f] = "kbd" // 81
+    [0x8e] = "fifo",
+    [0x8f] = "kbd", // 81
 };
 
 char* insert_device(uint8_t major, void* device_control_structure, const char * prefix, uint64_t id) {
@@ -48,7 +49,7 @@ char* insert_device(uint8_t major, void* device_control_structure, const char * 
     struct device* device = devices;
     uint8_t minor = 0;
     while (device->next != 0) {
-        if (device->major == (major & 0x7f))
+        if ((uint8_t)(device->bc << 7 | device->major) == major)
             minor++;
         device = device->next;
     }
@@ -56,7 +57,7 @@ char* insert_device(uint8_t major, void* device_control_structure, const char * 
 
     snprintf(name, 32, "%s%x", prefix, minor+0xa);
 
-    printf("Registering device: %s [MAJ: %d MIN: %d ID: %d CTRL: %p]\n", name, major, minor, id, device_control_structure);
+    printf("Registering device: %s [MAJ: %x MIN: %x ID: %x CTRL: %p]\n", name, major, minor, id, device_control_structure);
 
     device->next = (struct device*) request_page();
     memset(device->next, 0, sizeof(struct device));
@@ -75,13 +76,38 @@ char* insert_device_cb(void* device_control_structure, uint8_t major, uint64_t i
     return insert_device(major, device_control_structure, device_identifiers[major], id);
 }
 
-void register_char(uint8_t major, const char* name, struct file_operations* fops) {
-    strncpy(char_device_drivers[major].name, name, strlen(name));
-    char_device_drivers[major].registered = 1;
-    char_device_drivers[major].fops = fops;
-    char_device_drivers[major].nops = 0x0;
+char* create_device(void* device_control_structure, uint8_t major, uint64_t id) {
+    return insert_device_cb(device_control_structure, major, id);
+}
 
-    printf("Registered char device: %s [MAJ: %d]\n", name, major);
+//TOD: Untested
+void destroy_device(const char* device) {
+    struct device* dev = devices;
+    struct device* prev = 0;
+    while (dev->valid) {
+        if (memcmp((void*)dev->name, (void*)device, strlen(device)) == 0) {
+            dev->valid = 0;
+            if (prev != 0) {
+                prev->next = dev->next;
+                free_page(dev);
+            } else {
+                free_page(dev);
+            }
+            return;
+        }
+        prev = dev;
+        dev = dev->next;
+    }
+}
+
+void register_char(uint8_t major, const char* name, struct file_operations* fops) {
+    uint8_t major_id = major & 0x7f;
+    strncpy(char_device_drivers[major_id].name, name, strlen(name));
+    char_device_drivers[major_id].registered = 1;
+    char_device_drivers[major_id].fops = fops;
+    char_device_drivers[major_id].nops = 0x0;
+
+    printf("Registered char device: %s [MAJ: %x]\n", name, major);
 }
 
 void register_block(uint8_t major, const char* name, struct file_operations* fops) {
@@ -89,7 +115,7 @@ void register_block(uint8_t major, const char* name, struct file_operations* fop
     block_device_drivers[major].registered = 1;
     block_device_drivers[major].fops = fops;
     block_device_drivers[major].nops = 0x0;
-    printf("Registered block device: %s [MAJ: %d]\n", name, major);
+    printf("Registered block device: %s [MAJ: %x]\n", name, major);
 }
 
 void register_network(uint8_t major, const char * name, struct network_operations* nops) {
@@ -97,7 +123,7 @@ void register_network(uint8_t major, const char * name, struct network_operation
     net_device_drivers[major].registered = 1;
     net_device_drivers[major].nops = nops;
     net_device_drivers[major].fops = 0x0;
-    printf("Registered network device: %s [IDX: %d]\n", name, major);
+    printf("Registered network device: %s [IDX: %x]\n", name, major);
 }
 
 void unregister_block(uint8_t major) {
@@ -134,9 +160,9 @@ void device_list(uint8_t mode) {
     struct device* dev = devices;
     while (dev->valid) {
         if (mode == MODE_BLOCK && dev->bc == 0)
-            printf("Device: %s [MAJ: %d MIN: %d]\n", dev->name, dev->major, dev->minor);
+            printf("Device: %s [MAJ: %x MIN: %x]\n", dev->name, dev->major, dev->minor);
         else if (mode == MODE_CHAR && dev->bc == 1) {
-            printf("Device: %s [MAJ: %d MIN: %d]\n", dev->name, dev->major, dev->minor);
+            printf("Device: %s [MAJ: %x MIN: %x]\n", dev->name, dev->major, dev->minor);
         }
         dev = dev->next;
     }
@@ -162,7 +188,7 @@ uint32_t get_device_count_by_major(uint8_t major) {
     uint32_t count = 0;
     struct device* dev = devices;
     while (dev->valid) {
-        if (dev->major == major)
+        if ((uint8_t)(dev->bc << 7 | dev->major) == major)
             count++;
         dev = dev->next;
     }

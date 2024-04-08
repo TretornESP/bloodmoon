@@ -13,6 +13,8 @@
 #define MBR_BOOT_SIG		510
 #define MBR_BOOT_SIG_VALUE	0xAA55
 
+#define VFS_MAX_DEVICES 512
+
 #define PAR_STATUS			0
 #define PAR_TYPE			4
 #define PAR_LBA				8
@@ -85,6 +87,5 @@ char* get_full_path_from_dir(int fd);
 char* get_full_path_from_dev(int fd);
 int is_safe_for_removing(const char* path, uint8_t force);
 void register_filesystem(struct vfs_compatible *);
-void init_vfs();
-
+void probe_fs();
 #endif

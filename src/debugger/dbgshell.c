@@ -6,6 +6,7 @@
 #include "../scheduling/scheduler.h"
 #include "../scheduling/pit.h"
 #include "../vfs/vfs_interface.h"
+#include "../vfs/vfs.h"
 #include "../memory/heap.h"
 #include "../process/loader.h"
 #include "../drivers/net/e1000/e1000c.h"
@@ -14,6 +15,8 @@
 #include "../process/raw.h"
 #include "../dev/net/netstack.h"
 #include "../drivers/gui/gui.h"
+#include "../drivers/tty/tty.h"
+#include "../drivers/fifo/fifo_interface.h"
 #include "../dev/fb/framebuffer.h"
 #include "../net/arp.h"
 #include "../net/eth.h"
@@ -42,6 +45,16 @@ void dump(int argc, char* argv[]) {
     dbg_flush();
 }
 
+char * find_suitable_keyboard() {
+    struct device* current = get_device_head();
+    while (current != 0) {
+        if (current->major == DEVICE_KEYBOARD) {
+            return current->name;
+        }
+        current = get_next_device(current);
+    }
+}
+
 void startx_cmd(int argc, char* argv[]) {
     if (argc < 1) {
         printf("Starts the GUI\n");
@@ -49,6 +62,30 @@ void startx_cmd(int argc, char* argv[]) {
         return;
     }
 
+    char * tty_output = create_fifo(1024);
+    if (!tty_output) {
+        printf("Could not create fifo\n");
+        return;
+    }
+
+    printf("Fifo created: %s\n", tty_output);
+    char * tty_input = find_suitable_keyboard();
+    if (!tty_input) {
+        printf("Could not find suitable keyboard\n");
+        destroy_fifo(tty_output);
+        return;
+    }
+
+    printf("Using keyboard: %s\n", tty_input);
+
+        
+    int index = tty_init(tty_input, tty_output, TTY_MODE_PTY, 1024, 1024);
+    struct tty * tty = get_tty(index);
+    if (is_valid_tty(tty)) {
+        create_device((void*)tty, TTY_MAJOR, index);
+    }
+
+    probe_fs();
     startx();
 }
 
@@ -71,9 +108,10 @@ void attach(int argc, char *argv[]) {
         return;
     }
 
-    device_ioctl(devno, 0x2, handler); //ADD SUBSCRIBER
+    //device_ioctl(devno, 0x2, handler); //REMOVE SUBSCRIBER
+    memset(devno, 0, 32);
     strcpy(devno, argv[1]);
-    device_ioctl(devno, 0x1, handler); //REMOVE SUBSCRIBER
+    device_ioctl(devno, 0x1, handler); //ADD SUBSCRIBER
     
     set_current_tty(argv[1]);
     printf("Attached to %s\n", argv[1]);
@@ -289,6 +327,77 @@ void mouseda(int argc, char* argv[]) {
     }
 
     device_ioctl(argv[1], IOCTL_MOUSE_UNSUBSCRIBE, mouse_handler);
+}
+
+void writed(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Writes to a device\n");
+        printf("Usage: write device text\n");
+        return;
+    }
+
+    int fd = vfs_file_open(argv[1], 0, 0);
+    if (fd < 0) {
+        printf("Could not open device %s\n", argv[1]);
+        return;
+    }
+
+    printf("Writing to %s\n", argv[1]);
+    for (int i = 2; i < argc; i++) {
+        vfs_file_write(fd, argv[i], strlen(argv[i]));
+        vfs_file_write(fd, " ", 1);
+    }
+
+    vfs_file_close(fd);
+}
+
+void readd(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Reads n characters of a device\n");
+        printf("Usage: read device [size] [offset]\n");
+        return;
+    }
+
+    uint64_t size = 0;
+    uint64_t offset = 0;
+
+    int fd = vfs_file_open(argv[1], 0, 0);
+    if (fd < 0) {
+        printf("Could not open device %s\n", argv[1]);
+        return;
+    }
+
+    if (argc > 3) {
+        offset = atou64(argv[3]);
+    }
+
+    if (argc > 2) {
+        size = atou64(argv[2]);
+    } else {
+        vfs_file_seek(fd, 0, 0x2); //SEEK_END
+        size = vfs_file_tell(fd);
+        vfs_file_seek(fd, 0, 0x0); //SEEK_SET
+    }
+
+    printf("Reading %d bytes from %s offset: %d\n", size, argv[1], offset);
+
+    vfs_file_seek(fd, offset, 0x0); //SEEK_SET
+    uint8_t* buf = malloc(size);
+    memset(buf, 0, size);
+    vfs_file_read(fd, buf, size);
+    vfs_file_close(fd);
+    buf[size] = '\0';    
+    printf("str: %s\n", buf);
+    printf("hex: ");
+    for (uint64_t i = 0; i < size; i++) {
+        printf("%02x ", buf[i]);
+        if (i > 0 && i % 16 == 0) {
+            printf("\n");
+        }
+    }
+    printf("\n");
+
+    free(buf);
 }
 
 void read(int argc, char* argv[]) {
@@ -714,17 +823,6 @@ void nicc(int argc, char* argv[]) {
     print_nic(nic);
 }
 
-void dwrite(int argc, char* argv[]) {
-    if (argc < 2) {
-        printf("Writes to a device\n");
-        printf("Usage: dwrite <dir>\n");
-        return;
-    }
-
-    printf("NOT IMPLEMENTED YET -\\_(-.-)_/-\n");
-
-}
-
 void nicp(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Prints the configuration of a nic\n");
@@ -909,8 +1007,12 @@ struct command cmdlist[] = {
         .handler = lschr
     },
     {
-        .keyword = "dwrite",
-        .handler = dwrite
+        .keyword = "readd",
+        .handler = readd
+    },
+    {
+        .keyword = "writed",
+        .handler = writed
     },
     {
         .keyword = "nicdump",

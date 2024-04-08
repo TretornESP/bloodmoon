@@ -10,7 +10,7 @@
 #include "partition/mbr.h"
 
 uint16_t vfs_root_size = 0;
-struct vfs_devmap * vfs_root;
+struct vfs_devmap vfs_root[VFS_MAX_DEVICES];
 struct vfs_file_system_type * file_system_type_list_head;
 struct vfs_mount * mount_list_head;
 
@@ -158,7 +158,7 @@ uint8_t mount_fs(struct device* dev, struct vfs_partition* partition, const char
         int found = 0;
         
         for (int i = 0; i < supported_major_number; i++) {
-            if (fst->majors[i] == dev->major) {
+            if (((uint8_t)(fst->majors[i]) == ((uint8_t)(dev->bc << 7 | dev->major)))) {
                 found = 1;
                 break;
             }
@@ -190,7 +190,8 @@ uint8_t mount_fs(struct device* dev, struct vfs_partition* partition, const char
 
 uint32_t detect_partitions(struct device* dev, struct vfs_partition* part) {
     uint32_t partition_number = 0;
-    if (dev->major < 8 || dev->major > 0xc) {
+    uint8_t devmaj = (dev->bc << 7 | dev->major);
+    if (devmaj < 8 || devmaj > 0xc) {
         partition_number = 1;
         add_partition(part, 0, 0, 0, 0);
     } else {
@@ -206,13 +207,26 @@ uint32_t detect_partitions(struct device* dev, struct vfs_partition* part) {
 
 void detect_devices() {
     vfs_root_size = get_device_count(); //TODO: Limit this to drives only!
-    vfs_root = (struct vfs_devmap*)malloc(sizeof(struct vfs_devmap)*vfs_root_size);
     
     uint32_t device_index = 0;
     struct device* dev = get_device_head();
     
     while (dev != 0) {
-        struct vfs_devmap* devmap = &vfs_root[device_index++];
+
+        //Check if device is already registered
+        for (uint32_t i = 0; i < vfs_root_size; i++) {
+            if (vfs_root[i].dev == dev) {
+                printf("[VFS] Device %s already registered\n", dev->name);
+                dev = get_next_device(dev);
+                continue;
+            }
+        }
+
+        struct vfs_devmap* devmap;
+        while(vfs_root[device_index].dev != 0) {
+            device_index++;
+        }
+        devmap = &vfs_root[device_index];
         devmap->dev = dev;
         devmap->partitions = init_partition_header();
         printf("[VFS] Scanning device: %s\n", dev->name);
@@ -284,6 +298,13 @@ void detect_partition_fs() {
         uint32_t partition_index = 0;
         char mountpoint[48];
         while(current_partition->next != 0) {
+            //Check if partition is already mounted
+            if (current_partition->name[0] != 0) {
+                current_partition = current_partition->next;
+                partition_index++;
+                continue;
+            }
+
             memset(mountpoint, 0, 48);
             snprintf(mountpoint, 48, "%sp%d", vfs_root[i].dev->name, partition_index);
 
@@ -293,6 +314,12 @@ void detect_partition_fs() {
             partition_index++;
         }
     }
+}
+
+void probe_fs() {
+    printf("[VFS] Probing FS\n");
+    detect_devices();
+    detect_partition_fs();
 }
 
 void init_vfs() {

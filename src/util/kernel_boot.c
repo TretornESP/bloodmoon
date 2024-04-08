@@ -34,6 +34,8 @@
 #include "../drivers/disk/disk_interface.h"
 #include "../drivers/net/e1000/e1000_dd.h"
 #include "../drivers/gui/fb_dd.h"
+#include "../drivers/fifo/fifo_dd.h"
+#include "../drivers/fifo/fifo_interface.h"
 
 
 #include "../vfs/vfs.h"
@@ -41,6 +43,7 @@
 #include "../vfs/generic/fat32/generic_f32.h"
 #include "../vfs/generic/ext2/generic_ext2.h"
 #include "../vfs/generic/tty/generic_tty.h"
+#include "../vfs/generic/fifo/generic_fifo.h"
 
 #include "../dev/net/netstack.h"
 #include "../dev/fb/framebuffer.h"
@@ -89,6 +92,7 @@ void boot() {
     init_fb_dd();
     init_serial_dd();
     init_tty_dd();
+    init_fifo_dd();
     init_e1000_dd(); //Careful, without this pci fills the memory!!!
     init_smbios_interface();
     init_devices();
@@ -96,7 +100,8 @@ void boot() {
     register_filesystem(fat32_registrar);
     register_filesystem(ext2_registrar);
     register_filesystem(tty_registrar);
-    init_vfs();
+    register_filesystem(fifo_registrar);
+    probe_fs();
     init_scheduler();
     init_sline();
     set_current_tty("ttya");

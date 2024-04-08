@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #define MAX_FRAMEBUFFER_COUNT 4
-#define FRAMEBUFFER_MAJOR 0xc
+#define FRAMEBUFFER_MAJOR 0x12
 
 struct framebuffer {
     uint32_t *address;

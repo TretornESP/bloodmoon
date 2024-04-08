@@ -31,6 +31,11 @@ void KeyboardInt_Handler(struct cpu_context* ctx, uint8_t cpuid) {
         current->handler(current->parent, result, 0);
         current = current->next;
     }
+    current = keyboard_event_subscribers;
+    while (current) {
+        current->handler(current->parent, result, 0);
+        current = current->next;
+    }
 }
 
 void MouseInt_Handler(struct cpu_context* ctx, uint8_t cpuid) {
@@ -87,13 +92,13 @@ void ps2_subscribe(void* handler, uint8_t device, uint8_t event) {
         new_subscriber->handler = handler;
         
         if (event == PS2_DEVICE_GENERIC_EVENT) {
-            current = mouse_event_subscribers;
-            new_subscriber->next = current;
-            mouse_event_subscribers = new_subscriber;
-        } else if (event == PS2_DEVICE_SPECIAL_EVENT) {
             current = mouse_all_subscribers;
             new_subscriber->next = current;
             mouse_all_subscribers = new_subscriber;
+        } else if (event == PS2_DEVICE_SPECIAL_EVENT) {
+            current = mouse_event_subscribers;
+            new_subscriber->next = current;
+            mouse_event_subscribers = new_subscriber;
         } else {
             return;
         }
@@ -104,9 +109,9 @@ void ps2_subscribe(void* handler, uint8_t device, uint8_t event) {
         new_subscriber->handler = kbdsub->handler;
 
         if (event == PS2_DEVICE_GENERIC_EVENT) {
-            current = keyboard_event_subscribers;
+            current = keyboard_all_subscribers;
             new_subscriber->next = current;
-            keyboard_event_subscribers = new_subscriber;
+            keyboard_all_subscribers = new_subscriber;
         } else {
             return;
         }

@@ -87,6 +87,9 @@ void unregister_char(uint8_t);
 void unregister_block(uint8_t);
 void unregister_network(uint8_t);
 
+char* create_device(void* device_control_structure, uint8_t major, uint64_t id);
+void destroy_device(const char*);
+
 struct device* get_device_head();
 struct device* get_next_device(struct device*);
 uint32_t get_device_count();

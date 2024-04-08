@@ -44,12 +44,7 @@ uint64_t framebuffer_dd_write(uint64_t port, uint64_t size, uint64_t skip, uint8
 }
 
 uint64_t framebuffer_dd_ioctl(uint64_t port, uint32_t op, void* data) {
-    struct framebuffer *fb = get_framebuffer(port);
-    if (fb == 0) {
-        return 0;
-    }
-
-    (void)fb;
+    (void)port;
     (void)op;
     (void)data;
 
