@@ -39,7 +39,7 @@ void PageFault_Handler(struct cpu_context* ctx, uint8_t cpuid) {
     char buffer[128];
     sprintf(buffer, "Page Fault Address: %x\n", faulting_address);
     set_debug_msg(buffer);
-    panic("Page fault\n");
+    panic_reboot("Page fault\n");
 }
 
 void DoubleFault_Handler(struct cpu_context* ctx, uint8_t cpuid) {

@@ -6,6 +6,7 @@
 #include "comm/comm.h"
 #include "acpi/acpi.h"
 #include "apic/apic.h"
+#include "fb/framebuffer.h"
 
 #define DEVICE_NAME_SIZE 32
 

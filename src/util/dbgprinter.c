@@ -1,6 +1,9 @@
 #include "dbgprinter.h"
 #include "../bootservices/bootservices.h"
 #include "../debugger/debug.h"
+#include "../io/io.h"
+#include "../drivers/ps2/keyboard.h"
+#include "../dev/fadt/fadt.h"
 #include "string.h"
 #define BUFFERSIZE 128
 #define MSG_NUM 0x1000
@@ -42,6 +45,71 @@ void set_debug_data(const char * file, int line, const char * func) {
     dbgmsg[dbgmsg_index][BUFFERSIZE - 1] = 0;
     dbgmsg_index = (dbgmsg_index + 1) % MSG_NUM;
     dbgmsg_index2++;
+}
+
+__attribute__((noreturn)) void panic_reboot(const char * str) {
+    
+    dbg_print("\nKERNEL PANIC!\n");
+    dbg_print(str);
+
+    dbg_print("\n\n");
+
+    dbg_print("Stack trace, calls: ");
+    dbg_print(itoa(dbgmsg_index2, 10));
+    dbg_print("\n");
+    for (int i = 0; i < MSG_NUM; i++) {
+        if (dbgmsg[i][0] != 0) {
+            dbg_print(dbgmsg[i]);
+        }
+    }
+    dbg_print("\n");
+
+    if (!dbg_is_present()) {
+        dbg_print("Debugger not present\n");
+        
+    } else {
+        dbg_print("Debugger attached to ");
+        dbg_print(dbg_get_device());
+        dbg_print("\n");
+
+
+        if (!dbg("[KERNEL PANIC!]\n")) {
+            goto fallback;
+        }
+        if (!dbg("[str: %s]\n", str)) {
+            goto fallback;
+        }
+        if (!dbg("[dbgmsg: %s]\n", dbgmsg)) {
+            goto fallback;
+        }
+        if (!dbg_flush()) {
+            goto fallback;
+        }
+    }
+
+    __asm__("sti");
+    char pressed = 0;
+    printf("Press enter to reboot...");
+    while (pressed != 0x1C) {
+        pressed = inb(0x60);
+    }
+    reboot();
+    __asm__("cli");
+    while(1); //Supress warning
+
+    fallback:
+    dbg_print("Debugger failed to print panic message, probably the heap isn't working fine!\n");
+    
+    __asm__("sti");
+    pressed = 0;
+    printf("Press enter to reboot...");
+    while (pressed != 0x1C) {
+        dbg_print(itoa(pressed, 16));
+        pressed = inb(0x60);
+    }
+    reboot();
+    __asm__("cli");
+    while(1); //Supress warning
 }
 
 __attribute__((noreturn)) void panic(const char * str) {

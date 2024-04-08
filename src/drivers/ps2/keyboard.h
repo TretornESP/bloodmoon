@@ -3,6 +3,8 @@
 #include <stdint.h>
 #define ASCII_SIZE 56
 
+#define BUFFER_SIZE 1024
+
 #define LeftShift 0x2A
 #define RightShift 0x36
 #define Enter 0x1C
@@ -18,7 +20,7 @@ struct keyboard {
 };
 
 void init_keyboard();
-char translate(uint8_t, uint8_t);
-void handle_keyboard(uint8_t);
+char get_last_key();
+char handle_keyboard(uint8_t);
 void halt_until_enter();
 #endif

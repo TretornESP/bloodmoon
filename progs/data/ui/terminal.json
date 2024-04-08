@@ -1,7 +1,29 @@
 {
-    "type": "window",
-    "title": "Test",
+    "type": 11,
+    "text": "Test",
     "resizable": false,
+    "x": 100,
+    "y": 100,
     "width": 800,
-    "height": 600
+    "height": 600,
+    
+    "label_1": {
+        "type": 1,
+        "text": "Hello World!",
+        "x": 100,
+        "y": 100,
+        "width": 100,
+        "height": 50,
+        "coord_type": 0
+    },
+
+    "press" : {
+        "type": 0,
+        "text": "Click Me!",
+        "x": 100,
+        "y": 200,
+        "coord_type": 0,
+        "width": 100,
+        "height": 50
+    }
 }

@@ -32,12 +32,13 @@ const char* device_identifiers[] = {
     "umsd", // c
     "none", // d
     "tty", // e
-    "kbd", // f
+    "none", // f
     "mouse", // 10
     "net", // 11
-    "none", // 12
-    "none", // 13
+    "fb", // 12
+    "none", // 13 
     [0x8d] = "serial", // 80
+    [0x8f] = "kbd" // 81
 };
 
 char* insert_device(uint8_t major, void* device_control_structure, const char * prefix, uint64_t id) {

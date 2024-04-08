@@ -39,6 +39,7 @@ struct bmoon_limine_framebuffer {
 };
 
 */
+struct framebuffer * framebuffer[MAX_FRAMEBUFFER_COUNT] = {0};
 
 uint32_t rgb_to_color(uint8_t r, uint8_t g, uint8_t b) {
     return (r << 16) | (g << 8) | b;
@@ -50,7 +51,6 @@ void color_to_rgb(uint32_t color, struct color *c) {
     c->b = color & 0xFF;
 }
 
-struct framebuffer * framebuffer[MAX_FRAMEBUFFER_COUNT] = {0};
 void init_framebuffer() {
     printf("### Initializing Framebuffer ###\n");
     uint64_t count = get_framebuffer_count();
@@ -62,6 +62,7 @@ void init_framebuffer() {
     for (uint64_t i = 0; i < count; i++) {
         framebuffer[i] = malloc(sizeof(struct framebuffer));
         framebuffer[i]->address = (uint32_t*)(uint64_t*)fb[i]->address;
+        framebuffer[i]->font = 0;
         framebuffer[i]->width = fb[i]->width;
         framebuffer[i]->height = fb[i]->height;
         framebuffer[i]->pitch = fb[i]->pitch;
@@ -89,6 +90,7 @@ struct framebuffer *get_framebuffer(uint8_t index) {
     }
     return framebuffer[index];
 }
+
 void draw_pixel(uint8_t index, uint64_t x, uint64_t y, uint32_t color) {
     struct framebuffer *fb = get_framebuffer(index);
     if (fb == 0) {

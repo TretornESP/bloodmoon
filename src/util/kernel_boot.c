@@ -33,6 +33,7 @@
 #include "../drivers/ps2/ps2.h"
 #include "../drivers/disk/disk_interface.h"
 #include "../drivers/net/e1000/e1000_dd.h"
+#include "../drivers/gui/fb_dd.h"
 
 
 #include "../vfs/vfs.h"
@@ -83,15 +84,15 @@ void boot() {
         register_apic(madt, 0x0);
     }
     enable_interrupts();
-    init_framebuffer();
     init_pit(50);
     init_drive();
+    init_fb_dd();
     init_serial_dd();
     init_tty_dd();
     init_e1000_dd(); //Careful, without this pci fills the memory!!!
     init_smbios_interface();
     init_devices();
-    enable_debug(1);
+    enable_debug(0);
     register_filesystem(fat32_registrar);
     register_filesystem(ext2_registrar);
     register_filesystem(tty_registrar);

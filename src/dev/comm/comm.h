@@ -5,7 +5,7 @@
 #define SERIAL_MAJOR 0x8d
 #define TTY_MAJOR 0xe
 #define PS2_MOUSE_MAJOR 0x10
-#define PS2_KEYBOARD_MAJOR 0xf
+#define PS2_KEYBOARD_MAJOR 0x8f
 #include <stdint.h>
 
 void register_comm(char* (*cb)(void*, uint8_t, uint64_t));

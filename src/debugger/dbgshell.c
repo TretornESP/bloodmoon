@@ -24,6 +24,8 @@ struct command {
     void (*handler)(int argc, char* argv[]);
 };
 
+void handler(void* ttyb, uint8_t event);
+
 const char root[] = "hdap2";
 char cwd[256] = {0};
 char workpath[256] = {0};
@@ -69,6 +71,10 @@ void attach(int argc, char *argv[]) {
         return;
     }
 
+    device_ioctl(devno, 0x2, handler); //ADD SUBSCRIBER
+    strcpy(devno, argv[1]);
+    device_ioctl(devno, 0x1, handler); //REMOVE SUBSCRIBER
+    
     set_current_tty(argv[1]);
     printf("Attached to %s\n", argv[1]);
 

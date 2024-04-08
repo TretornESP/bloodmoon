@@ -5,5 +5,5 @@
 #include "../acpi/acpi.h"
 
 void register_fadt(struct fadt_header*, char* (*cb)(void*, uint8_t, uint64_t));
-
+void reboot();
 #endif

@@ -252,7 +252,7 @@ int vfs_file_search(const char * name, char * path) {
     uint32_t type;
     uint32_t name_len;
     while (vfs_dir_read(fd, name_buffer, &name_len, &type) > 0) {
-        printf("Searching %s Type %d\n", name_buffer, type);
+        //printf("Searching %s Type %d\n", name_buffer, type);
         if (strcmp(name_buffer, name) == 0) {
             printf("Found %s\n", name_buffer);
             vfs_dir_close(fd);
@@ -265,7 +265,7 @@ int vfs_file_search(const char * name, char * path) {
             return 1;
         }
         if (type == 0x2 && strcmp(name_buffer, ".") != 0 && strcmp(name_buffer, "..") != 0 && strcmp(name_buffer, "lost+found") != 0) {
-            printf("Nesting into %s\n", name_buffer);
+            //printf("Nesting into %s\n", name_buffer);
             memset(new_path, 0, 1024);
             strcpy(new_path, path);
             if (new_path[strlen(new_path) - 1] != '/') {

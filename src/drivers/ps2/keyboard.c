@@ -5,6 +5,7 @@
 #include "../../memory/heap.h"
 
 volatile struct keyboard *keyboard;
+volatile char kbd_last_key = 0;
 char asciitable[] = {
     0,   0, '1', '2',
     '3', '4', '5', '6',
@@ -33,7 +34,7 @@ char translate(uint8_t scancode, uint8_t uppercase) {
 void init_keyboard() {
 
     keyboard = (struct keyboard *)malloc(sizeof(struct keyboard));
-
+    
     memset((void*)keyboard, 0, sizeof(struct keyboard));
 
     keyboard->ASCII_table = (char*)malloc(ASCII_SIZE);
@@ -47,12 +48,9 @@ void init_keyboard() {
 
 }
 
-void handle_keyboard(uint8_t scancode) {
+char handle_keyboard(uint8_t scancode) {
 
     switch(scancode) {
-        case Spacebar:
-            printf(" ");
-            return;
         case LeftShift:
             keyboard->left_shift_pressed = 1;
             return;
@@ -67,15 +65,16 @@ void handle_keyboard(uint8_t scancode) {
             return;
         case Enter:
             keyboard->intro_buffered = 1;
-            printf("\n");
-            return;
-        case Backspace:
-            printf("\b \b");
             return;
     }
 
     char ascii = translate(scancode, keyboard->left_shift_pressed || keyboard->right_shift_pressed);
-    if (ascii != 0) printf("%c", ascii);
+    kbd_last_key = ascii;
+    return ascii;
+}
+
+char get_last_key() {
+    return kbd_last_key;
 }
 
 void halt_until_enter() {

@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include "gui.h"
 #include "ux/ux.h"
+#include "ux/psf1.h"
+#include "ux/cursor.h"
 #include "../../dev/fb/framebuffer.h"
 #include "../../util/dbgprinter.h"
 #include "../../util/common.h"
@@ -53,6 +55,40 @@ void draw_rect(uint64_t x, uint64_t y, uint64_t w, uint64_t h, uint32_t color) {
     for (uint64_t i = 0; i < w; i++) {
         for (uint64_t j = 0; j < h; j++) {
             draw_pixel(fbi, x + i, y + j, color);
+        }
+    }
+}
+
+void draw_rect_rounded_corners(uint64_t x, uint64_t y, uint64_t w, uint64_t h, uint32_t color, uint64_t radius) {
+    for (uint64_t i = 0; i < w; i++) {
+        for (uint64_t j = 0; j < h; j++) {
+            if (i < radius && j < radius) {
+                if (radius - i + radius - j > radius) {
+                    draw_pixel(fbi, x + i, y + j, color);
+                }
+            } else if (i < radius && j >= h - radius) {
+                if (radius - i + radius - (h - j) > radius) {
+                    draw_pixel(fbi, x + i, y + j, color);
+                }
+            } else if (i >= w - radius && j < radius) {
+                if (radius - (w - i) + radius - j > radius) {
+                    draw_pixel(fbi, x + i, y + j, color);
+                }
+            } else if (i >= w - radius && j >= h - radius) {
+                if (radius - (w - i) + radius - (h - j) > radius) {
+                    draw_pixel(fbi, x + i, y + j, color);
+                }
+            } else if (i < radius) {
+                draw_pixel(fbi, x + i, y + j, color);
+            } else if (j < radius) {
+                draw_pixel(fbi, x + i, y + j, color);
+            } else if (i >= w - radius) {
+                draw_pixel(fbi, x + i, y + j, color);
+            } else if (j >= h - radius) {
+                draw_pixel(fbi, x + i, y + j, color);
+            } else {
+                draw_pixel(fbi, x + i, y + j, color);
+            }
         }
     }
 }
@@ -143,9 +179,76 @@ uint8_t draw_image(const char * path, uint64_t x, uint64_t y) {
     draw_buffer24(image->buffer, x, y, width, height);
 }
 
+void draw_circle(uint64_t x, uint64_t y, uint64_t r, uint32_t color) {
+    int X = r, Y = 0;
+    int P = 1 - r;
+    while (X > Y) {
+        draw_pixel(fbi, X + x, Y + y, color);
+        draw_pixel(fbi, Y + x, X + y, color);
+        draw_pixel(fbi, -X + x, Y + y, color);
+        draw_pixel(fbi, -Y + x, X + y, color);
+        draw_pixel(fbi, -X + x, -Y + y, color);
+        draw_pixel(fbi, -Y + x, -X + y, color);
+        draw_pixel(fbi, X + x, -Y + y, color);
+        draw_pixel(fbi, Y + x, -X + y, color);
+        if (P <= 0) {
+            Y++;
+            P = P + 2 * Y + 1;
+        } else {
+            X--;
+            Y++;
+            P = P + 2 * Y - 2 * X + 1;
+        }
+    }
+
+}
+
+void newLine(struct cursor * cursor) {
+    cursor->x = cursor->x_min;
+    cursor->y += cursor->font_height;
+
+    //TODO: Implement scrolling
+    if (cursor->y + cursor->font_height > cursor->y_max) {
+        cursor->y = cursor->y_min;
+        clear(0x000000);
+    }
+}
+
+void _putChar(char chr, struct cursor * cursor) {
+    char* fontPtr = (char*)((uint64_t)cursor->font + sizeof(struct psf1_header) + (chr * cursor->font_width));
+    for (int y = cursor->y; y < cursor->y + cursor->font_height; y++) {
+        for (int x = cursor->x; x < cursor->x + cursor->font_width; x++) {
+            if ((*fontPtr & (0b10000000 >> (x - cursor->x))) > 0)
+                draw_pixel(fbi, x, y, cursor->color);
+        }
+        fontPtr++;
+    }
+}
+
+void putChar(char chr, struct cursor * cursor) {
+    if (cursor == 0) return;
+    if (cursor->x_min == cursor->x_max || cursor->y_min == cursor->y_max) {
+        return;
+    }
+    _putChar(chr, cursor);
+    cursor->x += cursor->font_width;
+    if (cursor->x + cursor->font_width > cursor->x_max) {
+        newLine(cursor);
+    }
+}
+
+void draw_text(uint64_t x, uint64_t y, const char * text, struct cursor * cursor) {
+    cursor->x = x;
+    cursor->y = y;
+
+    for (uint64_t i = 0; i < strlen(text); i++) {
+        putChar(text[i], cursor);
+    }
+}
 
 void startx() {
     clear(0x000000);
+    load_font();
     print_bg();
     spawn_tty();
 }

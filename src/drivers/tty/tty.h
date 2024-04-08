@@ -23,8 +23,9 @@ struct tty_subscriber {
 };
 
 struct tty {
-    char device[32];
-    
+    char indev[32];
+    char outdev[32];
+
     volatile int signal;
     int mode;
     int valid;
@@ -46,7 +47,7 @@ struct tty {
     int outb_read;
 };
 
-int tty_init(char* device, int mode, int inbs, int outbs);
+int tty_init(char* in, char* out, int mode, int inbs, int outbs);
 void tty_destroy(struct tty* tty);
 struct tty* get_tty(int id);
 int is_valid_tty(struct tty* tty);

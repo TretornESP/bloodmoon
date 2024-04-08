@@ -7,8 +7,10 @@
 #include "../../dev/devices.h"
 #include "../../memory/heap.h"
 
-//TODO: This dependency is awful
+//TODO: This dependencies are awful
 #include "../serial/serial_dd.h"
+#include "../ps2/ps2_dd.h"
+#include "../ps2/ps2.h"
 
 struct tty ttys[32] = {0};
 
@@ -41,12 +43,13 @@ void _tty_flush(struct tty* device) {
         len = device->outb_size - device->outb_read;
     }
 
-    device_write(device->device, len, 0, (uint8_t*)(device->outb + device->outb_read));
+    device_write(device->outdev, len, 0, (uint8_t*)(device->outb + device->outb_read));
     device->outb_read += len;
     if (device->outb_read >= device->outb_size) {
         device->outb_read = 0;
     }
-    device_ioctl(device->device, SERIAL_FLUSH_TX, 0);
+    if (device->mode == TTY_MODE_SERIAL)
+        device_ioctl(device->outdev, SERIAL_FLUSH_TX, 0);
 }
 
 void tty_write_inb(struct tty* device, char c) {
@@ -141,8 +144,9 @@ void flush_cb(void* ttyb, char* buffer, int size) {
 void echo_cb(void* ttyb, char c) {
     struct tty* tty = (struct tty*)ttyb;
     if (!tty->echo) return;
-    device_write(tty->device, 1, 0, (uint8_t*)&c);
-    device_ioctl(tty->device, SERIAL_FLUSH_TX, 0);
+    device_write(tty->outdev, 1, 0, (uint8_t*)&c);
+    if (tty->mode == TTY_MODE_SERIAL)
+        device_ioctl(tty->outdev, SERIAL_FLUSH_TX, 0);
 }
 
 void _tty_add_subscriber(struct tty* tty, void (*handler)(void*, uint8_t)) {
@@ -186,8 +190,8 @@ void tty_destroy(struct tty* tty) {
     tty->valid = 0;
 }
 
-int tty_init(char* device, int mode, int inbs, int outbs) {
-    printf("tty_init(%s, %d, %d, %d)\n", device, mode, inbs, outbs);
+int tty_init(char* inb, char* outb, int mode, int inbs, int outbs) {
+    printf("tty_init(in:%s, out:%s, %d, %d, %d)\n", inb, outb, mode, inbs, outbs);
     struct tty * tty = 0;   
     int index = 0;
     for (index = 0; index < 32; index++) {
@@ -201,7 +205,8 @@ int tty_init(char* device, int mode, int inbs, int outbs) {
     else return -1;
     
     tty->valid = 0;
-    strncpy(tty->device, device, 32);
+    strncpy(tty->indev, inb, 32);
+    strncpy(tty->outdev, outb, 32);
     tty->signal = 0;
     tty->inb = (char*)calloc(1, inbs);
     if (tty->inb == 0) return -1;
@@ -253,12 +258,16 @@ int tty_init(char* device, int mode, int inbs, int outbs) {
                 .parent = tty,
                 .handler = tty_read_cb
             };
-            device_ioctl(tty->device, SERIAL_SUBSCRIBE_READ, (void*)&sync_data);
+            device_ioctl(tty->indev, SERIAL_SUBSCRIBE_READ, (void*)&sync_data);
             break;
         }
         case TTY_MODE_PTY: {
-            printf("Not implemented yet!\n");
-            return -1;
+            struct ps2_kbd_ioctl_subscriptor sync_data = {
+                .parent = tty,
+                .handler = tty_read_cb
+            };
+            device_ioctl(tty->indev, IOCTL_KEYBOARD_SUBSCRIBE, (void*)&sync_data);
+            break;
         }
         default:
             return -1;

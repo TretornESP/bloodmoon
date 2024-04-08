@@ -3,9 +3,11 @@
 
 #include <stdint.h>
 #define MAX_FRAMEBUFFER_COUNT 4
+#define FRAMEBUFFER_MAJOR 0xc
 
 struct framebuffer {
     uint32_t *address;
+    void * font;
     uint64_t width;
     uint64_t height;
     uint64_t pitch;
