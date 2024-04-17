@@ -198,6 +198,16 @@ $(OBJDIR)/drivers/serial/serial.o: $(SRCDIR)/drivers/serial/serial.c
 	@ mkdir -p $(@D)
 	@$(CC) $(CFLAGS) -mgeneral-regs-only -c $^ -o $@
 
+$(OBJDIR)/util/json.o: $(SRCDIR)/util/json.c
+#	@ echo !==== COMPILING $^ with -mgeneral-regs-only
+	@ mkdir -p $(@D)
+	@$(CC) $(CFLAGS) -mgeneral-regs-only -c $^ -o $@
+
+$(OBJDIR)/util/math.o: $(SRCDIR)/util/math.c
+#	@ echo !==== COMPILING $^ with -mgeneral-regs-only
+	@ mkdir -p $(@D)
+	@$(CC) $(CFLAGS) -mgeneral-regs-only -c $^ -o $@
+
 $(OBJDIR)/util/dbgprinter.o: $(SRCDIR)/util/dbgprinter.c
 #	@ echo !==== COMPILING $^
 	@ mkdir -p $(@D)

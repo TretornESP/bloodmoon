@@ -91,8 +91,7 @@ struct framebuffer *get_framebuffer(uint8_t index) {
     return framebuffer[index];
 }
 
-void draw_pixel(uint8_t index, uint64_t x, uint64_t y, uint32_t color) {
-    struct framebuffer *fb = get_framebuffer(index);
+void draw_pixel_fb(struct framebuffer *fb, uint64_t x, uint64_t y, uint32_t color) {
     if (fb == 0) {
         return;
     }
@@ -101,9 +100,12 @@ void draw_pixel(uint8_t index, uint64_t x, uint64_t y, uint32_t color) {
     }
     fb->address[(y * (fb->pitch / sizeof(uint32_t)) + x)] = color;
 }
-
-uint32_t get_pixel(uint8_t index, uint64_t x, uint64_t y) {
+void draw_pixel(uint8_t index, uint64_t x, uint64_t y, uint32_t color) {
     struct framebuffer *fb = get_framebuffer(index);
+    draw_pixel_fb(fb, x, y, color);
+}
+
+uint32_t get_pixel_fb(struct framebuffer* fb, uint64_t x, uint64_t y) {
     if (fb == 0) {
         return 0;
     }
@@ -113,14 +115,22 @@ uint32_t get_pixel(uint8_t index, uint64_t x, uint64_t y) {
     return fb->address[(y * (fb->pitch / sizeof(uint32_t)) + x)];
 }
 
-void clear_screen(uint8_t index, uint32_t color) {
+uint32_t get_pixel(uint8_t index, uint64_t x, uint64_t y) {
     struct framebuffer *fb = get_framebuffer(index);
+    return get_pixel_fb(fb, x, y);
+}
+
+void clear_screen_fb(struct framebuffer * fb, uint32_t color) {
     if (fb == 0) {
         return;
     }
     for (uint64_t y = 0; y < fb->height; y++) {
         for (uint64_t x = 0; x < fb->width; x++) {
-            draw_pixel(index, x, y, color);
+            draw_pixel_fb(fb, x, y, color);
         }
     }
+}
+void clear_screen(uint8_t index, uint32_t color) {
+    struct framebuffer *fb = get_framebuffer(index);
+    clear_screen_fb(fb, color);
 }

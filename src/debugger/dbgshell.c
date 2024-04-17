@@ -20,6 +20,7 @@
 #include "../dev/fb/framebuffer.h"
 #include "../net/arp.h"
 #include "../net/eth.h"
+#include "../programs/terminal/terminal.h"
 #include "debug.h"
 
 struct command {
@@ -55,6 +56,26 @@ char * find_suitable_keyboard() {
     }
 }
 
+char * find_suitable_mouse() {
+    struct device* current = get_device_head();
+    while (current != 0) {
+        if (current->major == DEVICE_MOUSE) {
+            return current->name;
+        }
+        current = get_next_device(current);
+    }
+}
+
+char * find_suitable_framebuffer() {
+    struct device* current = get_device_head();
+    while (current != 0) {
+        if (current->major == FRAMEBUFFER_MAJOR) {
+            return current->name;
+        }
+        current = get_next_device(current);
+    }
+}
+
 void startx_cmd(int argc, char* argv[]) {
     if (argc < 1) {
         printf("Starts the GUI\n");
@@ -62,31 +83,30 @@ void startx_cmd(int argc, char* argv[]) {
         return;
     }
 
-    char * tty_output = create_fifo(1024);
-    if (!tty_output) {
-        printf("Could not create fifo\n");
+    char * keyboard = find_suitable_keyboard();
+    char * mouse = find_suitable_mouse();
+    char * framebuffer = find_suitable_framebuffer();
+    
+    struct gui_device * devices = malloc(sizeof(struct gui_device) * 3);
+    memset(devices, 0, sizeof(struct gui_device) * 3);
+    strcpy(devices[0].name, keyboard);
+    devices[0].type = GUI_KEYBOARD_DEVICE;
+    strcpy(devices[1].name, mouse);
+    devices[1].type = GUI_MOUSE_DEVICE;
+    strcpy(devices[2].name, framebuffer);
+    devices[2].type = GUI_FB_DEVICE;
+
+    startx(devices, 3);
+}
+
+void spawn_terminal(int argc, char* argv[]) {
+    if (argc < 1) {
+        printf("Spawns a terminal\n");
+        printf("Usage: terminal\n");
         return;
     }
 
-    printf("Fifo created: %s\n", tty_output);
-    char * tty_input = find_suitable_keyboard();
-    if (!tty_input) {
-        printf("Could not find suitable keyboard\n");
-        destroy_fifo(tty_output);
-        return;
-    }
-
-    printf("Using keyboard: %s\n", tty_input);
-
-        
-    int index = tty_init(tty_input, tty_output, TTY_MODE_PTY, 1024, 1024);
-    struct tty * tty = get_tty(index);
-    if (is_valid_tty(tty)) {
-        create_device((void*)tty, TTY_MAJOR, index);
-    }
-
-    probe_fs();
-    startx();
+    add_task(create_task((void*)init_terminal, "ttya"));
 }
 
 void lsdsk(int argc, char* argv[]) {
@@ -1037,6 +1057,10 @@ struct command cmdlist[] = {
     {
         .keyword = "d",
         .handler = dc
+    },
+    {
+        .keyword = "sterminal",
+        .handler = spawn_terminal
     },
     {
         .keyword = "spawn",

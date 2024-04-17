@@ -1,5 +1,5 @@
-#ifndef _TTY_H
-#define _TTY_H
+#ifndef _VFS_TTY_H
+#define _VFS_TTY_H
 
 #include <stdint.h>
 #include "../../../drivers/serial/serial.h"

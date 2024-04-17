@@ -23,4 +23,6 @@ struct cursor {
     uint32_t color;
 };
 
+void print_mouse_cursor(uint16_t old_x, uint16_t old_y, uint16_t x, uint16_t y);
+
 #endif

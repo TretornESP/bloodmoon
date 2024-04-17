@@ -6,24 +6,38 @@
     "y": 100,
     "width": 800,
     "height": 600,
+    "color": "#AA0000",
     
-    "label_1": {
+    "output": {
         "type": 1,
-        "text": "Hello World!",
+        "text": "Command output goes here",
         "x": 100,
         "y": 100,
-        "width": 100,
-        "height": 50,
-        "coord_type": 0
+        "width": 700,
+        "height": 400,
+        "coord_type": 0,
+        "color": "#00AA00"
     },
 
-    "press" : {
-        "type": 0,
-        "text": "Click Me!",
+    "input": {
+        "type": 3,
+        "text": "Command input goes here",
         "x": 100,
-        "y": 200,
+        "y": 550,
+        "width": 600,
+        "height": 100,
         "coord_type": 0,
-        "width": 100,
-        "height": 50
+        "color": "#00AA00"
+    },
+
+    "execute" : {
+        "type": 0,
+        "text": "Execute",
+        "x": 750,
+        "y": 550,
+        "coord_type": 0,
+        "width": 150,
+        "height": 100,
+        "color": "#0000AA"
     }
 }

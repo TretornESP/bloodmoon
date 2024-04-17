@@ -7,6 +7,8 @@
 #define TTY_SIGNAL_FLUSH_OUTB 3
 
 #include <stdint.h>
+#include "tty_dd.h"
+
 uint64_t tty_read(const char * device, uint8_t * buffer, uint32_t skip, uint32_t size);
 uint64_t tty_write(const char * device, uint8_t * buffer, uint32_t skip, uint32_t size);
 uint64_t tty_write_now(const char * device, const char * buffer, uint32_t skip, uint32_t size);
@@ -19,4 +21,7 @@ uint64_t tty_set_echo(const char* device, uint8_t echo);
 uint64_t tty_set_raw(const char* device, uint8_t raw);
 uint64_t tty_get_size(const char* device);
 uint64_t tty_validate(const char* device);
+
+uint64_t tty_read_direct(struct tty* tty, uint8_t * buffer, uint32_t skip, uint32_t size);
+uint64_t tty_write_direct(struct tty* tty, uint8_t * buffer, uint32_t skip, uint32_t size);
 #endif

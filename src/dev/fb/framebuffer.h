@@ -36,4 +36,8 @@ void draw_pixel(uint8_t index, uint64_t x, uint64_t y, uint32_t color);
 uint32_t get_pixel(uint8_t index, uint64_t x, uint64_t y);
 void clear_screen(uint8_t index, uint32_t color);
 
+void draw_pixel_fb(struct framebuffer *fb, uint64_t x, uint64_t y, uint32_t color);
+uint32_t get_pixel_fb(struct framebuffer *fb, uint64_t x, uint64_t y);
+void clear_screen_fb(struct framebuffer *fb, uint32_t color);
+
 #endif

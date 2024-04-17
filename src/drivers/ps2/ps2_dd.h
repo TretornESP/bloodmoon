@@ -9,7 +9,7 @@
 struct ps2_kbd_ioctl_subscriptor {
     void* parent;
     void (*handler)(void* data, char c, int ignore);
-} __attribute__((packed));
+};
 
 void init_mouse_dd();
 void init_keyboard_dd();

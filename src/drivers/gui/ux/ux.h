@@ -50,10 +50,23 @@
 #define UX_MAX_CHILDREN         0x10
 
 struct ux_event {
-    uint8_t device; //0 = mouse, 1 = keyboard
+    uint8_t device; //0 = mouse, 1 = tty
     uint16_t x;
     uint16_t y;
-    uint8_t data; //Can be the key pressed or the button clicked
+    uint16_t data; //Can be the key pressed or the button clicked
+    uint8_t processed;
+};
+
+struct ux_specific_data {
+    char name[UX_MAX_SPECIFIC_DATA_NAME];
+    uint64_t type;
+    union {
+        int64_t int_data;
+        double double_data;
+        char string_data[UX_MAX_SPECIFIC_DATA];
+        uint8_t bool_data;
+    };
+    struct ux_specific_data *next;
 };
 
 struct ux_component {
@@ -67,25 +80,16 @@ struct ux_component {
     uint16_t height;
     uint8_t coord_type;
     uint8_t has_focus;
+    uint32_t color;
 
     uint8_t specific_data_items;
     uint8_t children_count;
+
+    struct ux_specific_data *specific_data;
     
     struct cursor cursor;
 
-    void (*mouse)(struct ux_component* component, uint16_t x, uint16_t y, uint8_t button);
-    void (*write)(struct ux_component* component, char c);
-
-    struct ux_specific_data {
-        char name[UX_MAX_SPECIFIC_DATA_NAME];
-        uint64_t type;
-        union {
-            int64_t int_data;
-            double double_data;
-            char string_data[UX_MAX_SPECIFIC_DATA];
-            uint8_t bool_data;
-        };
-    } specific_data[UX_MAX_SPECIFIC_DATA_ITEMS];
+    void (*event)(struct ux_component* component, struct ux_event* event);
 
     struct ux_component * children[UX_MAX_CHILDREN];
     struct ux_component * parent;
@@ -93,12 +97,13 @@ struct ux_component {
 
 void load_font();
 void print_bg();
-void spawn_tty();
 
-void hook_mouse(struct ux_component* component, void (*mouse)(struct ux_component* component, uint16_t x, uint16_t y, uint8_t button));
-void hook_write(struct ux_component* component, void (*write)(struct ux_component* component, char c));
-void unhook_keyboard(struct ux_component* component);
-void unhook_keyboard(struct ux_component* component);
+struct ux_component* get_component_by_name(struct ux_component * root, const char* name);
+struct ux_component* inflate_layout(const char * title, const char * layout);
+void redraw_component(struct ux_component * window);
+void hook_event(struct ux_component* component, void (*event)(struct ux_component* component, struct ux_event* event));
+void unhook_event(struct ux_component* component);
+
 void event_dispatch(struct ux_event* event);
 #endif
 
