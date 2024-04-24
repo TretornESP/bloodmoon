@@ -1,90 +1,14 @@
 [bits 64]
 global ctxswtch
-global ctxsave
-
-; Inputs:
-;struct cpu_context {
-;    uint64_t cr3;
-;    
-;    uint64_t rax;
-;    uint64_t rbx;
-;    uint64_t rcx;
-;    uint64_t rdx;
-;    uint64_t r8;
-;    uint64_t r9;
-;    uint64_t r10;
-;    uint64_t r11;
-;    uint64_t r12;
-;    uint64_t r13;
-;    uint64_t r14;
-;    uint64_t r15;
-;
-;    uint64_t rsi;  
-;    uint64_t rdi;
-;    uint64_t rbp;
-;    uint64_t rsp; 
-;
-;    uint64_t interrupt_number; 
-;    uint64_t error_code; 
-;    
-;    uint64_t rip; 
-;    uint64_t rflags; 
-;
-;    uint64_t cs; 
-;    uint64_t ss;
-;    uint64_t gs;
-;    uint64_t fs;
-;}
-
-ctxsave:
-    cli
-
-    ; Save all registers
-    push rax
-    mov rax, cr3
-    mov qword [rdi], rax
-    pop rax
-    mov qword [rdi + 8], rax
-    mov qword [rdi + 16], rbx
-    mov qword [rdi + 24], rcx
-    mov qword [rdi + 32], rdx
-    mov qword [rdi + 40], r8
-    mov qword [rdi + 48], r9
-    mov qword [rdi + 56], r10
-    mov qword [rdi + 64], r11
-    mov qword [rdi + 72], r12
-    mov qword [rdi + 80], r13
-    mov qword [rdi + 88], r14
-    mov qword [rdi + 96], r15
-    mov qword [rdi + 104], rsi
-    mov qword [rdi + 112], rdi
-    mov qword [rdi + 120], rbp
-    mov qword [rdi + 128], rsp
-    ;mov dummy values for interrupt_number and error_code
-    mov qword [rdi + 136], 0
-    mov qword [rdi + 144], 0
-    ;mov dummy values for rip
-    mov qword [rdi + 152], 0
-    ;save rflags
-    push rax
-    pushfq
-    pop rax
-    mov qword [rdi + 160], rax
-    ;save segment registers
-    mov rax, cs
-    mov qword [rdi + 168], rax
-    mov rax, ss
-    mov qword [rdi + 176], rax
-    mov rax, gs
-    mov qword [rdi + 184], rax
-    mov rax, fs
-    mov qword [rdi + 192], rax
-    pop rax
-    ret
+global ctxcreat
+extern returnoexit
+section .text
 
 ; Inputs:
 ; RDI: struct task* old
 ; RSI: struct task* new
+; RDX: void* fxsave_area
+; RCX: void* fxrstor_area
 
 ctxswtch:
     cli
@@ -105,18 +29,54 @@ ctxswtch:
     push r15
     push rsi
     push rdi
+    mov rax, cs
+    push rax
+    mov rax, ds
+    push rax
+    mov rax, es
+    push rax
+    mov rax, fs
+    push rax
+    mov rax, gs
+    push rax
+    mov rax, ss
+    push rax
+    pushfq
 
     ; Save stack pointer in old's rsp_top
     mov qword [rdi + 8], rsp
-    
+
+    ;  save old fpu state
+    fxsave [rdx]
+
+    ; Save old's pd
+    mov rax, cr3
+    mov [rdi + 16], rax
+
     ; Load new's pd into CR3
     mov rax, [rsi + 16]
     mov cr3, rax
+
+    ; Load new's fpu state into fpu 
+    fxrstor [rcx]
 
     ; Load rsp with new's rsp_top
     mov rsp, qword [rsi + 8]
 
     ; Pop registers r15, r14, r13, r12, rbx
+    popfq
+    pop rax
+    mov rax, ss
+    pop rax
+    mov rax, gs
+    pop rax
+    mov rax, fs
+    pop rax
+    mov rax, es
+    pop rax
+    mov rax, ds
+    pop rax
+    mov rax, cs
     pop rdi
     pop rsi
     pop r15
@@ -132,6 +92,61 @@ ctxswtch:
     pop rbx
     pop rax
     pop rbp
+
+    sti
+    ret
+
+; RDI stack pointer
+; RSI init function
+; RDX fxsave_area
+ctxcreat:
+    cli
+
+    ; Save registers
+    push rax
+    push rbx
+    mov rbx, rsp
+
+    fxsave [rdx]
+
+    mov rsp, rdi
+    push returnoexit
+    push 0x0
+    push rsi
+    mov rsi, rsp
+    add rsi, 0x8
+    push rsi
+    push 0x98
+    push 0x99
+    push 0x9A
+    push 0x9B
+    push 0x88
+    push 0x89
+    push 0x90
+    push 0x91
+    push 0x92
+    push 0x93
+    push 0x94
+    push 0x95
+    push 0x96
+    push 0x97
+    mov rax, cs
+    push rax
+    mov rax, ds
+    push rax
+    mov rax, es
+    push rax
+    mov rax, fs
+    push rax
+    mov rax, gs
+    push rax
+    mov rax, ss
+    push rax
+    pushfq
+
+    mov rsp, rbx
+    pop rbx
+    pop rax
 
     sti
     ret

@@ -48,7 +48,7 @@ Current memory usage:
 
 ## Requirements
 
-- **binutils**, **gcc** and **nasm** default toolchain stuff
+- **binutils**, **gcc 13.1** and **nasm** default toolchain stuff
 
 - **xorriso**
 
@@ -69,6 +69,8 @@ Current memory usage:
 - **Limine**. Inside the folder:
 
       git clone https://github.com/limine-bootloader/limine.git --branch=v3.0-branch-binary --depth=1
+
+
 
 ## Networking
 

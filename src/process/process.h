@@ -4,6 +4,7 @@
 #include "../io/interrupts.h"
 #include <stdint.h>
 #define STACK_SIZE 0x1000
+#define TASK_SIGNAL_MAX 0x20
 
 struct descriptors {
     uint8_t stdin;
@@ -45,15 +46,36 @@ struct mm_struct {
         unsigned long          locked_vm;           /* number of locked pages */
 };
 
+struct task_signal {
+    int signal;
+    void * signal_data;
+    uint64_t signal_data_size;
+    struct task_signal *next;
+};
+
+//Define type for signal handler
+typedef void (*sighandler_t)(int, void*, uint64_t);
+
 struct task {
-    uint64_t rsp;
-    uint64_t rsp_top;
+    uint64_t stack;
+    uint64_t stack_top;
     struct page_directory* pd;
+    uint64_t flags;
+    uint64_t cs;
+    uint64_t ds;
+    uint64_t es;
+    uint64_t fs;
+    uint64_t gs;
+    uint64_t ss;
+    
+    char fxsave_region[512] __attribute__((aligned(16)));
+
     int processor;
 
     volatile long state;
-    unsigned long flags;
     int sigpending;
+    struct task_signal *signal_queue;
+    sighandler_t signal_handlers[TASK_SIGNAL_MAX];
     
     long nice;
     struct mm_struct *mm;

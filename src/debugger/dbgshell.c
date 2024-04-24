@@ -28,8 +28,6 @@ struct command {
     void (*handler)(int argc, char* argv[]);
 };
 
-void handler(void* ttyb, uint8_t event);
-
 const char root[] = "hdap2";
 char cwd[256] = {0};
 char workpath[256] = {0};
@@ -44,6 +42,11 @@ void test(int argc, char *argv[]) {
 
 void dump(int argc, char* argv[]) {
     dbg_flush();
+}
+
+void tty_device_handler(void* ttyb, uint8_t event) {
+    int pid = get_current_task()->pid;
+    add_signal(pid, DBGSHELL_SIGNAL_TTY, ttyb, (uint64_t)event);
 }
 
 char * find_suitable_keyboard() {
@@ -131,7 +134,7 @@ void attach(int argc, char *argv[]) {
     //device_ioctl(devno, 0x2, handler); //REMOVE SUBSCRIBER
     memset(devno, 0, 32);
     strcpy(devno, argv[1]);
-    device_ioctl(devno, 0x1, handler); //ADD SUBSCRIBER
+    device_ioctl(devno, 0x1, tty_device_handler); //ADD SUBSCRIBER
     
     set_current_tty(argv[1]);
     printf("Attached to %s\n", argv[1]);
@@ -312,7 +315,8 @@ void ptasks(int argc, char* argv[]) {
     task_test();
 }
 
-void mouse_handler(struct ps2_mouse_status* status) {
+void mouse_signal_handler(int signo, void * signal_data, uint64_t signal_data_size) {
+    struct ps2_mouse_status* status = (struct ps2_mouse_status*)signal_data;
     //static char * tty;
     //if (!tty) tty = get_current_tty();
     //if (tty == 0) {
@@ -325,6 +329,11 @@ void mouse_handler(struct ps2_mouse_status* status) {
     //set_current_tty(tty);
 }
 
+void mouse_device_handler(struct ps2_mouse_status* status) {
+    int pid = get_current_task()->pid;
+    add_signal(pid, DBGSHELL_SIGNAL_MOUSE, (void*)status, sizeof(struct ps2_mouse_status));
+}
+
 void mousea(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Attaches the mouse\n");
@@ -333,9 +342,9 @@ void mousea(int argc, char* argv[]) {
     }
 
     if (argc == 3) {
-        device_ioctl(argv[1], IOCTL_MOUSE_SUBSCRIBE_EVENT, mouse_handler);
+        device_ioctl(argv[1], IOCTL_MOUSE_SUBSCRIBE_EVENT, mouse_device_handler);
     } else {
-        device_ioctl(argv[1], IOCTL_MOUSE_SUBSCRIBE, mouse_handler);
+        device_ioctl(argv[1], IOCTL_MOUSE_SUBSCRIBE, mouse_device_handler);
     }
 }
 
@@ -346,7 +355,7 @@ void mouseda(int argc, char* argv[]) {
         return;
     }
 
-    device_ioctl(argv[1], IOCTL_MOUSE_UNSUBSCRIBE, mouse_handler);
+    device_ioctl(argv[1], IOCTL_MOUSE_UNSUBSCRIBE, mouse_device_handler);
 }
 
 void writed(int argc, char* argv[]) {
@@ -1173,11 +1182,16 @@ void promt() {
     printf("rotero@bloodmon:%s$ ", cwd);
 }
 
-void handler(void* ttyb, uint8_t event) {
-    (void)ttyb;
+
+void tty_signal_handler(int signo, void * ttyb, uint64_t event) {
     switch (event) {
         case 0x1: { //TTY_INB
             char cmd[1024] = {0};
+            //Make sure cmd is aligned
+            if ((uint64_t)cmd % 16 != 0) {
+                panic("cmd not aligned");
+            }
+
             int read = device_read(devno, 1024, 0, (uint8_t*)cmd);
             if (read > 0) {
                 //Convert string to array of words
@@ -1235,18 +1249,21 @@ void init_dbgshell() {
         return;
     }
 
+    subscribe_signal(DBGSHELL_SIGNAL_MOUSE, mouse_signal_handler);
+    subscribe_signal(DBGSHELL_SIGNAL_TTY, tty_signal_handler);
+
     strncpy(devno, tty, strlen(tty));
-    device_ioctl(tty, 0x1, handler); //ADD SUBSCRIBER
+    device_ioctl(tty, 0x1, tty_device_handler); //ADD SUBSCRIBER
     printf("\n");
     dbg_flush();
     strcpy(cwd, root);
     print_prompt();
     promt();
 
-    while(1);
+    process_loop();
 }
 
 void kill_dbgshell() {
-    device_ioctl(devno, 0x2, handler); //REMOVE SUBSCRIBER
+    device_ioctl(devno, 0x2, tty_device_handler); //REMOVE SUBSCRIBER
     memset(devno, 0, 32);
 }

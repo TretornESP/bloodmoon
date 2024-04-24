@@ -15,10 +15,6 @@ donot%1:
     jz donot%1
     swapgs
     donot%1:
-    push    rbp ;This should be rsp
-    push    rbp
-    push    rdi
-    push    rsi
     push    r15
     push    r14
     push    r13
@@ -27,10 +23,14 @@ donot%1:
     push    r10
     push    r9
     push    r8
+    push    rbp
+    push    rdi
+    push    rsi
     push    rdx
     push    rcx
     push    rbx
     push    rax
+    push   qword [gs:0x8]
     mov     rax, cr3
     push    rax
     
@@ -43,10 +43,14 @@ donot%1:
 
     pop    rax
     mov    cr3, rax
+    pop    qword [gs:0x8]
     pop    rax
     pop    rbx
     pop    rcx
     pop    rdx
+    pop    rsi
+    pop    rdi
+    pop    rbp
     pop    r8
     pop    r9
     pop    r10
@@ -55,10 +59,6 @@ donot%1:
     pop    r13
     pop    r14
     pop    r15
-    pop    rsi
-    pop    rdi
-    pop    rbp
-    pop    rbp ;This should be rsp
     cmp	qword [rsp + 0x18], 0x8
     jz donot_%1
     swapgs
@@ -70,19 +70,15 @@ donot%1:
 
 %macro INTERRUPT_WITHOUT_ERROR_CODE 1
 interrupt_handler_%1:
-    cli
     push 0
     push %1
     interrupt_entry %1
-    sti
 %endmacro
 
 %macro INTERRUPT_WITH_ERROR_CODE 1
 interrupt_handler_%1:
-    cli
     push %1
     interrupt_entry %1
-    sti
 %endmacro
 
 %macro CREATE_INTERRUPT_NAME 1  

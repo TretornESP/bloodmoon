@@ -25,31 +25,3 @@ void release_lock(volatile lock_t * lock )
 void init_lock(volatile lock_t * lock) {
 	*lock = 0;
 }
-
-void atomic_sub_u64(volatile atomic_uint64_t * value, uint64_t sub) {
-	atomic_fetch_sub_explicit( value, sub, memory_order_relaxed );
-}
-
-void atomic_increment(volatile atomic_int_t * value) {
-	atomic_fetch_add_explicit( value, 1, memory_order_relaxed );
-}
-
-void atomic_decrement(volatile atomic_int_t * value) {
-	atomic_fetch_sub_explicit( value, 1, memory_order_relaxed );
-}
-
-void atomic_increment_u64(volatile atomic_uint64_t * value) {
-	atomic_fetch_add_explicit( value, 1, memory_order_relaxed );
-}
-
-void atomic_decrement_u64(volatile atomic_uint64_t * value) {
-	atomic_fetch_sub_explicit( value, 1, memory_order_relaxed );
-}
-
-void atomic_increment_u8(volatile atomic_uint8_t * value) {
-	atomic_fetch_add_explicit( value, 1, memory_order_relaxed );
-}
-
-void atomic_decrement_u8(volatile atomic_uint8_t * value) {
-	atomic_fetch_sub_explicit( value, 1, memory_order_relaxed );
-}

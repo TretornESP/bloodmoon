@@ -17,3 +17,11 @@ void init_simd(){
     __asm__ volatile("mov %0, %%cr4" :: "r"(cr4));
     __asm__ volatile("finit");
 }
+
+void simd_save_context(void* ctx) {
+    __asm__ volatile("fxsave (%0) "::"r"(ctx));
+}
+
+void simd_restore_context(void* ctx) {
+    __asm__ volatile("fxrstor (%0) "::"r"(ctx));
+}

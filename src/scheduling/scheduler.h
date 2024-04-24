@@ -4,6 +4,7 @@
 #include "../memory/paging.h"
 #include "../process/process.h"
 #include "../io/interrupts.h"
+#include "concurrency.h"
 
 #define TASK_EXECUTING       0
 #define TASK_READY           1
@@ -16,6 +17,8 @@
 #define TASK_IDLE            8
 
 #define SIGKILL 9
+
+extern atomic_int_t irq_disable_counter;
 
 //x86_64 system v abi calling convention stack frame
 struct stack_frame {
@@ -41,7 +44,8 @@ struct stack_frame {
     uint64_t ss;
 } __attribute__((packed));
 
-extern void ctxswtch(struct task * old_task, struct task* new_task);
+extern void ctxswtch(struct task * old_task, struct task* new_task, void* fxsave, void* fxrstor);
+extern void ctxcreat(void* rsp, void* intro, void* fxsave);
 void dump_processes();
 struct task* get_current_task();
 char * get_current_tty();
@@ -54,11 +58,25 @@ void pause_task(struct task* task);
 void resume_task(struct task* task);
 void init_scheduler();
 void pseudo_ps();
+void returnoexit();
 void exit();
 void yield();
 void task_test();
 void go(uint32_t preempt);
+void add_signal(int16_t pid, int signal, void * data, uint64_t size);
+void subscribe_signal(int signal, sighandler_t handler);
+void process_loop();
 
-void lock_scheduler(void);
-void unlock_scheduler(void);
+static inline void lock_scheduler(void) {
+#ifndef SMP
+    atomic_increment(&irq_disable_counter);
+#endif
+}
+ 
+static inline void unlock_scheduler(void) {
+#ifndef SMP
+    atomic_decrement(&irq_disable_counter);
+#endif
+}
+
 #endif

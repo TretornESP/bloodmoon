@@ -280,8 +280,7 @@ void* stackalloc(uint64_t length) {
         mprotect_current(globalHeap.lastStack, PAGESIZE, PAGE_WRITE_BIT);
     }
 
-    void * address = globalHeap.lastStack;	
-
+    void * address = globalHeap.lastStack;
     globalHeap.lastStack = (void*)((uint64_t)globalHeap.lastStack - (uint64_t)PAGESIZE);
 
     return address;

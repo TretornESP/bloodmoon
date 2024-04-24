@@ -845,7 +845,7 @@ json_value * json_parse_ex (json_settings * settings,
                         goto e_failed;
                      }
 
-                     top->u.dbl += num_fraction / math_pow (10.0, num_digits);
+                     top->u.dbl += num_fraction / pow (10.0, num_digits);
                   }
 
                   if (b == 'e' || b == 'E')
@@ -872,7 +872,7 @@ json_value * json_parse_ex (json_settings * settings,
                      goto e_failed;
                   }
 
-                  top->u.dbl *= math_pow (10.0, (flags & flag_num_e_negative ? - num_e : num_e));
+                  top->u.dbl *= pow (10.0, (flags & flag_num_e_negative ? - num_e : num_e));
                }
 
                if (flags & flag_num_negative)
@@ -1050,7 +1050,8 @@ void json_value_free_ex (json_settings * settings, json_value * value)
 
 void json_value_free (json_value * value)
 {
-   json_settings settings = { 0 };
+   json_settings settings;
+   memset (&settings, 0, sizeof (json_settings));
    settings.mem_free = default_free;
    json_value_free_ex (&settings, value);
 }

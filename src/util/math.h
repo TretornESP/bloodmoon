@@ -5,10 +5,10 @@
 
 #define MATH_PI 3.14159265358979323846
 
-double math_pow(double base, double exponent);
-double math_sqrt(double x);
-double math_cbrt(double x);
-double math_hypot(double x, double y);
-double math_exp(double x);
-double math_factorial(double x);
+double pow(double base, double exponent);
+double sqrt(double x);
+double cbrt(double x);
+double hypot(double x, double y);
+double exp(double x);
+double factorial(double x);
 #endif

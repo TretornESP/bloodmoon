@@ -14,13 +14,26 @@ uint64_t get_smp_cpu_number();
 struct bmoon_smp_info *get_bsp_cpu();
 uint64_t get_smp_bsp_index();
 
+typedef struct{
+    void* kernel_stack;
+    uint64_t cs;
+    uint64_t ss;
+    void* thread;
+}__attribute__((packed)) context_info_t;
+
 struct cpu_context {
     uint64_t cr3;
+
+    context_info_t* ctx_info;
     
     uint64_t rax;
     uint64_t rbx;
     uint64_t rcx;
     uint64_t rdx;
+    uint64_t rsi;  
+    uint64_t rdi;
+    uint64_t rbp;
+
     uint64_t r8;
     uint64_t r9;
     uint64_t r10;
@@ -30,21 +43,14 @@ struct cpu_context {
     uint64_t r14;
     uint64_t r15;
 
-    uint64_t rsi;  
-    uint64_t rdi;
-    uint64_t rbp;
-    uint64_t rsp; 
-
     uint64_t interrupt_number; 
     uint64_t error_code; 
     
     uint64_t rip; 
-    uint64_t rflags; 
-
     uint64_t cs; 
+    uint64_t rflags; 
+    uint64_t rsp; 
     uint64_t ss;
-    uint64_t gs;
-    uint64_t fs;
 } __attribute__((packed));
 
 struct cpu {

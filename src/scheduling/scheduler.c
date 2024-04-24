@@ -3,6 +3,7 @@
 #include "../cpus/cpus.h"
 #include "../memory/heap.h"
 #include "../memory/paging.h"
+#include "../arch/simd.h"
 #include "../arch/gdt.h"
 #include "../util/printf.h"
 #include "../util/dbgprinter.h"
@@ -14,11 +15,11 @@
 
 #define MAX_TASKS 255
 
+atomic_int_t irq_disable_counter = 0;
+
 struct task *task_head = 0;
 struct task * current_task = 0;
 struct task * shithole_task = 0;
-
-int irq_disable_counter = 0;
 
 //Returns the task that must enter cpu
 
@@ -72,22 +73,6 @@ struct task * schedule() {
     return prev_task;
 }
 
-void lock_scheduler(void) {
-#ifndef SMP
-    __asm__("cli");
-    irq_disable_counter++;
-#endif
-}
- 
-void unlock_scheduler(void) {
-#ifndef SMP
-    irq_disable_counter--;
-    if(irq_disable_counter == 0) {
-        __asm__("sti");
-    }
-#endif
-}
-
 void block_task(long reason) {
     printf("Blocking task %d\n", current_task->pid);
     lock_scheduler();
@@ -105,7 +90,7 @@ void unblock_task(struct task * task) {
 }
 
 void __attribute__((noinline)) yield() {
-    __asm__ volatile("cli");
+    if (irq_disable_counter) return;
     if (current_task->last_scheduled != 0)
         current_task->cpu_time += (get_ticks_since_boot() - current_task->last_scheduled);
 
@@ -115,10 +100,12 @@ void __attribute__((noinline)) yield() {
     current_task->last_scheduled = get_ticks_since_boot();
 
     struct cpu * cpu = get_cpu(current_task->processor);
-    tss_set_stack(cpu->tss, (void*)current_task->rsp, 0);
+    tss_set_stack(cpu->tss, (void*)current_task->stack_top, 0);
     ctxswtch(
         prev,
-        current_task
+        current_task,
+        prev->fxsave_region,
+        current_task->fxsave_region
     );
 }
 
@@ -241,7 +228,6 @@ struct task* get_current_task() {
 
 //void go(uint8_t preempt) {
 void go(uint32_t preempt) {
-    __asm__("cli");
 
     shithole_task = malloc(sizeof(struct task));
     memset(shithole_task, 0, sizeof(struct task));
@@ -251,10 +237,12 @@ void go(uint32_t preempt) {
         enable_preemption();
     }
     struct cpu * cpu = get_cpu(current_task->processor);
-    current_task->rsp = tss_get_stack(cpu->tss, GDT_DPL_KERNEL);
+    tss_set_stack(cpu->tss, (void*)current_task->stack_top, 0);
     ctxswtch(
         shithole_task,
-        current_task
+        current_task,
+        shithole_task->fxsave_region,
+        current_task->fxsave_region
     );
     panic("go returned you melon!");
 }
@@ -273,10 +261,11 @@ void idle() {
 }
 
 void exit() {
-    __asm__ volatile("cli");
+    lock_scheduler();
     printf("Exiting task %d\n", current_task->pid);
     current_task->exit_code = 0;
     current_task->state = TASK_ZOMBIE;
+    unlock_scheduler();
     yield();
 }
 
@@ -314,16 +303,50 @@ void btask() {
     exit();
 }
 
-extern void ctxsave(struct cpu_context *ctx);
+void subscribe_signal(int signal, sighandler_t handler) {
+    lock_scheduler();
+    current_task->signal_handlers[signal] = handler;
+    unlock_scheduler();
+}
+
+void add_signal(int16_t pid, int signal, void * data, uint64_t size) {
+    lock_scheduler();
+    struct task* task = get_task(pid);
+    if (task == 0) {
+        printf("No such task\n");
+        unlock_scheduler();
+        return;
+    }
+
+    //Add signal to signal_queue linked list
+    struct task_signal * signal_struct = malloc(sizeof(struct task_signal));
+    signal_struct->signal = signal;
+    signal_struct->next = 0;
+    signal_struct->signal_data = data;
+    signal_struct->signal_data_size = size;
+
+    if (task->signal_queue == 0) {
+        task->signal_queue = signal_struct;
+    } else {
+        struct task_signal * current = task->signal_queue;
+        while (current->next != 0) {
+            current = current->next;
+        }
+        current->next = signal_struct;
+    }
+    
+    unlock_scheduler();
+}
+
+void returnoexit() {
+    panic("Returned from a process!\n");
+}
+
 struct task* create_task(void * init_func, const char * tty) {
     lock_scheduler();
-    struct cpu_context * ctx = malloc(sizeof(struct cpu_context));
-    memset(ctx, 0, sizeof(struct cpu_context));
-    ctxsave(ctx);
 
     struct task * task = malloc(sizeof(struct task));
     task->state = TASK_READY;
-    task->flags = 0;
     task->sigpending = 0;
     task->nice = 0;
     task->mm = 0;
@@ -335,7 +358,9 @@ struct task* create_task(void * init_func, const char * tty) {
     task->exit_code = 0;    
     task->exit_signal = 0;
     task->pdeath_signal = 0;
-    
+    task->signal_queue = 0;
+    memset(task->signal_handlers, 0, sizeof(sighandler_t) * TASK_SIGNAL_MAX);
+    memset(task->fxsave_region, 0, 512);
     struct task * parent = get_current_task();
     if (parent == 0) {
         parent = task;
@@ -375,45 +400,15 @@ struct task* create_task(void * init_func, const char * tty) {
     }
 
     task->entry = init_func;
-    task->rsp = (uint64_t)stackalloc(STACK_SIZE);
-    task->rsp_top = task->rsp + STACK_SIZE;
+    task->stack = (uint64_t)stackalloc(STACK_SIZE);
+    task->stack_top = task->stack + STACK_SIZE;
 
-    //Create a stack frame (do not use structs)
-    //Set r12-r15 to 0, rbx to 0
-    //Set rip to init_func
+    //Check stack alignment
+    if (task->stack_top % 16 != 0) {
+        panic("Stack is not aligned\n");
+    }
 
-    uint64_t * saved_rsp;
-    //Save current rsp
-    __asm__ volatile("movq %%rsp, %0" : "=r"(saved_rsp));
-
-    //Set rsp to the top of the stack
-    __asm__ volatile("movq %0, %%rsp" : : "r"(task->rsp_top));
-
-    //Push the return address
-    __asm__ volatile("pushq %0" : : "r"(init_func));
-
-    //Push the rsp_top
-    __asm__ volatile("pushq %0" : : "r"(task->rsp_top));
-
-    __asm__ volatile("pushq $0x98"); //RAX
-    __asm__ volatile("pushq $0x99"); //RBX
-    __asm__ volatile("pushq $0x9A"); //RCX
-    __asm__ volatile("pushq $0x9B"); //RDX
-    __asm__ volatile("pushq $0x88"); //R8
-    __asm__ volatile("pushq $0x89"); //R9
-    __asm__ volatile("pushq $0x90"); //R10
-    __asm__ volatile("pushq $0x91"); //R11
-    __asm__ volatile("pushq $0x92"); //R12
-    __asm__ volatile("pushq $0x93"); //R13
-    __asm__ volatile("pushq $0x94"); //R14
-    __asm__ volatile("pushq $0x95"); //R15
-    __asm__ volatile("pushq $0x96"); //RSI
-    __asm__ volatile("pushq $0x97"); //RDI
-
-    //Save rsp to the task struct
-    __asm__ volatile("movq %%rsp, %0" : "=r"(task->rsp_top));
-    //Set rsp to the saved rsp
-    __asm__ volatile("movq %0, %%rsp" : : "r"(saved_rsp));
+    ctxcreat((void*)(task->stack_top), init_func, task->fxsave_region);
 
     task->pd = duplicate_current_pml4();
     strncpy(task->tty, tty, strlen(tty));
@@ -481,4 +476,26 @@ void reset_current_tty() {
     memset(current_task->tty, 0, 32);
     strncpy(current_task->tty, "default\0", 8);
     unlock_scheduler();
+}
+
+void process_loop() {
+    while (1) {
+        lock_scheduler();
+        //Process all signals in the queue
+        if (current_task->signal_queue != 0) {
+            struct task_signal * current = current_task->signal_queue;
+            while (current != 0) {
+                if (current_task->signal_handlers[current->signal] != 0) {
+                    current_task->signal_handlers[current->signal](current->signal, current->signal_data, current->signal_data_size);
+                }
+                struct task_signal * next = current->next;
+                free(current);
+                current = next;
+            }
+            current_task->signal_queue = 0;
+        }
+        unlock_scheduler();
+        //Yield to the next task
+        //yield();
+    }
 }

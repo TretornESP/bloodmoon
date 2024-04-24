@@ -29,6 +29,16 @@ uint8_t interrupts_ready = 0;
 struct idtr idtr;
 volatile int dynamic_interrupt = -1;
 
+struct stackFrame {
+    struct stackFrame * rbp;
+    uint64_t rip;
+};
+
+void walk_stack(unsigned int MaxFrames) {
+    struct stackFrame * frame;
+    __asm__ volatile("mov %%rbp, %0" : "=r" (frame));
+}
+
 void (*dynamic_interrupt_handlers[256])(struct cpu_context* ctx, uint8_t cpuid) = {0};
 
 void PageFault_Handler(struct cpu_context* ctx, uint8_t cpuid) {
@@ -184,6 +194,7 @@ void raise_interrupt(uint8_t interrupt) {
 
 void global_interrupt_handler(struct cpu_context* ctx, uint8_t cpu_id) {
     
+
     void (*handler)(struct cpu_context* ctx, uint8_t cpu_id) = (void*)dynamic_interrupt_handlers[ctx->interrupt_number];
     
     if (ctx->interrupt_number == DYNAMIC_HANDLER) {
