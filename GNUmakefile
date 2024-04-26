@@ -111,9 +111,6 @@ __check_defined = \
 override CFLAGS +=       \
     -I.                  \
     -std=c11             \
-	-mno-sse             \
-	-mno-sse2            \
-	-mno-sse3            \
     -ffreestanding       \
     -fno-pie             \
     -fno-pic             \

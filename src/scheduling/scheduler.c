@@ -403,12 +403,7 @@ struct task* create_task(void * init_func, const char * tty) {
 
     task->entry = init_func;
     task->stack = (uint64_t)stackalloc(STACK_SIZE);
-    task->stack_top = task->stack + STACK_SIZE;
-
-    //Check stack alignment
-    if (task->stack_top % 16 != 0) {
-        panic("Stack is not aligned\n");
-    }
+    task->stack_top = task->stack + STACK_SIZE - 0x8; //WARNING: -0x8 is a hack to make sure the stack is aligned
 
     ctxcreat(&(task->stack_top), init_func, task->fxsave_region);
 

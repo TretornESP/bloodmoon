@@ -24,6 +24,7 @@ void terminal_keypress_handler(struct ux_component * component, struct ux_event 
     }
 
     buffer[strlen(buffer)] = event->data;
+    printf("Key pressed: %c\n", event->data);
     component->text[strlen(component->text)] = event->data;
     redraw_component(component);
 }

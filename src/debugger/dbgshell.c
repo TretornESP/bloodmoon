@@ -1296,7 +1296,7 @@ void init_dbgshell() {
     print_prompt();
     promt();
 
-    while (1);
+    while (1) {yield();};
 }
 
 void kill_dbgshell() {
