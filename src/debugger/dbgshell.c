@@ -28,6 +28,8 @@ struct command {
     void (*handler)(int argc, char* argv[]);
 };
 
+void handler(void* ttyb, uint8_t event);
+
 const char root[] = "hdap2";
 char cwd[256] = {0};
 char workpath[256] = {0};
@@ -134,7 +136,7 @@ void attach(int argc, char *argv[]) {
     //device_ioctl(devno, 0x2, handler); //REMOVE SUBSCRIBER
     memset(devno, 0, 32);
     strcpy(devno, argv[1]);
-    device_ioctl(devno, 0x1, tty_device_handler); //ADD SUBSCRIBER
+    device_ioctl(devno, 0x1, handler); //ADD SUBSCRIBER
     
     set_current_tty(argv[1]);
     printf("Attached to %s\n", argv[1]);
@@ -1182,6 +1184,40 @@ void promt() {
     printf("rotero@bloodmon:%s$ ", cwd);
 }
 
+void handler(void* ttyb, uint8_t event) {
+    (void)ttyb;
+    int pid = get_current_task()->pid;
+    add_signal(pid, DBGSHELL_SIGNAL_TTY, ttyb, (uint64_t)event);
+
+    //switch (event) {
+    //    case 0x1: { //TTY_INB
+    //        char cmd[1024] = {0};
+    //        int read = device_read(devno, 1024, 0, (uint8_t*)cmd);
+    //        if (read > 0) {
+    //            //Convert string to array of words
+    //            char* args[32] = {0};
+    //            int argc = 0;
+    //            char* tok = strtok(cmd, " ");
+    //            while (tok != 0) {
+    //                args[argc] = tok;
+    //                argc++;
+    //                tok = strtok(0, " ");
+    //            }
+//
+    //            for (uint32_t i = 0; i < sizeof(cmdlist) / sizeof(struct command); i++) {
+    //                if (strcmp(cmdlist[i].keyword, args[0]) == 0) {
+    //                    cmdlist[i].handler(argc, args);
+    //                    break;
+    //                }
+    //            }
+    //        }
+//
+    //        promt();
+    //    }
+    //    default:
+    //        break;
+    //}
+}
 
 void tty_signal_handler(int signo, void * ttyb, uint64_t event) {
     switch (event) {
@@ -1253,17 +1289,17 @@ void init_dbgshell() {
     subscribe_signal(DBGSHELL_SIGNAL_TTY, tty_signal_handler);
 
     strncpy(devno, tty, strlen(tty));
-    device_ioctl(tty, 0x1, tty_device_handler); //ADD SUBSCRIBER
+    device_ioctl(tty, 0x1, handler); //ADD SUBSCRIBER
     printf("\n");
     dbg_flush();
     strcpy(cwd, root);
     print_prompt();
     promt();
 
-    process_loop();
+    while (1);
 }
 
 void kill_dbgshell() {
-    device_ioctl(devno, 0x2, tty_device_handler); //REMOVE SUBSCRIBER
+    device_ioctl(devno, 0x2, handler); //REMOVE SUBSCRIBER
     memset(devno, 0, 32);
 }

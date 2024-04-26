@@ -65,7 +65,7 @@ void task_test();
 void go(uint32_t preempt);
 void add_signal(int16_t pid, int signal, void * data, uint64_t size);
 void subscribe_signal(int signal, sighandler_t handler);
-void process_loop();
+void process_signals();
 
 static inline void lock_scheduler(void) {
 #ifndef SMP

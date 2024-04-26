@@ -107,6 +107,8 @@ void __attribute__((noinline)) yield() {
         prev->fxsave_region,
         current_task->fxsave_region
     );
+
+    process_signals();
 }
 
 void add_task(struct task* task) {
@@ -408,7 +410,7 @@ struct task* create_task(void * init_func, const char * tty) {
         panic("Stack is not aligned\n");
     }
 
-    ctxcreat((void*)(task->stack_top), init_func, task->fxsave_region);
+    ctxcreat(&(task->stack_top), init_func, task->fxsave_region);
 
     task->pd = duplicate_current_pml4();
     strncpy(task->tty, tty, strlen(tty));
@@ -478,24 +480,20 @@ void reset_current_tty() {
     unlock_scheduler();
 }
 
-void process_loop() {
-    while (1) {
-        lock_scheduler();
-        //Process all signals in the queue
-        if (current_task->signal_queue != 0) {
-            struct task_signal * current = current_task->signal_queue;
-            while (current != 0) {
-                if (current_task->signal_handlers[current->signal] != 0) {
-                    current_task->signal_handlers[current->signal](current->signal, current->signal_data, current->signal_data_size);
-                }
-                struct task_signal * next = current->next;
-                free(current);
-                current = next;
+void process_signals() {
+    lock_scheduler();
+    //Process all signals in the queue
+    if (current_task->signal_queue != 0) {
+        struct task_signal * current = current_task->signal_queue;
+        while (current != 0) {
+            if (current_task->signal_handlers[current->signal] != 0) {
+                current_task->signal_handlers[current->signal](current->signal, current->signal_data, current->signal_data_size);
             }
-            current_task->signal_queue = 0;
+            struct task_signal * next = current->next;
+            free(current);
+            current = next;
         }
-        unlock_scheduler();
-        //Yield to the next task
-        //yield();
+        current_task->signal_queue = 0;
     }
+    unlock_scheduler();
 }

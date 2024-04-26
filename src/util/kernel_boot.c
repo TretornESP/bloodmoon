@@ -3,6 +3,7 @@
 #include "../test/tests.h"
 
 #include "../arch/simd.h"
+#include "../arch/fpu.h"
 #include "../arch/gdt.h"
 
 #include "../debugger/debug.h"
@@ -76,6 +77,7 @@ void enable_debug(uint8_t reserved) {
 
 void boot() {
     init_simd();
+    init_fpu();
     init_memory();
     init_paging();
     init_heap();
@@ -111,7 +113,7 @@ void boot() {
     add_task(create_task((void*)init_dbgshell, "ttya"));
     char bufferc[1024] = {0};
     printf("Buffers ready: %p %p %p\n", buffera, bufferb, bufferc);
-    go(0); //The number is the number of ticks for preemption, zero for cooperative scheduling
+    go(5); //The number is the number of ticks for preemption, zero for cooperative scheduling
     panic("Kernel returned to boot() (this should never happen!)\n");
 }
 

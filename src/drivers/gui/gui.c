@@ -123,10 +123,10 @@ void draw_line(uint64_t x1, uint64_t y1, uint64_t x2, uint64_t y2, uint32_t colo
     int dx = x2 - x1;
     int dy = y2 - y1;
     int steps = abs(dx) > abs(dy) ? abs(dx) : abs(dy);
-    float Xinc = dx / (float) steps;
-    float Yinc = dy / (float) steps;
-    float X = x1;
-    float Y = y1;
+    int Xinc = dx / steps;
+    int Yinc = dy / steps;
+    int X = x1;
+    int Y = y1;
     for (int i = 0; i <= steps; i++) {
         draw_pixel_fb(gui.fb, X, Y, color);
         X += Xinc;

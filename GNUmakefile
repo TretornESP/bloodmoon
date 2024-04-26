@@ -111,6 +111,9 @@ __check_defined = \
 override CFLAGS +=       \
     -I.                  \
     -std=c11             \
+	-mno-sse             \
+	-mno-sse2            \
+	-mno-sse3            \
     -ffreestanding       \
     -fno-pie             \
     -fno-pic             \
@@ -121,7 +124,6 @@ override CFLAGS +=       \
     -mno-red-zone        \
     -mcmodel=kernel      \
     -MMD
-override CFLAGS += $(CEXTRA)
 
 override LDFLAGS +=         \
     -nostdlib               \
@@ -399,7 +401,7 @@ debuge:
 	$(QEMU) -S -s $(QFLAGSEXP)$(ISODIR)/$(IMG)
 
 debug:
-	@make CEXTRA=-O0 kernel
+	@make kernel
 	@make buildimg
 	$(CMDNEWSCREEN) $(GDB) $(GDBFLAGS) &
 	$(QEMU) -S -s $(QFLAGS) $(ISODIR)/$(ISO)

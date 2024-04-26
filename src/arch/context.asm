@@ -109,7 +109,7 @@ ctxcreat:
 
     fxsave [rdx]
 
-    mov rsp, rdi
+    mov rsp, [rdi]
     push returnoexit
     push 0x0
     push rsi
@@ -143,7 +143,7 @@ ctxcreat:
     mov rax, ss
     push rax
     pushfq
-
+    mov [rdi], rsp
     mov rsp, rbx
     pop rbx
     pop rax
