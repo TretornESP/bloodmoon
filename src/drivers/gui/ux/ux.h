@@ -84,7 +84,7 @@ struct ux_component {
 
     uint8_t specific_data_items;
     uint8_t children_count;
-
+    uint8_t requires_redraw;
     struct ux_specific_data *specific_data;
     
     struct cursor cursor;
@@ -95,16 +95,18 @@ struct ux_component {
     struct ux_component * parent;
 };
 
+void preload_ux();
 void load_font();
 void print_bg();
-
+void redraw_ux();
 struct ux_component* get_component_by_name(struct ux_component * root, const char* name);
 struct ux_component* inflate_layout(const char * title, const char * layout);
 void redraw_component(struct ux_component * window);
 void hook_event(struct ux_component* component, void (*event)(struct ux_component* component, struct ux_event* event));
 void unhook_event(struct ux_component* component);
-
+void move_component(struct ux_component * component, int16_t x, int16_t y);
 void event_dispatch(struct ux_event* event);
+uint8_t requires_redraw();
 #endif
 
 

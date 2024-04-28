@@ -1,5 +1,24 @@
 #include "tty_interface.h"
+#include "tty.h"
 #include "../../dev/devices.h"
+
+
+char * create_tty(char* in, char* out, int mode, int inbs, int outbs) {
+    int index = tty_init(in, out, mode, inbs, outbs);
+    struct tty * tty = get_tty(index);
+    if (!is_valid_tty(tty)) {
+        return 0;
+    }
+    return create_device((void*)tty, TTY_MAJOR, index);
+}
+
+void destroy_tty(const char * device) {
+    struct device* tty_dev = device_search(device);
+    struct tty* tty = (struct tty*)tty_dev->internal_id;
+    tty_destroy(tty);
+    destroy_device(device);
+}
+
 
 uint64_t tty_read(const char * device, uint8_t * buffer, uint32_t skip, uint32_t size) {
     return device_read(device, size, skip, buffer);

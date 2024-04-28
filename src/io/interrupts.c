@@ -24,7 +24,8 @@
 #define __UNDEFINED_HANDLER  __asm__ ("cli"); dbg_print(__func__); (void)frame; set_debug_msg(__func__); panic("Undefined interrupt handler");
 
 extern void* interrupt_vector[IDT_ENTRY_COUNT];
-
+char io_tty[32] = "default\0";
+char saved_tty[32];
 uint8_t interrupts_ready = 0;
 struct idtr idtr;
 volatile int dynamic_interrupt = -1;
@@ -116,6 +117,11 @@ struct idtdescentry * get_idt_gate(uint8_t entry_offset) {
     return (struct idtdescentry*)(idtr.offset + (entry_offset * sizeof(struct idtdescentry)));
 }
 
+void set_io_tty(const char * tty) {
+    memset(io_tty, 0, 32);
+    strcpy(io_tty, tty);
+}
+
 void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uint8_t ist, uint16_t selector) {
     struct idtdescentry* interrupt = (struct idtdescentry*)(idtr.offset + (entry_offset * sizeof(struct idtdescentry)));
     set_offset(interrupt, handler);
@@ -193,8 +199,6 @@ void raise_interrupt(uint8_t interrupt) {
 }
 
 void global_interrupt_handler(struct cpu_context* ctx, uint8_t cpu_id) {
-    
-
     void (*handler)(struct cpu_context* ctx, uint8_t cpu_id) = (void*)dynamic_interrupt_handlers[ctx->interrupt_number];
     
     if (ctx->interrupt_number == DYNAMIC_HANDLER) {
@@ -204,6 +208,13 @@ void global_interrupt_handler(struct cpu_context* ctx, uint8_t cpu_id) {
         } else {
             panic("Invalid dynamic interrupt\n");
         }
+    }
+
+    //Get current proces
+    struct task* current_task = get_current_task();
+    if (current_task != 0) {
+        strcpy(saved_tty, get_current_tty());
+        set_current_tty(io_tty);
     }
 
     //printf("Interrupt %d received on CPU %d\n", ctx->interrupt_number, cpu_id);
@@ -216,6 +227,10 @@ void global_interrupt_handler(struct cpu_context* ctx, uint8_t cpu_id) {
     }
 
     handler(ctx, cpu_id);
+
+    if (current_task != 0) {
+        set_current_tty(saved_tty);
+    }
 
     local_apic_eoi(cpu_id);
 }

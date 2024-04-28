@@ -5,6 +5,7 @@
 #include "../../dev/fb/framebuffer.h"
 
 #define MAX_GUI_DEVICES 8
+#define GUI_FPS 30
 
 #define GUI_MOUSE_DEVICE 0x0
 #define GUI_TTY_DEVICE 0x1
@@ -29,6 +30,8 @@ struct gui {
     struct framebuffer * fb;
     uint16_t mousex;
     uint16_t mousey;
+    uint16_t mousex_old;
+    uint16_t mousey_old;
     uint8_t ready;
     uint16_t width;
     uint16_t height;
@@ -47,7 +50,7 @@ void draw_rect_rounded_corners(uint64_t x, uint64_t y, uint64_t w, uint64_t h, u
 void draw_line(uint64_t x1, uint64_t y1, uint64_t x2, uint64_t y2, uint32_t color);
 void draw_circle(uint64_t x, uint64_t y, uint64_t r, uint32_t color);
 void draw_text(uint64_t x, uint64_t y, const char * text, struct cursor * cursor);
-
+uint8_t load_image(const char * path, uint64_t x, uint64_t y, struct ppm * image);
 void gui_draw_pixel(uint64_t x, uint64_t y, uint32_t color);
 uint32_t gui_get_pixel(uint64_t x, uint64_t y);
 

@@ -42,7 +42,7 @@ KERNEL_ENTRY := _start
 
 BLOCKSIZE := 1024
 MEMSIZE := 4G
-VMEMSIZE := 128
+VMEMSIZE := 1024M
 NUMAFLAGS := \
 -smp cpus=1
 #-object memory-backend-ram,size=1G,id=mem0 \
@@ -64,7 +64,7 @@ QFLAGS ?= -cpu qemu64 -d cpu_reset -machine q35 $(NUMAFLAGS) -m $(MEMSIZE) -boot
 QFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 $(NUMAFLAGS) -m $(MEMSIZE) -boot d -netdev tap,id=mynet0,ifname=tap,script=no,downscript=no -serial stdio -device e1000,netdev=mynet0,mac=51:52:53:54:55:56 -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -drive file=
 QWFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 $(NUMAFLAGS) -m $(MEMSIZE) -boot d -netdev tap,id=mynet0,ifname=tap,script=no,downscript=no -serial stdio -device e1000,netdev=mynet0,mac=51:52:53:54:55:56 -drive if=pflash,format=raw,unit=0,file=$(WINDIRECTORY)/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=$(WINDIRECTORY)/OVMF_VARS-pure-efi.fd -drive file=
 
-CFLAGS ?= -O2 -g -Wall -Wextra -pipe -Wno-packed-bitfield-compat -std=c11
+CFLAGS ?= -O3 -g -Wall -Wextra -pipe -Wno-packed-bitfield-compat -std=c11
 NASMFLAGS ?= -F dwarf -g
 LDFLAGS ?=
 CPPFLAGS ?=

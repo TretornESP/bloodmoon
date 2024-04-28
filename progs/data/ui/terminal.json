@@ -5,39 +5,17 @@
     "x": 100,
     "y": 100,
     "width": 800,
-    "height": 600,
+    "height": 800,
     "color": "#AA0000",
     
     "output": {
         "type": 1,
-        "text": "Command output goes here",
+        "text": "",
         "x": 100,
-        "y": 100,
-        "width": 700,
-        "height": 400,
+        "y": 150,
+        "width": 800,
+        "height": 750,
         "coord_type": 0,
         "color": "#00AA00"
-    },
-
-    "input": {
-        "type": 3,
-        "text": "Command input goes here",
-        "x": 100,
-        "y": 550,
-        "width": 600,
-        "height": 100,
-        "coord_type": 0,
-        "color": "#00AA00"
-    },
-
-    "execute" : {
-        "type": 0,
-        "text": "Execute",
-        "x": 750,
-        "y": 550,
-        "coord_type": 0,
-        "width": 150,
-        "height": 100,
-        "color": "#0000AA"
     }
 }

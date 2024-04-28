@@ -26,6 +26,9 @@ struct tty {
     char indev[32];
     char outdev[32];
 
+    void (*pty_read)(void* ttyb, char c, int port);
+    uint64_t (*pty_write)(const char * device, uint64_t size, uint64_t offset, uint8_t* buffer);
+
     volatile int signal;
     int mode;
     int valid;

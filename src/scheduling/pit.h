@@ -21,6 +21,7 @@ void init_pit();
 
 void sleep(uint64_t);
 void sleep_ticks(uint64_t);
+void msleep(uint64_t ms);
 
 void tick();
 

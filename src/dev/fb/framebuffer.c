@@ -41,16 +41,6 @@ struct bmoon_limine_framebuffer {
 */
 struct framebuffer * framebuffer[MAX_FRAMEBUFFER_COUNT] = {0};
 
-uint32_t rgb_to_color(uint8_t r, uint8_t g, uint8_t b) {
-    return (r << 16) | (g << 8) | b;
-}
-
-void color_to_rgb(uint32_t color, struct color *c) {
-    c->r = (color >> 16) & 0xFF;
-    c->g = (color >> 8) & 0xFF;
-    c->b = color & 0xFF;
-}
-
 void init_framebuffer() {
     printf("### Initializing Framebuffer ###\n");
     uint64_t count = get_framebuffer_count();
@@ -61,7 +51,8 @@ void init_framebuffer() {
     struct bmoon_framebuffer **fb = get_framebuffers();
     for (uint64_t i = 0; i < count; i++) {
         framebuffer[i] = malloc(sizeof(struct framebuffer));
-        framebuffer[i]->address = (uint32_t*)(uint64_t*)fb[i]->address;
+        framebuffer[i]->framebuffer = (uint32_t*)(uint64_t*)fb[i]->address;
+        framebuffer[i]->address = malloc(fb[i]->width * fb[i]->height * 4);
         framebuffer[i]->font = 0;
         framebuffer[i]->width = fb[i]->width;
         framebuffer[i]->height = fb[i]->height;
@@ -133,4 +124,14 @@ void clear_screen_fb(struct framebuffer * fb, uint32_t color) {
 void clear_screen(uint8_t index, uint32_t color) {
     struct framebuffer *fb = get_framebuffer(index);
     clear_screen_fb(fb, color);
+}
+
+void flip_buffers_fb(struct framebuffer *fb) {
+    //Copy the back buffer (address) to the framebuffer (framebuffer)
+    //Use accelerated instructions in assembly
+    for (uint64_t y = 0; y < fb->height; y++) {
+        for (uint64_t x = 0; x < fb->width; x++) {
+            fb->framebuffer[(y * (fb->pitch / sizeof(uint32_t)) + x)] = fb->address[(y * (fb->pitch / sizeof(uint32_t)) + x)];
+        }
+    }
 }

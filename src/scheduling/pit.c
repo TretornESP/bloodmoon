@@ -117,6 +117,10 @@ void sleep(uint64_t seconds) {
     sleep_ticks(seconds_to_ticks(seconds));
 }
 
+void msleep(uint64_t ms) {
+    sleep_ticks(ms_to_ticks(ms));
+}
+
 uint64_t get_ticks_since_boot() {
     return pit.timer_ticks;
 }

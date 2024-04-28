@@ -92,4 +92,5 @@ void pic_eoi(unsigned char irq);
 void raise_interrupt(uint8_t interrupt);
 void mask_interrupt(uint8_t irq);
 void unmask_interrupt(uint8_t irq);
+void set_io_tty(const char * tty);
 #endif

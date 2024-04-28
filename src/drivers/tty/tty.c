@@ -13,6 +13,8 @@
 #include "../ps2/ps2.h"
 
 struct tty ttys[32] = {0};
+const char noindev[] = "none";
+const char nooutdev[] = "none";
 
 struct tty* get_tty(int index) {
     if (index < 0 || index >= 32) return 0;
@@ -50,6 +52,8 @@ void _tty_flush(struct tty* device) {
     }
     if (device->mode == TTY_MODE_SERIAL)
         device_ioctl(device->outdev, SERIAL_FLUSH_TX, 0);
+    else
+        tty_run_subscribers(device, TTY_EVENT_FLUSH_OUTB);
 }
 
 void tty_write_inb(struct tty* device, char c) {
@@ -190,8 +194,10 @@ void tty_destroy(struct tty* tty) {
     tty->valid = 0;
 }
 
-int tty_init(char* inb, char* outb, int mode, int inbs, int outbs) {
-    printf("tty_init(in:%s, out:%s, %d, %d, %d)\n", inb, outb, mode, inbs, outbs);
+int tty_init(char* indev, char* outdev, int mode, int inbs, int outbs) {
+    if (indev == 0) return -1;
+    if (outdev == 0) return -1;
+    printf("tty_init(in:%s, out:%s, %d, %d, %d)\n", indev, outdev, mode, inbs, outbs);
     struct tty * tty = 0;   
     int index = 0;
     for (index = 0; index < 32; index++) {
@@ -205,8 +211,8 @@ int tty_init(char* inb, char* outb, int mode, int inbs, int outbs) {
     else return -1;
     
     tty->valid = 0;
-    strncpy(tty->indev, inb, 32);
-    strncpy(tty->outdev, outb, 32);
+    strncpy(tty->indev, indev, 32);
+    strncpy(tty->outdev, outdev, 32);
     tty->signal = 0;
     tty->inb = (char*)calloc(1, inbs);
     if (tty->inb == 0) return -1;
@@ -242,6 +248,7 @@ int tty_init(char* inb, char* outb, int mode, int inbs, int outbs) {
     );
     tty->israw = 0;
     tty->echo = 1;
+    tty->pty_read = tty_read_cb;
     if (tty->line_discipline == 0) {
         free(tty->inb);
         free(tty->outb);
@@ -262,11 +269,6 @@ int tty_init(char* inb, char* outb, int mode, int inbs, int outbs) {
             break;
         }
         case TTY_MODE_PTY: {
-            struct ps2_kbd_ioctl_subscriptor sync_data = {
-                .parent = tty,
-                .handler = tty_read_cb
-            };
-            device_ioctl(tty->indev, IOCTL_KEYBOARD_SUBSCRIBE, (void*)&sync_data);
             break;
         }
         default:

@@ -17,6 +17,7 @@
 #define TASK_IDLE            8
 
 #define SIGKILL 9
+#define SCHED_PRIORITIES 5
 
 extern atomic_int_t irq_disable_counter;
 
@@ -52,7 +53,7 @@ char * get_current_tty();
 void set_current_tty(char *);
 void reset_current_tty();
 void add_task(struct task* task);
-struct task* create_task(void * init_func, const char* tty);
+struct task* create_task(void * init_func, long nice, const char * tty);
 void kill_task(int16_t pid);
 void pause_task(struct task* task);
 void resume_task(struct task* task);
@@ -69,13 +70,18 @@ void process_signals();
 
 static inline void lock_scheduler(void) {
 #ifndef SMP
+    __asm__ volatile("cli");
     atomic_increment(&irq_disable_counter);
 #endif
 }
  
 static inline void unlock_scheduler(void) {
 #ifndef SMP
+    __asm__ volatile("cli");
     atomic_decrement(&irq_disable_counter);
+    if (irq_disable_counter == 0) {
+        __asm__ volatile("sti");
+    }
 #endif
 }
 

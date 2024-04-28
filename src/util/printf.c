@@ -38,6 +38,7 @@
 #include "../dev/devices.h"
 #include "../scheduling/scheduler.h"
 #include "../debugger/debug.h"
+#include "../scheduling/concurrency.h"
 #include "string.h"
 
 // define this globally (e.g. gcc -DPRINTF_INCLUDE_CONFIG_H ...) to include the
@@ -121,6 +122,8 @@
 #include <float.h>
 #endif
 
+lock_t printf_lock = 0;
+
 
 // output function type
 typedef void (*out_fct_type)(char character, void* buffer, size_t idx, size_t maxlen);
@@ -155,6 +158,7 @@ static inline void _out_char(char character, void* buffer, size_t idx, size_t ma
   (void)buffer; (void)idx; (void)maxlen;
 
   if (character) {
+    //acquire_lock(&printf_lock);
     const char * ctty = get_current_tty();
     if (ctty == 0 || !strcmp(ctty, "default")) {
       void (*writer)(const char*, uint64_t) = get_terminal_writer();
@@ -163,6 +167,7 @@ static inline void _out_char(char character, void* buffer, size_t idx, size_t ma
       device_write(ctty, 1, 0, (uint8_t*)&character);
       device_ioctl(ctty, 0x5, 0); //TTY Flush
     }
+    //release_lock(&printf_lock);
   }
 }
 

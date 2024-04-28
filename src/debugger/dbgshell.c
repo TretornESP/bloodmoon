@@ -111,7 +111,7 @@ void spawn_terminal(int argc, char* argv[]) {
         return;
     }
 
-    add_task(create_task((void*)init_terminal, "ttya"));
+    add_task(create_task((void*)init_terminal, 3, "ttya"));
 }
 
 void lsdsk(int argc, char* argv[]) {
@@ -264,16 +264,17 @@ void sched(int argc, char* argv[]) {
 }
 
 void spawn(int argc, char* argv[]) {
-    if (argc < 2) {
+    if (argc < 3) {
         printf("Spawns a process\n");
-        printf("Usage: spawn <addr of init>\n");
+        printf("Usage: spawn <nice> <addr of init>\n");
         return;
     }
 
     //convert string to uint64_t
     char* endptr;
-    uint64_t addr = strtoull(argv[1], &endptr, 16);
-    add_task(create_task((void*)addr, get_current_tty()));
+    long nice = atoi(argv[1]);
+    uint64_t addr = strtoull(argv[2], &endptr, 16);
+    add_task(create_task((void*)addr, nice, get_current_tty()));
 }
 
 void kill(int argc, char* argv[]) {
@@ -1302,4 +1303,24 @@ void init_dbgshell() {
 void kill_dbgshell() {
     device_ioctl(devno, 0x2, handler); //REMOVE SUBSCRIBER
     memset(devno, 0, 32);
+}
+
+void ex_dbgshell(const char * command) {
+    char cmd[1024] = {0};
+    strncpy(cmd, command, strlen(command));
+    char* args[32] = {0};
+    int argc = 0;
+    char* tok = strtok(cmd, " ");
+    while (tok != 0) {
+        args[argc] = tok;
+        argc++;
+        tok = strtok(0, " ");
+    }
+
+    for (uint32_t i = 0; i < sizeof(cmdlist) / sizeof(struct command); i++) {
+        if (strcmp(cmdlist[i].keyword, args[0]) == 0) {
+            cmdlist[i].handler(argc, args);
+            break;
+        }
+    }
 }

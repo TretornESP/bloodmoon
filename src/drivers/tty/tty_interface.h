@@ -9,6 +9,9 @@
 #include <stdint.h>
 #include "tty_dd.h"
 
+char * create_tty(char* in, char* out, int mode, int inbs, int outbs);
+void destroy_tty(const char * device);
+
 uint64_t tty_read(const char * device, uint8_t * buffer, uint32_t skip, uint32_t size);
 uint64_t tty_write(const char * device, uint8_t * buffer, uint32_t skip, uint32_t size);
 uint64_t tty_write_now(const char * device, const char * buffer, uint32_t skip, uint32_t size);

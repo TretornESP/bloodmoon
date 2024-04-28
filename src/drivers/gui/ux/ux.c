@@ -16,11 +16,14 @@ struct ux_component windows[UX_MAX_WINDOWS] = {0};
 uint8_t window_count = 0;
 struct psf1_header * font_buffer = 0;
 struct event_subscriptors * subscriptors = 0;
+struct ppm * background;
 
 void draw_tree(struct ux_component * root, uint16_t depth) {
     if (root == 0) {
         return;
     }
+
+    root->requires_redraw = 0;
 
     switch(root->type) {
         case 0:
@@ -455,6 +458,8 @@ struct ux_component * create_window_component(const char* name, char * json, uin
     process_value(value, 0, "root", window);
     free(settings);
     json_value_free(value);
+
+    window->requires_redraw = 1;
     return window;
 }
 
@@ -541,6 +546,15 @@ void redraw_component(struct ux_component * window) {
     draw_tree(window, 0);
 }
 
+void move_component(struct ux_component * component, int16_t x, int16_t y) {
+    component->x += x;
+    component->y += y;
+    component->requires_redraw = 1;
+    for (int i = 0; i < component->children_count; i++) {
+        move_component(component->children[i], x, y);
+    }
+}
+
 uint8_t find_font_cb(struct vfs_mount* mount, void * data) {
     if (!strcmp(mount->fst->name, "EXT2")) {
         memset(data, 0, 1024);
@@ -559,15 +573,40 @@ void unhook_event(struct ux_component* component) {
     component->event = 0;
 }
 
+uint16_t drag_x = 0;
+uint16_t drag_y = 0;
+void dispatch_window_click(struct ux_component * window, struct ux_event * event) {
+    if (event->device == UX_EVENT_DEVICE_MOUSE) {
+        if (event->data & UX_EVENT_MOUSE_LEFT_MASK) {
+            printf("Clicked on top level window\n");
+            if (drag_x == 0 && drag_y == 0) {
+                drag_x = event->x;
+                drag_y = event->y;
+            } else if ((event->x - drag_x) > 10 || (event->y - drag_y) > 10) {
+                move_component(window, event->x - drag_x, event->y - drag_y);
+                drag_x = event->x;
+                drag_y = event->y;
+            }
+        } else {
+            drag_x = 0;
+            drag_y = 0;
+        }
+    }
+}
+
 void event_dispatch(struct ux_event * event) {
     //Check if the event is a left click, if so change focus
     if (event->device == UX_EVENT_DEVICE_MOUSE && event->data & UX_EVENT_MOUSE_LEFT_MASK) {
-        printf("Changing focus\n");
         set_window_focus(event->x, event->y);
+        //printf("Focus in %s\n", windows[0].name);
     }
 
     struct ux_component * focus = get_window_focus();
+
     if (focus != 0) {
+        if (focus->has_focus) {
+            dispatch_window_click(focus, event);
+        }
         dispatch_tree(focus, event);
     }
 
@@ -613,14 +652,50 @@ void load_font() {
     }
 }
 
+uint8_t _requires_redraw(struct ux_component* root) {
+    if (root->requires_redraw) {
+        return 1;
+    }
+    for (int i = 0; i < root->children_count; i++) {
+        if (_requires_redraw(root->children[i])) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+uint8_t requires_redraw() {
+    for (int i = 0; i < window_count; i++) {
+        if (_requires_redraw(&windows[i])) {
+            return 1;
+        }
+    }
+}
+
 void print_bg() {
+    if (background == 0) {
+        return;
+    }
+    draw_buffer24(background->buffer, 0, 0, background->width, background->height);
+}
+
+void preload_ux() {
     char * path = malloc(1024);
     memset(path, 0, 1024);
     if (iterate_mounts(find_file_cb, (void*)path, "logo.ppm")) {
         printf("Found logo at %s\n", path);
-        draw_image(path, 0, 0);
+        background = malloc(sizeof(struct ppm));
+        memset(background, 0, sizeof(struct ppm));
+        load_image(path, 0, 0, background);
     } else {
         printf("Failed to find resources\n");
     }
     free(path);
+}
+
+void redraw_ux() {
+    print_bg();
+    for (int i = window_count-1; i >= 0; i--) {
+        redraw_component(&windows[i]);
+    }
 }

@@ -11,8 +11,11 @@
 #include "../../vfs/vfs.h"
 #include "../../util/string.h"
 #include "../../memory/heap.h"
+#include "../../scheduling/scheduler.h"
+#include "../../scheduling/pit.h"
 #include "../../vfs/vfs_interface.h"
 #include "../tty/tty_interface.h"
+#include "../tty/tty.h"
 
 struct gui gui = {0};
 
@@ -39,8 +42,7 @@ void draw_buffer24(uint32_t * buffer, uint64_t x, uint64_t y, uint64_t w, uint64
     uint8_t * b24 = (uint8_t *)buffer;
     for (uint64_t i = 0; i < w; i++) {
         for (uint64_t j = 0; j < h; j++) {
-            uint32_t color = rgb_to_color(b24[j * w * 3 + i * 3], b24[j * w * 3 + i * 3 + 1], b24[j * w * 3 + i * 3 + 2]);
-            draw_pixel_fb(gui.fb, x + i, y + j, color);
+            draw_pixel_fb(gui.fb, x + i, y + j, rgb_to_color(b24[j * w * 3 + i * 3], b24[j * w * 3 + i * 3 + 1], b24[j * w * 3 + i * 3 + 2]));
         }
     }
 }
@@ -139,7 +141,7 @@ void clear(uint32_t color) {
     clear_screen_fb(gui.fb, color);
 }
 
-uint8_t draw_image(const char * path, uint64_t x, uint64_t y) {
+uint8_t load_image(const char * path, uint64_t x, uint64_t y, struct ppm * image) {
     if (!gui.ready) return 0;
     if (path == 0) return 0;
 
@@ -157,8 +159,6 @@ uint8_t draw_image(const char * path, uint64_t x, uint64_t y) {
     vfs_file_read(fd, buf, size);
     vfs_file_close(fd);
 
-//50 36 0a 31 32 38 30 20 38 30 35 0a 32 35 35 0a
-// P  6  .  1  2  8  0     8  0  5  .  2  5  5  .
     uint16_t magic = (buf[0] << 8) | buf[1];
     if (magic != 0x5036) {
         printf("Invalid magic number\n");
@@ -198,15 +198,26 @@ uint8_t draw_image(const char * path, uint64_t x, uint64_t y) {
     token = strtok(NULL, " ");
     uint16_t height = atoi(token);
 
-    struct ppm * image = malloc(sizeof(struct ppm));
     image->magic = magic;
     image->width = width;
     image->height = height;
     image->max = atoi(max);
     image->buffer = (uint32_t*)(bufstart);
+
+    return 1;
+}
+
+uint8_t draw_image(const char * path, uint64_t x, uint64_t y) {
+    if (!gui.ready) return 0;
+    if (path == 0) return 0;
+
+    struct ppm * image = malloc(sizeof(struct ppm));
+    if (!load_image(path, x, y, image)) {
+        free(image);
+        return 0;
+    }
     
-    //void draw_buffer(uint32_t * buffer, uint8_t x, uint8_t y, uint8_t w, uint8_t h);
-    draw_buffer24(image->buffer, x, y, width, height);
+    draw_buffer24(image->buffer, x, y, image->width, image->height);
 }
 
 void draw_circle(uint64_t x, uint64_t y, uint64_t r, uint32_t color) {
@@ -230,7 +241,6 @@ void draw_circle(uint64_t x, uint64_t y, uint64_t r, uint32_t color) {
             P = P + 2 * Y - 2 * X + 1;
         }
     }
-
 }
 
 void newLine(struct cursor * cursor) {
@@ -287,7 +297,18 @@ void draw_text(uint64_t x, uint64_t y, const char * text, struct cursor * cursor
     cursor->y = y;
 
     for (uint64_t i = 0; i < strlen(text); i++) {
-        putChar(text[i], cursor);
+        switch (text[i]) {
+            case '\n':
+                newLine(cursor);
+                break;
+            default: {
+                //Check if text is printable ascii
+                if (text[i] >= 0x20 && text[i] <= 0x7e) {
+                    putChar(text[i], cursor);
+                }                    
+                break;
+            }
+        }
     }
 }
 
@@ -305,13 +326,11 @@ void process_mouse_movement(struct ps2_mouse_status* status) {
     if (!gui.ready) return;
     if (!gui.fb) return;
 
-    uint16_t oldx = gui.mousex;
-    uint16_t oldy = gui.mousey;
-
+    gui.mousex_old = gui.mousex;
+    gui.mousey_old = gui.mousey;
     gui.mousex = status->x;
     gui.mousey = status->y;
 
-    print_mouse_cursor(oldx, oldy, gui.mousex, gui.mousey);
 }
 
 void gui_dispatch_keypress_cb(void* data, char c, int ignore) {
@@ -347,6 +366,28 @@ void gui_dispatch_mouse_cb(void* data, char c, int ignore) {
 
 uint8_t gui_is_ready() {
     return gui.ready;
+}
+
+void render() {
+    redraw_ux();
+    print_mouse_cursor(gui.mousex_old, gui.mousey_old, gui.mousex, gui.mousey);
+    flip_buffers_fb(gui.fb);
+    uint8_t need_flip = 0;
+    while (1) {
+        need_flip = 0;
+        if (requires_redraw()) {
+            redraw_ux();
+            need_flip = 1;
+        }
+        if (gui.mousex != gui.mousex_old || gui.mousey != gui.mousey_old) {
+            print_mouse_cursor(gui.mousex_old, gui.mousey_old, gui.mousex, gui.mousey);
+            need_flip = 1;
+        }
+        if (need_flip) {
+            flip_buffers_fb(gui.fb);
+        }
+        msleep(1000 / GUI_FPS);
+    }
 }
 
 void startx(struct gui_device * devices, uint8_t count) {
@@ -401,5 +442,6 @@ void startx(struct gui_device * devices, uint8_t count) {
 
     clear(0x000000);
     load_font();
-    print_bg();
+    preload_ux();
+    add_task(create_task(render, 3, get_current_tty()));
 }
