@@ -12,33 +12,33 @@
 
 //First calls lock_scheduler() then calls _tsleep, then unlock_scheduler(), then yield()
 #define TSLEEP(ticks) \
-    lock_scheduler(); \
+    lock_scheduler_no_cli(); \
     _tsleep(ticks); \
-    unlock_scheduler(); \
+    unlock_scheduler_no_sti(); \
     yield();
 
 #define SSLEEP(seconds) \
-    lock_scheduler(); \
+    lock_scheduler_no_cli(); \
     _ssleep(seconds); \
-    unlock_scheduler(); \
+    unlock_scheduler_no_sti(); \
     yield();
 
 #define MSLEEP(milliseconds) \
-    lock_scheduler(); \
+    lock_scheduler_no_cli(); \
     _msleep(milliseconds); \
-    unlock_scheduler(); \
+    unlock_scheduler_no_sti(); \
     yield();
 
 #define KSLEEP(addr) \
-    lock_scheduler(); \
+    lock_scheduler_no_cli(); \
     _ksleep(addr); \
-    unlock_scheduler(); \
+    unlock_scheduler_no_sti(); \
     yield();
 
 #define KWAKEUP(addr) \
-    lock_scheduler(); \
+    lock_scheduler_no_cli(); \
     _kwakeup(addr); \
-    unlock_scheduler(); \
+    unlock_scheduler_no_sti(); \
     yield();
 
 void init_sline();

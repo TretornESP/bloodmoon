@@ -78,6 +78,7 @@ struct task {
     sighandler_t signal_handlers[TASK_SIGNAL_MAX];
     
     long nice;
+    long current_nice;
     struct mm_struct *mm;
     struct interrupt_frame_error *frame;
 

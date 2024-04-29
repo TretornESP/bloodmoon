@@ -11,6 +11,7 @@ section .text
 ; RCX: void* fxrstor_area
 
 ctxswtch:
+    cli
     ; Push registers rbx, r12, r13, r14, r15
     push rbp
     push rax
@@ -90,6 +91,7 @@ ctxswtch:
     pop rbx
     pop rax
     pop rbp
+    sti
     ret
 
 ; RDI stack pointer
@@ -143,6 +145,5 @@ ctxcreat:
     mov rsp, rbx
     pop rbx
     pop rax
-
     sti
     ret

@@ -22,7 +22,7 @@ struct sleep_queue * sleep_reason_queue_head = 0x0;
 
 void wakeup_handler() {
     //Remove all elements which have expired
-    lock_scheduler();
+    lock_scheduler_no_cli();
     struct sleep_queue * sq = sleep_time_queue_head;
     uint32_t res = 0;
     while (sq != 0x0) {
@@ -50,7 +50,7 @@ void wakeup_handler() {
             sq = sq->next;
         }
     }
-    unlock_scheduler();
+    unlock_scheduler_no_sti();
     if (res) yield();
 }
 

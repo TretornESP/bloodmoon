@@ -1,5 +1,6 @@
 #include "dbgprinter.h"
 #include "../bootservices/bootservices.h"
+#include "../scheduling/scheduler.h"
 #include "../debugger/debug.h"
 #include "../io/io.h"
 #include "../drivers/ps2/keyboard.h"
@@ -87,6 +88,7 @@ __attribute__((noreturn)) void panic_reboot(const char * str) {
         }
     }
 
+    lock_scheduler();
     __asm__("sti");
     char pressed = 0;
     printf("Press enter to reboot...");
@@ -100,6 +102,7 @@ __attribute__((noreturn)) void panic_reboot(const char * str) {
     fallback:
     dbg_print("Debugger failed to print panic message, probably the heap isn't working fine!\n");
     
+    lock_scheduler();
     __asm__("sti");
     pressed = 0;
     printf("Press enter to reboot...");

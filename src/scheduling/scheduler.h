@@ -18,6 +18,7 @@
 
 #define SIGKILL 9
 #define SCHED_PRIORITIES 5
+#define SCHED_AGE_THRESHOLD 5000 //1 second
 
 extern atomic_int_t irq_disable_counter;
 
@@ -56,6 +57,7 @@ void add_task(struct task* task);
 struct task* create_task(void * init_func, long nice, const char * tty);
 void kill_task(int16_t pid);
 void pause_task(struct task* task);
+void dump_task_queues();
 void resume_task(struct task* task);
 void init_scheduler();
 void pseudo_ps();
@@ -70,18 +72,27 @@ void process_signals();
 
 static inline void lock_scheduler(void) {
 #ifndef SMP
-    __asm__ volatile("cli");
+    __asm__ __volatile__("cli");    
+    atomic_increment(&irq_disable_counter);
+#endif
+}
+
+static inline void lock_scheduler_no_cli(void) {
+#ifndef SMP
     atomic_increment(&irq_disable_counter);
 #endif
 }
  
 static inline void unlock_scheduler(void) {
 #ifndef SMP
-    __asm__ volatile("cli");
+    __asm__ __volatile__("sti");
     atomic_decrement(&irq_disable_counter);
-    if (irq_disable_counter == 0) {
-        __asm__ volatile("sti");
-    }
+#endif
+}
+
+static inline void unlock_scheduler_no_sti(void) {
+#ifndef SMP
+    atomic_decrement(&irq_disable_counter);
 #endif
 }
 
