@@ -21,13 +21,13 @@ JAIL = 4096M # This is in case qemu crashes windows!
 
 # This are specific to my setup, please modify them!!!!
 #########################DESKTOP SETTINGS#################################
-QEMU := "/mnt/c/Program Files/qemu/qemu-system-x86_64.exe"
+#QEMU := "/mnt/c/Program Files/qemu/qemu-system-x86_64.exe"
 #GDB := "/mnt/c/Users/85562/crossgdb/gdb-12.1/gdb/gdb"
-WSLHOSTIP := $(shell ipconfig.exe | grep 'WSL' -a -A4 | tail -n1 | cut -d":" -f 2 | tail -n1 | sed -e 's/\s*//g')
+#WSLHOSTIP := $(shell ipconfig.exe | grep 'WSL' -a -A4 | tail -n1 | cut -d":" -f 2 | tail -n1 | sed -e 's/\s*//g')
 #########################LAPTOP SETTINGS###################################
-#QEMU := qemu-system-x86_64
+QEMU := qemu-system-x86_64
 GDB := gdb
-#WSLHOSTIP := 127.0.0.1
+WSLHOSTIP := 127.0.0.1
 ###########################################################################
 VBOXMANAGE := "/mnt/c/Program Files/Oracle/VirtualBox/VBoxManage.exe"
 VBOXHEADLESS := "/mnt/c/Program Files/Oracle/VirtualBox/VBoxHeadless.exe"
@@ -60,9 +60,9 @@ NUMAFLAGS := \
 #-numa dist,src=1,dst=2,val=20 \
 #-numa dist,src=1,dst=3,val=20
 
-QFLAGS ?= -cpu qemu64 -d cpu_reset -machine q35 $(NUMAFLAGS) -m $(MEMSIZE) -boot d -serial stdio -serial telnet::4444,server,nowait -cdrom 
-QFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 $(NUMAFLAGS) -m $(MEMSIZE) -boot d -netdev tap,id=mynet0,ifname=tap,script=no,downscript=no -serial stdio -device e1000,netdev=mynet0,mac=51:52:53:54:55:56 -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -drive file=
-QWFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 $(NUMAFLAGS) -m $(MEMSIZE) -boot d -netdev tap,id=mynet0,ifname=tap,script=no,downscript=no -serial stdio -device e1000,netdev=mynet0,mac=51:52:53:54:55:56 -drive if=pflash,format=raw,unit=0,file=$(WINDIRECTORY)/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=$(WINDIRECTORY)/OVMF_VARS-pure-efi.fd -drive file=
+QFLAGS ?= -cpu qemu64 -d cpu_reset -no-reboot -no-shutdown -machine q35 $(NUMAFLAGS) -m $(MEMSIZE) -boot d -serial stdio -serial telnet::4444,server,nowait -cdrom 
+QFLAGSEXP ?= -cpu qemu64 -d int -no-reboot -no-shutdown -machine q35 $(NUMAFLAGS) -m $(MEMSIZE) -boot d -serial stdio -drive if=pflash,format=raw,unit=0,file=./OVMFbin/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=./OVMFbin/OVMF_VARS-pure-efi.fd -drive file=
+#QWFLAGSEXP ?= -cpu qemu64 -d cpu_reset -machine q35 $(NUMAFLAGS) -m $(MEMSIZE) -boot d -netdev tap,id=mynet0,ifname=tap,script=no,downscript=no -serial stdio -device e1000,netdev=mynet0,mac=51:52:53:54:55:56 -drive if=pflash,format=raw,unit=0,file=$(WINDIRECTORY)/OVMF_CODE-pure-efi.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=$(WINDIRECTORY)/OVMF_VARS-pure-efi.fd -drive file=
 
 CFLAGS ?= -O3 -g -Wall -Wextra -pipe -Wno-packed-bitfield-compat -std=c11
 NASMFLAGS ?= -F dwarf -g
@@ -253,6 +253,10 @@ setup:
 	@echo target remote $(WSLHOSTIP):$(GDBPORT) >> debug.gdb
 	@echo set disassembly-flavor intel >> debug.gdb
 	@echo b $(KERNEL_ENTRY) >> debug.gdb
+	@echo b interrupt_exception_handler >> debug.gdb
+	@echo b PageFault_Handler >> debug.gdb
+	@echo b DoubleFault_Handler >> debug.gdb
+	@echo b GPFault_Handler >> debug.gdb
 	@echo c >> debug.gdb
 
 cleansetup:
@@ -334,16 +338,20 @@ buildimggpt:
 run:
 	$(QEMU) $(QFLAGS) $(ISODIR)/$(ISO)
 
+#run_exp:
+#	$(eval WINUSER := $(shell cmd.exe /c 'for %a in (%userprofile%) do (echo %~nxa)' | tail -1 | tr -d ' '))
+#	$(eval WINDIRECTORY := C:/Users/$(WINUSER)/$(WDIR))
+#	@echo "WINDIRECTORY: $(WINDIRECTORY)"
+#	@echo "Copying files to Windows directory..."
+#	@cp $(ISODIR)/$(IMG) /mnt/c/Users/$(WINUSER)/$(WDIR)/$(IMG)
+#	@ls -l /mnt/c/Users/$(WINUSER)/$(WDIR)
+#	$(QEMU) $(QWFLAGSEXP)$(WINDIRECTORY)/$(IMG)
+
 run_exp:
-	$(eval WINUSER := $(shell cmd.exe /c 'for %a in (%userprofile%) do (echo %~nxa)' | tail -1 | tr -d ' '))
-	$(eval WINDIRECTORY := C:/Users/$(WINUSER)/$(WDIR))
-	@echo "WINDIRECTORY: $(WINDIRECTORY)"
-	@echo "Copying files to Windows directory..."
-	@cp $(ISODIR)/$(IMG) /mnt/c/Users/$(WINUSER)/$(WDIR)/$(IMG)
-	@ls -l /mnt/c/Users/$(WINUSER)/$(WDIR)
-	$(QEMU) $(QWFLAGSEXP)$(WINDIRECTORY)/$(IMG)
+	$(QEMU) $(QFLAGSEXP)$(ISODIR)/$(IMG)
 
 gpt:
+	@make clean
 	@make kernel
 	@echo "Building GPT..."
 #This is required to be before buildimggpt!
@@ -373,9 +381,25 @@ cprogs:
 
 .PHONY: progs
 
+#debugpt:
+#	$(eval WINUSER := $(shell cmd.exe /c 'for %a in (%userprofile%) do (echo %~nxa)' | tail -1 | tr -d ' '))
+#	$(eval WINDIRECTORY := C:/Users/$(WINUSER)/$(WDIR))
+#	@make kernel
+#	@echo "Building GPT..."
+##This is required to be before buildimggpt!
+#	@cp $(ISODIR)/$(IMG_RAW) $(ISODIR)/$(IMG)
+#	@sudo losetup -Pf $(ISODIR)/$(IMG)
+## Due to eval weird behaviour
+#	@make buildimggpt
+#	@echo "Running GPT QEMU..."
+#	@echo "WINDIRECTORY: $(WINDIRECTORY)"
+#	@echo "Copying files to Windows directory..."
+#	@cp $(ISODIR)/$(IMG) /mnt/c/Users/$(WINUSER)/$(WDIR)/$(IMG)
+#	@ls -l /mnt/c/Users/$(WINUSER)/$(WDIR)
+#	$(CMDNEWSCREEN) $(GDB) $(GDBFLAGS) & $(QEMU) -S -s $(QWFLAGSEXP)$(WINDIRECTORY)/$(IMG)
+
 debugpt:
-	$(eval WINUSER := $(shell cmd.exe /c 'for %a in (%userprofile%) do (echo %~nxa)' | tail -1 | tr -d ' '))
-	$(eval WINDIRECTORY := C:/Users/$(WINUSER)/$(WDIR))
+	@make clean
 	@make kernel
 	@echo "Building GPT..."
 #This is required to be before buildimggpt!
@@ -384,11 +408,7 @@ debugpt:
 # Due to eval weird behaviour
 	@make buildimggpt
 	@echo "Running GPT QEMU..."
-	@echo "WINDIRECTORY: $(WINDIRECTORY)"
-	@echo "Copying files to Windows directory..."
-	@cp $(ISODIR)/$(IMG) /mnt/c/Users/$(WINUSER)/$(WDIR)/$(IMG)
-	@ls -l /mnt/c/Users/$(WINUSER)/$(WDIR)
-	$(CMDNEWSCREEN) $(GDB) $(GDBFLAGS) & $(QEMU) -S -s $(QWFLAGSEXP)$(WINDIRECTORY)/$(IMG)
+	$(CMDNEWSCREEN) $(GDB) $(GDBFLAGS) & $(QEMU) -S -s $(QFLAGSEXP)$(ISODIR)/$(IMG)
 
 debuge:
 	@make kernel

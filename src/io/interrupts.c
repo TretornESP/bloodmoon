@@ -80,6 +80,7 @@ void Syscall_Handler(struct cpu_context* ctx, uint8_t cpuid) {
 
 //you may need save_all here
 void PitInt_Handler(struct cpu_context* ctx, uint8_t cpuid) {
+    __asm__("cli");
     (void)ctx;
     (void)cpuid;
     tick();
@@ -88,6 +89,7 @@ void PitInt_Handler(struct cpu_context* ctx, uint8_t cpuid) {
     } else if (requires_wakeup()) {
         wakeup();
     }
+    __asm__("sti");
 }
 
 void Serial1Int_Handler(struct cpu_context* ctx, uint8_t cpuid) {

@@ -90,12 +90,13 @@ void boot() {
     }
     enable_interrupts();
     init_pit(50);
+    //disable_pit();
     init_drive();
     init_fb_dd();
     init_serial_dd();
     init_tty_dd();
     init_fifo_dd();
-    init_e1000_dd(); //Careful, without this pci fills the memory!!!
+    //init_e1000_dd(); //Careful, without this pci fills the memory!!!
     init_smbios_interface();
     init_devices();
     enable_debug(0);
@@ -107,11 +108,11 @@ void boot() {
     init_scheduler();
     init_sline();
     set_current_tty("ttya");
-    add_task(create_task((void*)spawn_network_worker, 3, "ttya"));
+    //add_task(create_task((void*)spawn_network_worker, 3, "ttya"));
     add_task(create_task((void*)init_dbgshell, 3, "ttya"));
     set_io_tty("ttya");
     dump_task_queues();
-    go(5); //The number is the number of ticks for preemption, zero for cooperative scheduling
+    go(50); //The number is the number of ticks for preemption, zero for cooperative scheduling
     panic("Kernel returned to boot() (this should never happen!)\n");
 }
 

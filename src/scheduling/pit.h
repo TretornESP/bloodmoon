@@ -34,7 +34,7 @@ uint8_t requires_wakeup();
 void wakeup();
 uint64_t get_ticks_since_boot();
 uint64_t get_epoch();
-
+void disable_pit();
 uint64_t ticks_to_ms(uint64_t ticks);
 uint64_t ms_to_ticks(uint64_t ms);
 

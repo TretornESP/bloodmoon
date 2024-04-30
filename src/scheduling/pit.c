@@ -41,6 +41,10 @@ void init_pit(int hertz) {
     unmask_interrupt(PIT_IRQ);
 }
 
+void disable_pit() {
+    mask_interrupt(PIT_IRQ);
+}
+
 void tick() {
     pit.timer_ticks++;
 }
@@ -50,7 +54,7 @@ void wakeup() {
 }
 
 uint8_t requires_wakeup() {
-    return (pit.wakeup_handler != 0x0 && pit.wakeup_ticks != 0 && pit.timer_ticks % pit.wakeup_ticks);
+    return (pit.wakeup_handler != 0x0 && pit.wakeup_ticks != 0 && !(pit.timer_ticks % pit.wakeup_ticks));
 }
 
 uint64_t seconds_to_ticks(uint64_t seconds) {

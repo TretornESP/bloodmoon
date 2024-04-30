@@ -4,6 +4,7 @@
 #include "../debugger/debug.h"
 #include "../io/io.h"
 #include "../drivers/ps2/keyboard.h"
+#include "../arch/ints.h"
 #include "../dev/fadt/fadt.h"
 #include "string.h"
 #define BUFFERSIZE 128
@@ -15,9 +16,11 @@ char boot_conversor_buffer[BUFFERSIZE] = {0};
 int dbgmsg_index = 0;
 int dbgmsg_index2 = 0;
 
+#define MAXSTR(x) (strlen(x) > BUFFERSIZE ? BUFFERSIZE : strlen(x))
+
 void dbg_print(const char * str) {
     void (*writer)(const char*, uint64_t) = get_terminal_writer();
-    writer(str, strlen(str));
+    writer(str, MAXSTR(str));
 }
 
 void set_debug_msg(const char * str) {
@@ -88,22 +91,22 @@ __attribute__((noreturn)) void panic_reboot(const char * str) {
         }
     }
 
-    lock_scheduler();
-    __asm__("sti");
+    lock_scheduler_explicit();
+    STI();
     char pressed = 0;
     printf("Press enter to reboot...");
     while (pressed != 0x1C) {
         pressed = inb(0x60);
     }
     reboot();
-    __asm__("cli");
+    CLI();
     while(1); //Supress warning
 
     fallback:
     dbg_print("Debugger failed to print panic message, probably the heap isn't working fine!\n");
     
-    lock_scheduler();
-    __asm__("sti");
+    lock_scheduler_explicit();
+    STI();
     pressed = 0;
     printf("Press enter to reboot...");
     while (pressed != 0x1C) {
@@ -111,7 +114,7 @@ __attribute__((noreturn)) void panic_reboot(const char * str) {
         pressed = inb(0x60);
     }
     reboot();
-    __asm__("cli");
+    CLI();
     while(1); //Supress warning
 }
 
@@ -155,13 +158,13 @@ __attribute__((noreturn)) void panic(const char * str) {
         }
     }
 
-    __asm__ __volatile__ ("cli");
+    CLI();
     while(1);
 
     fallback:
     dbg_print("Debugger failed to print panic message, probably the heap isn't working fine!\n");
     
-    __asm__ __volatile__ ("cli");
+    CLI();
     while(1);
 }
 

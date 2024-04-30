@@ -9,8 +9,8 @@
 #define TASK_EXECUTING       0
 #define TASK_READY           1
 #define TASK_STOPPED         2
-#define TASK_UNINTERRUPTIBLE 3
-#define TASK_INTERRUPTIBLE   4
+#define TASK_UNINTERRUPTIBLE 3 //Paused, cannot be interrupted
+#define TASK_INTERRUPTIBLE   4 //Paused, can be interrupted
 #define TASK_ZOMBIE          5
 #define TASK_CREATED         6
 #define TASK_FREE            7
@@ -18,7 +18,7 @@
 
 #define SIGKILL 9
 #define SCHED_PRIORITIES 5
-#define SCHED_AGE_THRESHOLD 5000 //1 second
+#define SCHED_AGE_THRESHOLD 500 //1 second
 
 extern atomic_int_t irq_disable_counter;
 
@@ -46,6 +46,8 @@ struct stack_frame {
     uint64_t ss;
 } __attribute__((packed));
 
+
+extern lock_t task_lock;
 extern void ctxswtch(struct task * old_task, struct task* new_task, void* fxsave, void* fxrstor);
 extern void ctxcreat(void* rsp, void* intro, void* fxsave);
 void dump_processes();
@@ -70,30 +72,40 @@ void add_signal(int16_t pid, int signal, void * data, uint64_t size);
 void subscribe_signal(int signal, sighandler_t handler);
 void process_signals();
 
-static inline void lock_scheduler(void) {
-#ifndef SMP
-    __asm__ __volatile__("cli");    
-    atomic_increment(&irq_disable_counter);
-#endif
-}
+#define DEBUG_LOCKS 1
 
-static inline void lock_scheduler_no_cli(void) {
-#ifndef SMP
-    atomic_increment(&irq_disable_counter);
+#ifndef DEBUG_LOCKS
+#define DEBUG_RED(x)
+#else
+#define DEBUG_RED(x) RED(x)
 #endif
-}
- 
-static inline void unlock_scheduler(void) {
-#ifndef SMP
-    __asm__ __volatile__("sti");
-    atomic_decrement(&irq_disable_counter);
-#endif
-}
 
-static inline void unlock_scheduler_no_sti(void) {
-#ifndef SMP
+//This is a read-write lock
+#define lock_scheduler() \
+    DEBUG_RED("lock_scheduler") \
+    LOCK(&task_lock); \
+    atomic_increment(&irq_disable_counter);
+
+#define lock_scheduler_ns() \
+    DEBUG_RED("lock_scheduler_ns") \
+    LOCK_NS(&task_lock); \
+    atomic_increment(&irq_disable_counter);
+
+//This is a read_only lock
+#define lock_scheduler_explicit() \
+    atomic_increment(&irq_disable_counter);
+
+#define unlock_scheduler() \
+    DEBUG_RED("unlock_scheduler") \
+    UNLOCK(&task_lock); \
     atomic_decrement(&irq_disable_counter);
-#endif
-}
+
+#define unlock_scheduler_ns() \
+    DEBUG_RED("unlock_scheduler_ns") \
+    UNLOCK_NS(&task_lock); \
+    atomic_decrement(&irq_disable_counter);
+
+#define unlock_scheduler_explicit() \
+    atomic_decrement(&irq_disable_counter);
 
 #endif

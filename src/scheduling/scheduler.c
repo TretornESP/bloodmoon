@@ -4,6 +4,7 @@
 #include "../memory/heap.h"
 #include "../memory/paging.h"
 #include "../arch/simd.h"
+#include "../arch/ints.h"
 #include "../arch/gdt.h"
 #include "../util/printf.h"
 #include "../util/dbgprinter.h"
@@ -15,12 +16,27 @@
 
 #define MAX_TASKS 255
 
+uint8_t scheduler_unprepared = 2;
+
 atomic_int_t irq_disable_counter = 0;
+lock_t task_lock = 0;
 
 struct task *task_head[SCHED_PRIORITIES] = {0};
 struct task * current_task = 0;
 struct task * shithole_task = 0;
 struct task * idle_task = 0;
+
+const char * state_strings[] = {
+    "EXECUTING",
+    "READY",
+    "STOPPED",
+    "UNINTERRUPTIBLE",
+    "INTERRUPTIBLE",
+    "ZOMBIE",
+    "CREATED",
+    "FREE",
+    "IDLE"
+};
 
 //Returns the task that must enter cpu
 
@@ -59,12 +75,13 @@ void dump_task_queues() {
 }
 
 void change_priority_queue(struct task * proc, long nice) {
-    lock_scheduler();
+    lock_scheduler_explicit();
     if (proc->current_nice == nice) {
-        unlock_scheduler();
+        unlock_scheduler_explicit();
         return;
     }
-
+    printf("setting priority of task %d from %d to %d\n", proc->pid, proc->current_nice, nice);
+    proc->current_nice = nice;
     struct task * new_queue = task_head[nice];
 
     if (proc->prev) {
@@ -94,14 +111,18 @@ void change_priority_queue(struct task * proc, long nice) {
         proc->prev = current;
         proc->next = 0;
     }
-    unlock_scheduler();
+    unlock_scheduler_explicit();
 }
 
-void reset_priority_queue(struct task * proc) {
+void __attribute__((noinline)) reset_priority_queue(struct task * proc) {
+    if (proc->current_nice == proc->nice) {
+        return;
+    }
+    printf("[PRIORITY RESET] ");
     change_priority_queue(proc, proc->nice);
 }
 
-void detect_age_requirement() {
+void __attribute__((noinline)) detect_age_requirement() {
 
     unsigned long long time = get_ticks_since_boot();
 
@@ -125,39 +146,34 @@ void detect_age_requirement() {
     
 }
 
-struct task * schedule() {
+struct task * __attribute__((noinline)) schedule() {
 
-    struct task* original = current_task;
     struct task * next_task = 0;
     
     for (int i = 0 ;i < SCHED_PRIORITIES; i++) {
         struct task* current = task_head[i];
-        while (current != 0 && current != original) {
-            if (current->state == TASK_READY || current->state == TASK_EXECUTING) {
+        while (current != 0) {
+            if (current->state == TASK_READY) {
                 next_task = current;
-                break;
+                goto exit_loop;
             }
             current = current->next;
         }
     }
 
+exit_loop:
+
     if (next_task == 0) {
-        //If we can run the original task, do so
-        if (original->state == TASK_READY || original->state == TASK_EXECUTING) {
-                next_task = original;
-        } else {
-            if (idle_task == 0)
-                panic("Idle task is not valid\n");
-            //Else, run the idle task
-            next_task = idle_task;
-            if (next_task->state != TASK_IDLE)
-                panic("Idle task is not valid\n");
+        next_task = idle_task;
+    } else {
+        if (current_task->current_nice < next_task->current_nice) {
+            next_task = current_task;
         }
     }
 
     struct task * prev_task = current_task;  
 
-    if (current_task->state == TASK_EXECUTING)  
+    if (current_task != 0 && current_task->state == TASK_EXECUTING)  
         current_task->state = TASK_READY;
     
     current_task = next_task;
@@ -177,42 +193,43 @@ struct task * schedule() {
 
 void block_task(long reason) {
     printf("Blocking task %d\n", current_task->pid);
-    lock_scheduler_no_cli();
+    lock_scheduler();
     current_task->state = reason;
     yield();
-    unlock_scheduler_no_sti();
+    unlock_scheduler();
 }
 
 void unblock_task(struct task * task) {
     printf("Unblocking task %d\n", task->pid);
-    lock_scheduler_no_cli();
+    lock_scheduler();
     task->state = TASK_READY;
     yield();
-    unlock_scheduler_no_sti();
+    unlock_scheduler();
 }
 
 void __attribute__((noinline)) yield() {
-    if (irq_disable_counter) {
+    if (irq_disable_counter || scheduler_unprepared) {
         return;
     } else {
-        lock_scheduler_no_cli();
+        lock_scheduler_explicit();
     }
+    CLI();
 
     if (current_task->last_scheduled != 0)
         current_task->cpu_time += (get_ticks_since_boot() - current_task->last_scheduled);
 
-    //reset_priority_queue(current_task);
     //detect_age_requirement();
     struct task * prev = schedule();
-    //printf("Switching from task %d to %d\n", prev->pid, current_task->pid);
+    //reset_priority_queue(current_task);
+    printf("Switching from task %d to %d\n", prev->pid, current_task->pid);
 
     current_task->last_scheduled = get_ticks_since_boot();
 
     struct cpu * cpu = get_cpu(current_task->processor);
     tss_set_stack(cpu->tss, (void*)current_task->stack_top, 0);
     process_signals();
-    __asm__ volatile("cli");
-    unlock_scheduler_no_sti();
+    FAKE_STI();
+    unlock_scheduler_explicit();
     ctxswtch(
         prev,
         current_task,
@@ -269,7 +286,7 @@ void remove_task(struct task* task) {
 }
 
 struct task* get_task(int16_t pid) {
-    lock_scheduler_no_cli();
+    lock_scheduler_explicit();
     for (int i = 0; i < SCHED_PRIORITIES; i++) {
         struct task* current = task_head[i];
         if (current == 0) {
@@ -277,59 +294,57 @@ struct task* get_task(int16_t pid) {
         }
 
         if (current->pid == pid) {
-            unlock_scheduler_no_sti();
+            unlock_scheduler_explicit();
             return current;
         }
 
         while (current->next != 0) {
             if (current->next->pid == pid) {
-                unlock_scheduler_no_sti();
+                unlock_scheduler_explicit();
                 return current->next;
             }
             current = current->next;
         }
     }
 
-    unlock_scheduler_no_sti();
+    unlock_scheduler_explicit();
     return 0;
 }
 
 struct task* get_status(long state) {
-    lock_scheduler_no_cli();
+    lock_scheduler_explicit();
 
     for (int i = 0; i < SCHED_PRIORITIES; i++) {
         struct task* current = task_head[i];
         if (current == 0) {
-            unlock_scheduler_no_sti();
+            unlock_scheduler_explicit();
             return 0;
         }
 
         if (current->state == state) {
-            unlock_scheduler_no_sti();
+            unlock_scheduler_explicit();
             return current;
         }
 
         while (current->next != 0) {
             if (current->next->state == state) {
-                unlock_scheduler_no_sti();
+                unlock_scheduler_explicit();
                 return current->next;
             }
             current = current->next;
         }
     }
 
-    unlock_scheduler_no_sti();
+    unlock_scheduler_explicit();
     return 0;
 }
 
 int16_t get_free_pid() {
-    lock_scheduler();
     int16_t pid = 1;
     while (get_task(pid) != 0) {
         pid++;
     }
     printf("Free pid: %d\n", pid);
-    unlock_scheduler();
     return pid;
 }
 
@@ -341,7 +356,7 @@ void pseudo_ps() {
         }
 
         while (current != 0) {
-            printf("PID: %d PPID: %d STATE: %d FLAGS: %d, ENTRY: %p TTY: %s\n", current->pid, current->ppid, current->state, current->flags, current->entry, current->tty);
+            printf("PID: %d PPID: %d PRIO %d STATE: %s FLAGS: %d, ENTRY: %p TTY: %s\n", current->pid, current->ppid, current->current_nice, state_strings[current->state], current->flags, current->entry, current->tty);
             current = current->next;
         }
     }
@@ -355,7 +370,8 @@ struct task* get_current_task() {
 
 //void go(uint8_t preempt) {
 void go(uint32_t preempt) {
-    __asm__ volatile("cli");
+    CLI();
+    if (scheduler_unprepared != 1) {STI(); return;}
     shithole_task = malloc(sizeof(struct task));
     memset(shithole_task, 0, sizeof(struct task));
     schedule();
@@ -365,6 +381,8 @@ void go(uint32_t preempt) {
     }
     struct cpu * cpu = get_cpu(current_task->processor);
     tss_set_stack(cpu->tss, (void*)current_task->stack_top, 0);
+    FAKE_STI();
+    scheduler_unprepared = 0;
     ctxswtch(
         shithole_task,
         current_task,
@@ -383,25 +401,25 @@ char * get_current_tty() {
 
 void idle() {
     while (1) {
-        __asm__ volatile("hlt");
+    
     }
 }
 
 void exit() {
-    lock_scheduler();
+    lock_scheduler_explicit();
     printf("Exiting task %d\n", current_task->pid);
     current_task->exit_code = 0;
     current_task->state = TASK_ZOMBIE;
-    unlock_scheduler();
+    unlock_scheduler_explicit();
     yield();
 }
 
 void kill_task(int16_t pid) {
-    lock_scheduler();
+    lock_scheduler_explicit();
     struct task* task = get_task(pid);
     if (task == 0) {
         printf("kill No such task\n");
-        unlock_scheduler();
+        unlock_scheduler_explicit();
         return;
     }
 
@@ -409,7 +427,7 @@ void kill_task(int16_t pid) {
     task->exit_code = 0;
     task->exit_signal = SIGKILL;
     task->state = TASK_ZOMBIE;
-    unlock_scheduler();
+    unlock_scheduler_explicit();
 }
 
 void atask() {
@@ -431,9 +449,9 @@ void btask() {
 }
 
 void subscribe_signal(int signal, sighandler_t handler) {
-    lock_scheduler_no_cli();
+    lock_scheduler_explicit();
     current_task->signal_handlers[signal] = handler;
-    unlock_scheduler_no_sti();
+    unlock_scheduler_explicit();
 }
 
 void add_signal(int16_t pid, int signal, void * data, uint64_t size) {
@@ -474,11 +492,12 @@ struct task* create_task(void * init_func, long nice, const char * tty) {
     lock_scheduler();
 
     //Priority 0 is used to force scheduling for aged tasks
-    if (nice > SCHED_PRIORITIES || nice == 0) {unlock_scheduler(); return 0;}
+    if (nice > SCHED_PRIORITIES || nice == 0) {lock_scheduler(); return 0;}
 
     struct task * task = malloc(sizeof(struct task));
     task->state = TASK_READY;
     task->sigpending = 0;
+    task->flags = 0;
     task->nice = nice;
     task->current_nice = nice;
     task->mm = 0;
@@ -549,44 +568,38 @@ struct task* create_task(void * init_func, long nice, const char * tty) {
 }
 
 void pause_task(struct task* task) {
-    lock_scheduler_no_cli();
     //printf("Pausing task %d\n", task->pid);
     task->state = TASK_UNINTERRUPTIBLE;
-    unlock_scheduler_no_sti();
 }
 void resume_task(struct task* task) {
-    lock_scheduler_no_cli();
     //printf("Resuming task %d\n", task->pid);
-    task->state = TASK_READY;
-    unlock_scheduler_no_sti();
+    if (task->state == TASK_UNINTERRUPTIBLE) {
+        task->state = TASK_READY;
+    }
 }
 
 void init_scheduler() {
+    if (scheduler_unprepared != 2) return; else scheduler_unprepared = 1;
     printf("### SCHEDULER STARTUP ###\n");
-    lock_scheduler();
     idle_task = create_task(idle, 3, "default"); //Spawn idle task
     idle_task->pid = 0;
-    idle_task->state = TASK_IDLE;
+    idle_task->state = TASK_READY;
 
     add_task(idle_task);
 
     current_task = task_head[4];
 
     printf("### SCHEDULER STARTUP DONE ###\n");
-    unlock_scheduler();
 }
 
 void set_current_tty(char * tty) {
-    lock_scheduler();
     if (current_task == 0) {
-        unlock_scheduler();
         return;
     }
     memset(current_task->tty, 0, 32);
     strncpy(current_task->tty, tty, strlen(tty));
     //Make sure it's null terminated
     current_task->tty[strlen(tty)] = '\0';
-    unlock_scheduler();
 }
 
 void task_test() {
@@ -605,8 +618,7 @@ void reset_current_tty() {
     unlock_scheduler();
 }
 
-void process_signals() {
-    lock_scheduler();
+void __attribute__((noinline)) process_signals() {
     //Process one signal in the queue
     if (current_task->signal_queue != 0) {
         struct task_signal * current = current_task->signal_queue;
@@ -623,5 +635,4 @@ void process_signals() {
             handler(current->signal, current->signal_data, current->signal_data_size);
         }
     }
-    unlock_scheduler();
 }

@@ -47,9 +47,9 @@ struct nic {
     struct arp_cache * arp_cache;
 
     volatile uint8_t status; 
-    volatile lock_t rx_queue_lock;
-    volatile atomic_uint64_t rx_queue_size;
-    volatile atomic_uint64_t dropped_rx;
+    lock_t rx_queue_lock;
+    atomic_uint64_t rx_queue_size;
+    atomic_uint64_t dropped_rx;
     volatile struct packet * rx_queue;
     volatile struct packet * tx_queue;
 };
