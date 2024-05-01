@@ -28,6 +28,10 @@ void init_lock(lock_t * lock);
 #define UNLOCK_NS(x) \
 	release_lock_ns(x);
 
+static inline void atomic_set_to_zero(atomic_int_t * value) {
+	atomic_store_explicit( value, 0, memory_order_relaxed );
+}
+
 static inline void atomic_sub_u64(atomic_uint64_t * value, uint64_t sub) {
 	atomic_fetch_sub_explicit( value, sub, memory_order_relaxed );
 }

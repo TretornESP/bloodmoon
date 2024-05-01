@@ -92,21 +92,21 @@ __attribute__((noreturn)) void panic_reboot(const char * str) {
     }
 
     lock_scheduler_explicit();
-    STI();
+    __asm__ volatile("sti");
     char pressed = 0;
     printf("Press enter to reboot...");
     while (pressed != 0x1C) {
         pressed = inb(0x60);
     }
     reboot();
-    CLI();
+    __asm__ volatile("cli");
     while(1); //Supress warning
 
     fallback:
     dbg_print("Debugger failed to print panic message, probably the heap isn't working fine!\n");
     
     lock_scheduler_explicit();
-    STI();
+    __asm__ volatile("sti");
     pressed = 0;
     printf("Press enter to reboot...");
     while (pressed != 0x1C) {
@@ -114,7 +114,7 @@ __attribute__((noreturn)) void panic_reboot(const char * str) {
         pressed = inb(0x60);
     }
     reboot();
-    CLI();
+    __asm__ volatile("cli");
     while(1); //Supress warning
 }
 
@@ -158,13 +158,13 @@ __attribute__((noreturn)) void panic(const char * str) {
         }
     }
 
-    CLI();
+    __asm__ volatile("cli");
     while(1);
 
     fallback:
     dbg_print("Debugger failed to print panic message, probably the heap isn't working fine!\n");
     
-    CLI();
+    __asm__ volatile("cli");
     while(1);
 }
 

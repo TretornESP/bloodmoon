@@ -6,6 +6,7 @@
 #include "../arch/gdt.h"
 #include "../arch/tss.h"
 #include "../arch/getcpuid.h"
+#include "../arch/ints.h"
 #include "../util/dbgprinter.h"
 #include "../memory/memory.h"
 #include "../memory/heap.h"
@@ -20,8 +21,7 @@
 #include "../scheduling/pit.h"
 #include "../scheduling/sline.h"
 #include "../syscall/syscall.h"
-
-#define __UNDEFINED_HANDLER  __asm__ ("cli"); dbg_print(__func__); (void)frame; set_debug_msg(__func__); panic("Undefined interrupt handler");
+#define __UNDEFINED_HANDLER CLI(); dbg_print(__func__); (void)frame; set_debug_msg(__func__); panic("Undefined interrupt handler");
 
 extern void* interrupt_vector[IDT_ENTRY_COUNT];
 char io_tty[32] = "default\0";
@@ -80,7 +80,7 @@ void Syscall_Handler(struct cpu_context* ctx, uint8_t cpuid) {
 
 //you may need save_all here
 void PitInt_Handler(struct cpu_context* ctx, uint8_t cpuid) {
-    __asm__("cli");
+    CLI();
     (void)ctx;
     (void)cpuid;
     tick();
@@ -89,7 +89,7 @@ void PitInt_Handler(struct cpu_context* ctx, uint8_t cpuid) {
     } else if (requires_wakeup()) {
         wakeup();
     }
-    __asm__("sti");
+    STI();
 }
 
 void Serial1Int_Handler(struct cpu_context* ctx, uint8_t cpuid) {
@@ -134,21 +134,21 @@ void set_idt_gate(uint64_t handler, uint8_t entry_offset, uint8_t type_attr, uin
 
 void hook_interrupt(uint8_t interrupt, void* handler) {
     if (!interrupts_ready) panic("Interrupts not ready\n");
-    __asm__("cli");
+    CLI();
     dynamic_interrupt_handlers[interrupt] = handler;
-    __asm__("sti");
+    STI();
 }
 
 void unhook_interrupt(uint8_t interrupt) {
     if (!interrupts_ready) panic("Interrupts not ready\n");
-    __asm__("cli");
+    CLI();
     dynamic_interrupt_handlers[interrupt] = (void*)interrupt_exception_handler;
-    __asm__("sti");
+    STI();
 }
 
 void enable_interrupts() {
     if (!interrupts_ready) panic("Interrupts not ready\n");
-    __asm__("sti");
+    STI();
 }
 
 void load_interrupts_for_local_cpu() {
@@ -195,7 +195,6 @@ void init_interrupts() {
 
 void raise_interrupt(uint8_t interrupt) {
     if (!interrupts_ready) panic("Interrupts not ready\n");
-    __asm__("cli");
     dynamic_interrupt = interrupt;
     __asm__("int %0" : : "i"(DYNAMIC_HANDLER));
 }

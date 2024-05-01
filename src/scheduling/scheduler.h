@@ -72,7 +72,7 @@ void add_signal(int16_t pid, int signal, void * data, uint64_t size);
 void subscribe_signal(int signal, sighandler_t handler);
 void process_signals();
 
-#define DEBUG_LOCKS 1
+//#define DEBUG_LOCKS 1
 
 #ifndef DEBUG_LOCKS
 #define DEBUG_RED(x)

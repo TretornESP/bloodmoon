@@ -166,7 +166,7 @@ exit_loop:
     if (next_task == 0) {
         next_task = idle_task;
     } else {
-        if (current_task->current_nice < next_task->current_nice) {
+        if (current_task != 0 && (current_task->current_nice < next_task->current_nice)) {
             next_task = current_task;
         }
     }
@@ -554,7 +554,11 @@ struct task* create_task(void * init_func, long nice, const char * tty) {
     task->stack = (uint64_t)stackalloc(STACK_SIZE);
     task->stack_top = task->stack + STACK_SIZE - 0x8; //WARNING: -0x8 is a hack to make sure the stack is aligned
 
+    volatile uint8_t if_st;
+    get_if_status(&if_st);
+    if (if_st) CLI();
     ctxcreat(&(task->stack_top), init_func, task->fxsave_region);
+    if (if_st) STI();
 
     task->pd = duplicate_current_pml4();
     strncpy(task->tty, tty, strlen(tty));

@@ -2,6 +2,7 @@
 global ctxswtch
 global ctxcreat
 extern returnoexit
+extern if_status ; volatile uint8_t if_status;
 section .text
 
 ; Inputs:
@@ -10,8 +11,24 @@ section .text
 ; RDX: void* fxsave_area
 ; RCX: void* fxrstor_area
 
-ctxswtch:
+%macro set_int 0
+    sti
+    push rax
+    lea rax, if_status
+    mov byte [rax], 0
+    pop rax
+%endmacro
+
+%macro clear_int 0
     cli
+    push rax
+    lea rax, if_status
+    mov byte [rax], 1
+    pop rax
+%endmacro
+
+ctxswtch:
+    clear_int
     ; Push registers rbx, r12, r13, r14, r15
     push rbp
     push rax
@@ -91,15 +108,13 @@ ctxswtch:
     pop rbx
     pop rax
     pop rbp
-    sti
+    set_int
     ret
 
 ; RDI stack pointer
 ; RSI init function
 ; RDX fxsave_area
 ctxcreat:
-    cli
-
     ; Save registers
     push rax
     push rbx
@@ -145,5 +160,4 @@ ctxcreat:
     mov rsp, rbx
     pop rbx
     pop rax
-    sti
     ret
