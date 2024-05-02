@@ -2,7 +2,7 @@
 global ctxswtch
 global ctxcreat
 extern returnoexit
-extern if_status ; volatile uint8_t if_status;
+extern interrupts_disabled
 section .text
 
 ; Inputs:
@@ -13,18 +13,10 @@ section .text
 
 %macro set_int 0
     sti
-    push rax
-    lea rax, if_status
-    mov byte [rax], 0
-    pop rax
 %endmacro
 
 %macro clear_int 0
     cli
-    push rax
-    lea rax, if_status
-    mov byte [rax], 1
-    pop rax
 %endmacro
 
 ctxswtch:

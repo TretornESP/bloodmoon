@@ -13,6 +13,14 @@
 	dbg_print(itoa(__LINE__, 10)); \
 	dbg_print("\x1B[0m\n"); \
 
+#define RED_NON(x) \
+	dbg_print("\x1B[31m "); \
+	dbg_print(x); \
+	dbg_print(" at "); \
+	dbg_print(__FILE__); \
+	dbg_print(itoa(__LINE__, 10)); \
+	dbg_print("\x1B[0m"); \
+
 void set_debug_data(const char * file, int line, const char * func);
 void set_debug_msg(const char * str);
 void dbg_print(const char * str);

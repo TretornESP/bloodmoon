@@ -1,7 +1,7 @@
 #include "test/tests.h"
 #include "util/kernel_boot.h"
 #include "util/string.h"
-
+#include "arch/ints.h"
 #include "dev/devices.h"
 #include "scheduling/scheduler.h"
 #include "drivers/tty/tty_interface.h"
@@ -16,6 +16,7 @@
 #include "arch/ssp.h"
 
 void _start(void) {
+    __asm__ volatile("cli");
     boot();
 
     panic("Kernel panic: _start() reached");

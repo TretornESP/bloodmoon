@@ -382,6 +382,8 @@ void go(uint32_t preempt) {
     struct cpu * cpu = get_cpu(current_task->processor);
     tss_set_stack(cpu->tss, (void*)current_task->stack_top, 0);
     FAKE_STI();
+    if (interrupts_disabled != 0) 
+        panic("Interrupts disabled in go()");
     scheduler_unprepared = 0;
     ctxswtch(
         shithole_task,

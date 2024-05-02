@@ -18,29 +18,50 @@ extern const char * FAKE_STI_STATUS_STRINGS[];
 
 #define DEBUG_INTS 1
 #ifndef DEBUG_INTS
+#define INTS_DEBUG_RED_NON(x)
 #define INTS_DEBUG_RED(x)
 #else
+#define INTS_DEBUG_RED_NON(x) RED_NON(x)
 #define INTS_DEBUG_RED(x) RED(x)
 #endif
 
-#define CLI() \
-    atomic_increment(&interrupts_disabled); \
+#define CLI() { \
     __asm__ volatile("cli"); \
-    INTS_DEBUG_RED(CLI_STATUS_STRINGS[if_status]) \
-    if_status = INTS_DISABLED;
+    atomic_increment(&interrupts_disabled); \
+    if_status = INTS_DISABLED; \
+}
+//    INTS_DEBUG_RED_NON(CLI_STATUS_STRINGS[if_status]);
+//    INTS_DEBUG_RED(itoa(interrupts_disabled, 10));
+//}
 
-#define FAKE_CLI() \
-    INTS_DEBUG_RED(FAKE_CLI_STATUS_STRINGS[if_status]) \
-
-#define STI() \
+#define FAKE_CLI() { \
     atomic_decrement(&interrupts_disabled); \
-    if (interrupts_disabled < 0) {INTS_DEBUG_RED("CANT ENABLE INTS"); return;} \
-    __asm__ volatile("sti"); \
-    INTS_DEBUG_RED(STI_STATUS_STRINGS[if_status]) \
-    if_status = INTS_ENABLED;
+    if_status = INTS_DISABLED; \
+}
+//    INTS_DEBUG_RED_NON(FAKE_CLI_STATUS_STRINGS[if_status])
+//    INTS_DEBUG_RED(itoa(interrupts_disabled, 10));
+//}
 
-#define FAKE_STI() \
-    INTS_DEBUG_RED(FAKE_STI_STATUS_STRINGS[if_status]) \
+#define STI() { \
+    atomic_decrement(&interrupts_disabled); \
+    if (interrupts_disabled > 0) {INTS_DEBUG_RED_NON("CANT ENABLE INTS "); INTS_DEBUG_RED(itoa(interrupts_disabled, 10));} else { \
+    if (interrupts_disabled < 0) atomic_set_to_zero(&interrupts_disabled); \
+    __asm__ volatile("sti"); \
+    if_status = INTS_ENABLED; } \
+}
+//    INTS_DEBUG_RED_NON(STI_STATUS_STRINGS[if_status])
+//    INTS_DEBUG_RED(itoa(interrupts_disabled, 10)); }
+//}
+
+#define FAKE_STI() { \
+    atomic_decrement(&interrupts_disabled); \
+    if (interrupts_disabled > 0) {INTS_DEBUG_RED_NON("[FAKE] CANT ENABLE INTS "); INTS_DEBUG_RED(itoa(interrupts_disabled, 10));} else { \
+    if (interrupts_disabled < 0) atomic_set_to_zero(&interrupts_disabled); \
+    if_status = INTS_ENABLED; } \
+}
+//    INTS_DEBUG_RED_NON(FAKE_STI_STATUS_STRINGS[if_status])
+//    INTS_DEBUG_RED(itoa(interrupts_disabled, 10));
+//}
     
 void get_if_status(volatile uint8_t * status);
 #endif

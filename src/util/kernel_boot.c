@@ -88,8 +88,7 @@ void boot() {
     if (madt != 0) {
         register_apic(madt, 0x0);
     }
-    enable_interrupts();
-    init_pit(50);
+    init_pit(1);
     //disable_pit();
     init_drive();
     init_fb_dd();
@@ -107,12 +106,14 @@ void boot() {
     probe_fs();
     init_scheduler();
     init_sline();
+    enable_interrupts();
+
     set_current_tty("ttya");
     //add_task(create_task((void*)spawn_network_worker, 3, "ttya"));
     add_task(create_task((void*)init_dbgshell, 3, "ttya"));
     set_io_tty("ttya");
     dump_task_queues();
-    go(50); //The number is the number of ticks for preemption, zero for cooperative scheduling
+    go(3); //The number is the number of ticks for preemption, zero for cooperative scheduling
     panic("Kernel returned to boot() (this should never happen!)\n");
 }
 

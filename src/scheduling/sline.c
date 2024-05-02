@@ -60,7 +60,6 @@ void wakeup_handler() {
         }
     }
     release_lock_ns(&sleep_lock);
-    if (res) yield();
 }
 
 void init_sline() {

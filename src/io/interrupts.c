@@ -84,11 +84,12 @@ void PitInt_Handler(struct cpu_context* ctx, uint8_t cpuid) {
     (void)ctx;
     (void)cpuid;
     tick();
-    if (requires_preemption()) {
-        yield();
-    } else if (requires_wakeup()) {
+    if (requires_wakeup()) {
         wakeup();
     }
+    if (requires_preemption()) {
+        yield();
+    } 
     STI();
 }
 
