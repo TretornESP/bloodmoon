@@ -2,16 +2,16 @@
 #define _MEMORY_CB_H
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-#endif // __GNUC__
-#include "../util/dbgprinter.h" //DELETEME
-#define MEMMAP_USABLE                 0x0
-#define MEMMAP_RESERVED               0x1
-#define MEMMAP_ACPI_RECLAIMABLE       0x2
-#define MEMMAP_ACPI_NVS               0x3
-#define MEMMAP_BAD_MEMORY             0x4
-#define MEMMAP_BOOTLOADER_RECLAIMABLE 0x5
-#define MEMMAP_KERNEL_AND_MODULES     0x6
-#define MEMMAP_FRAMEBUFFER            0x7
+#endif
+
+#define MEMMAP_USABLE                   0x0
+#define MEMMAP_RESERVED                 0x1
+#define MEMMAP_ACPI_RECLAIMABLE         0x2
+#define MEMMAP_ACPI_NVS                 0x3
+#define MEMMAP_BAD_MEMORY               0x4
+#define MEMMAP_BOOTLOADER_RECLAIMABLE   0x5
+#define MEMMAP_KERNEL_AND_MODULES       0x6
+#define MEMMAP_FRAMEBUFFER              0x7
 
 struct chunk_data {
     uint64_t addr;
@@ -23,9 +23,8 @@ void get_total_memory_cb(void * global_override, uint64_t base, uint64_t length,
 }
 
 void get_free_memory_cb(void * global_override, uint64_t base, uint64_t length, uint64_t type) {
-    if (type == MEMMAP_USABLE) {
+    if (type == MEMMAP_USABLE)
         *(uint64_t*)global_override += length;
-    }
 }
 
 void init_memory_cb(void * global_override, uint64_t base, uint64_t length, uint64_t type) {
@@ -39,4 +38,4 @@ void init_memory_cb(void * global_override, uint64_t base, uint64_t length, uint
     }
 }
 
-#endif // _MEMORY_CB_H
+#endif

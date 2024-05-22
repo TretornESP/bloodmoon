@@ -15,16 +15,16 @@
 #include "../memory/paging.h"
 #include "../memory/heap.h"
 
-#include "../scheduling/pit.h"
-#include "../scheduling/scheduler.h"
-#include "../scheduling/sline.h"
+#include "../sched/pit.h"
+#include "../sched/scheduler.h"
+#include "../sched/sline.h"
 
 #include "../io/interrupts.h"
 
-#include "../dev/smbios/smbios_interface.h"
-#include "../dev/devices.h"
-#include "../dev/acpi/acpi.h"
-#include "../dev/apic/apic.h"
+#include "../devices/smbios/smbios_interface.h"
+#include "../devices/devices.h"
+#include "../devices/acpi/acpi.h"
+#include "../devices/apic/apic.h"
 
 #include "../drivers/disk/disk.h"
 #include "../drivers/serial/serial_dd.h"
@@ -46,8 +46,8 @@
 #include "../vfs/generic/tty/generic_tty.h"
 #include "../vfs/generic/fifo/generic_fifo.h"
 
-#include "../dev/net/netstack.h"
-#include "../dev/fb/framebuffer.h"
+#include "../devices/net/netstack.h"
+#include "../devices/fb/framebuffer.h"
 
 #include "string.h"
 #include "printf.h"
@@ -95,7 +95,7 @@ void boot() {
     init_serial_dd();
     init_tty_dd();
     init_fifo_dd();
-    //init_e1000_dd(); //Careful, without this pci fills the memory!!!
+    init_e1000_dd(); //Careful, without this pci fills the memory!!!
     init_smbios_interface();
     init_devices();
     enable_debug(0);
@@ -106,14 +106,12 @@ void boot() {
     probe_fs();
     init_scheduler();
     init_sline();
-    enable_interrupts();
-
-    set_current_tty("ttya");
-    //add_task(create_task((void*)spawn_network_worker, 3, "ttya"));
-    add_task(create_task((void*)init_dbgshell, 3, "ttya"));
     set_io_tty("ttya");
-    dump_task_queues();
-    go(3); //The number is the number of ticks for preemption, zero for cooperative scheduling
+    __asm__ volatile("sti");
+    add_task(create_task((void*)spawn_network_worker, "ttya", KERNEL_TASK));
+    add_task(create_task((void*)init_dbgshell, "ttya", KERNEL_TASK));
+    //dump_task_queues();
+    go(5); //The number is the number of ticks for preemption, zero for cooperative scheduling
     panic("Kernel returned to boot() (this should never happen!)\n");
 }
 

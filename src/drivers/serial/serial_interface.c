@@ -1,5 +1,5 @@
 #include "serial_interface.h"
-#include "../../dev/devices.h"
+#include "../../devices/devices.h"
 #include "serial_dd.h"
 
 uint64_t serial_read(const char * device, uint8_t * buffer, uint32_t skip, uint32_t size) {

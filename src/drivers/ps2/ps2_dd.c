@@ -2,7 +2,7 @@
 #include "ps2.h"
 #include "ps2_dd.h"
 #include "../../util/string.h"
-#include "../../dev/devices.h"
+#include "../../devices/devices.h"
 
 uint64_t mouse_dd_read(uint64_t port, uint64_t size, uint64_t skip, uint8_t* buffer) {
     (void)port;

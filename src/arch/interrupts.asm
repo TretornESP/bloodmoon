@@ -3,12 +3,12 @@
 extern global_interrupt_handler
 global interrupt_vector
 
-%macro swapgs_if_necessary 1
+swapgs_if_necessary:
 	cmp qword [rsp + 0x18], 0x8
-	je donot%1
+	je donotswapgs
 	swapgs
-donot%1:
-%endmacro
+donotswapgs:
+    ret
 
 %macro interrupt_entry 1
     cmp	qword [rsp + 0x18], 0x8
@@ -59,6 +59,7 @@ donot%1:
     pop    r13
     pop    r14
     pop    r15
+
     cmp	qword [rsp + 0x18], 0x8
     jz donot_%1
     swapgs

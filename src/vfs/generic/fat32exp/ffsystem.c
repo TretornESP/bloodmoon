@@ -14,11 +14,11 @@
 #include <stdlib.h>		/* with POSIX API */
 
 
-void* ff_memalloc (	/* Returns pointer to the allocated memory block (null if not enough core) */
+void* ff_mekmalloc (	/* Returns pointer to the allocated memory block (null if not enough core) */
 	UINT msize		/* Number of bytes to allocate */
 )
 {
-	return malloc((void*)msize);	/* Allocate a new memory block */
+	return kmalloc((void*)msize);	/* Allocate a new memory block */
 }
 
 
@@ -26,7 +26,7 @@ void ff_memfree (
 	void* mblock	/* Pointer to the memory block to free (no effect if null) */
 )
 {
-	free(mblock);	/* Free the memory block */
+	kfree(mblock);	/* Free the memory block */
 }
 
 #endif

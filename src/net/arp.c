@@ -3,7 +3,7 @@
 #include "../util/printf.h"
 #include "../util/string.h"
 #include "../memory/heap.h"
-#include "../dev/net/netstack.h"
+#include "../devices/net/netstack.h"
 
 void init_arp(struct arp* arp, uint8_t* mac, const char* sips, const char* tips) {
 
@@ -21,10 +21,10 @@ void init_arp(struct arp* arp, uint8_t* mac, const char* sips, const char* tips)
     arp->hlen = hlen;
     arp->plen = plen;
     arp->oper = htons(ARP_REQUEST);
-    arp->sha = (uint8_t*)malloc(hlen);
-    arp->spa = (uint8_t*)malloc(plen);
-    arp->tha = (uint8_t*)malloc(hlen);
-    arp->tpa = (uint8_t*)malloc(plen);
+    arp->sha = (uint8_t*)kmalloc(hlen);
+    arp->spa = (uint8_t*)kmalloc(plen);
+    arp->tha = (uint8_t*)kmalloc(hlen);
+    arp->tpa = (uint8_t*)kmalloc(plen);
 
     memcpy(arp->sha, mac, hlen);
     memcpy(arp->spa, sip, plen);
@@ -51,10 +51,10 @@ void get_reply_ip(struct arp* arp, uint8_t* ip) {
 }
 
 void destroy_arp(struct arp* arp) {
-    //free(arp->sha); //XQ NO FUNCIONAS
-    free(arp->spa);
-    free(arp->tha);
-    free(arp->tpa);
+    //kfree(arp->sha); //XQ NO FUNCIONAS
+    kfree(arp->spa);
+    kfree(arp->tha);
+    kfree(arp->tpa);
 }
 
 uint16_t size_arp(struct arp* arp) {

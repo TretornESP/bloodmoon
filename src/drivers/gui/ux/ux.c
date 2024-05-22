@@ -195,7 +195,7 @@ void dispatch_tree(struct ux_component * root, struct ux_event * event) {
 }
 
 struct ux_component * create_component(struct ux_component * parent, const char * name) {
-    struct ux_component * component = malloc(sizeof(struct ux_component));
+    struct ux_component * component = kmalloc(sizeof(struct ux_component));
     memset(component, 0, sizeof(struct ux_component));
     component->parent = parent;
     memcpy(component->name, name, strlen(name));
@@ -295,7 +295,7 @@ static void process_array(json_value* value, int depth, const char * vname, stru
 }
 
 void add_specific_data(struct ux_component * component, const char * vname, uint8_t type, void * buffer, uint64_t length) {
-    struct ux_specific_data * data = malloc(sizeof(struct ux_specific_data));
+    struct ux_specific_data * data = kmalloc(sizeof(struct ux_specific_data));
     memset(data, 0, sizeof(struct ux_specific_data));
 
     if (strlen(vname) > UX_MAX_SPECIFIC_DATA_NAME) {
@@ -446,7 +446,7 @@ struct ux_component * create_window_component(const char* name, char * json, uin
     memcpy(window->name, name, strlen(name));
 
     json_char * json_c = (json_char*)json;
-    json_settings *settings = malloc(sizeof(json_settings));
+    json_settings *settings = kmalloc(sizeof(json_settings));
     memset(settings, 0, sizeof(json_settings));
     json_value * value = json_parse_ex(settings, json_c, jsonsize, 0);
 
@@ -456,7 +456,7 @@ struct ux_component * create_window_component(const char* name, char * json, uin
     }
 
     process_value(value, 0, "root", window);
-    free(settings);
+    kfree(settings);
     json_value_free(value);
 
     window->requires_redraw = 1;
@@ -474,15 +474,15 @@ struct ux_component * create_window(const char * name, char * path) {
     uint64_t size = vfs_file_tell(fd);
     vfs_file_seek(fd, 0, 0x0); //SEEK_SET
 
-    char* buf = malloc(size);
+    char* buf = kmalloc(size);
     memset(buf, 0, size);
     vfs_file_read(fd, buf, size);
     vfs_file_close(fd);
 
     struct ux_component * window = create_window_component(name, buf, size);
     
-    free(buf);
-    free(path);
+    kfree(buf);
+    kfree(path);
 
     return window;
 }
@@ -525,7 +525,7 @@ uint8_t find_file_cb(struct vfs_mount* mount, void * data, void* searchstr) {
 }
 
 struct ux_component* inflate_layout(const char * title, const char * layout) {
-    char * path = malloc(1024);
+    char * path = kmalloc(1024);
     memset(path, 0, 1024);
     if (!iterate_mounts(find_file_cb, (void*)path, (void*)layout)) {
         printf("Failed to find resources\n");
@@ -615,7 +615,7 @@ void event_dispatch(struct ux_event * event) {
 
 void load_font() {
     printf("Searching for font\n");
-    char * path = malloc(1024);
+    char * path = kmalloc(1024);
     memset(path, 0, 1024);
     if (!iterate_mounts(find_file_cb, (void*)path, "zap-light16.psf")) {
         printf("Failed to find resources\n");
@@ -634,11 +634,11 @@ void load_font() {
     uint64_t size = vfs_file_tell(fd);
     vfs_file_seek(fd, 0, 0x0); //SEEK_SET
 
-    font_buffer = malloc(size);
+    font_buffer = kmalloc(size);
     memset(font_buffer, 0, size);
     vfs_file_read(fd, font_buffer, size);
     vfs_file_close(fd);
-    free(path);
+    kfree(path);
 
     if (font_buffer == 0) {
         printf("Failed to load font\n");
@@ -646,7 +646,7 @@ void load_font() {
     }
     if (font_buffer->magic[0] != 0x36 || font_buffer->magic[1] != 0x04) {
         printf("Invalid font magic %x %x\n", font_buffer->magic[0], font_buffer->magic[1]);
-        free(font_buffer);
+        kfree(font_buffer);
         font_buffer = 0;
         return;
     }
@@ -680,17 +680,17 @@ void print_bg() {
 }
 
 void preload_ux() {
-    char * path = malloc(1024);
+    char * path = kmalloc(1024);
     memset(path, 0, 1024);
     if (iterate_mounts(find_file_cb, (void*)path, "logo.ppm")) {
         printf("Found logo at %s\n", path);
-        background = malloc(sizeof(struct ppm));
+        background = kmalloc(sizeof(struct ppm));
         memset(background, 0, sizeof(struct ppm));
         load_image(path, 0, 0, background);
     } else {
         printf("Failed to find resources\n");
     }
-    free(path);
+    kfree(path);
 }
 
 void redraw_ux() {

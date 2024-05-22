@@ -169,7 +169,7 @@ static void serialize_specific_data(const char* name, uint8_t type, void* data, 
     switch (type) {
         case UX_DATATYPE_STRING: {
             uint32_t buflen = 5 + strlen(name) + strlen((char*)data);
-            char* buffer = malloc(buflen);
+            char* buffer = kmalloc(buflen);
             if (buffer == 0) {
                 printf("Failed to allocate buffer\n");
                 return;
@@ -180,7 +180,7 @@ static void serialize_specific_data(const char* name, uint8_t type, void* data, 
             uint64_t str_len = strlen(str);
             if (str_len > 0xFFFF) {
                 printf("String too long\n");
-                free(buffer);
+                kfree(buffer);
                 return;
             }
 
@@ -201,7 +201,7 @@ static void serialize_specific_data(const char* name, uint8_t type, void* data, 
             buffer[buflen - 2] = (crc >> 16) & 0xFF;
             buffer[buflen - 1] = (crc >> 24) & 0xFF;
             ux_write_bytes(component, buffer, buflen);
-            free(buffer);
+            kfree(buffer);
         }
     }
 }

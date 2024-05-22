@@ -26,7 +26,7 @@
 //        embedded systems with a very limited resources. These routines are thread
 //        safe and reentrant!
 //        Use this instead of the bloated standard/newlib printf cause these use
-//        malloc for printf (and may not be thread safe).
+//        kmalloc for printf (and may not be thread safe).
 //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -35,10 +35,10 @@
 #include "printf.h"
 #include "bool.h"
 #include "../bootservices/bootservices.h"
-#include "../dev/devices.h"
-#include "../scheduling/scheduler.h"
+#include "../devices/devices.h"
+#include "../sched/scheduler.h"
 #include "../debugger/debug.h"
-#include "../scheduling/concurrency.h"
+#include "../sched/concurrency.h"
 #include "string.h"
 
 // define this globally (e.g. gcc -DPRINTF_INCLUDE_CONFIG_H ...) to include the

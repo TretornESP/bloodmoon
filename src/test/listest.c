@@ -87,7 +87,7 @@ void test_linked_list_remove_all() {
 
 void test_circular_buffer_create_and_destroy() {
     CircularBuffer cBuf = CircularBufferCreate(10);
-    CircularBufferFree(cBuf);
+    CircularBufferkfree(cBuf);
     print_test_result(true, "test_circular_buffer_create_and_destroy");
 }
 
@@ -100,21 +100,21 @@ void test_circular_buffer_reset() {
 void test_circular_buffer_get_capacity() {
     CircularBuffer cBuf = CircularBufferCreate(10);
     size_t capacity = CircularBufferGetCapacity(cBuf);
-    CircularBufferFree(cBuf);
+    CircularBufferkfree(cBuf);
     print_test_result(capacity == 10, "test_circular_buffer_get_capacity");
 }
 
 void test_circular_buffer_get_size() {
     CircularBuffer cBuf = CircularBufferCreate(10);
     size_t size = CircularBufferGetSize(cBuf);
-    CircularBufferFree(cBuf);
+    CircularBufferkfree(cBuf);
     print_test_result(size == 10, "test_circular_buffer_get_size");
 }
 
 void test_circular_buffer_get_data_size() {
     CircularBuffer cBuf = CircularBufferCreate(10);
     size_t data_size = CircularBufferGetDataSize(cBuf);
-    CircularBufferFree(cBuf);
+    CircularBufferkfree(cBuf);
     print_test_result(data_size == 0, "test_circular_buffer_get_data_size");
 }
 
@@ -123,7 +123,7 @@ void test_circular_buffer_push() {
     char *data = "Hello";
     CircularBufferPush(cBuf, data, 5);
     size_t data_size = CircularBufferGetDataSize(cBuf);
-    CircularBufferFree(cBuf);
+    CircularBufferkfree(cBuf);
     print_test_result(data_size == 5, "test_circular_buffer_push");
 }
 
@@ -131,9 +131,9 @@ void test_circular_buffer_pop() {
     CircularBuffer cBuf = CircularBufferCreate(10);
     char *data = "Hello";
     CircularBufferPush(cBuf, data, 5);
-    char *dataOut = malloc(5);
+    char *dataOut = kmalloc(5);
     CircularBufferPop(cBuf, 5, dataOut);
-    CircularBufferFree(cBuf);
+    CircularBufferkfree(cBuf);
     print_test_result(strcmp(data, dataOut) == 0, "test_circular_buffer_pop");
 }
 
@@ -141,9 +141,9 @@ void test_circular_buffer_read() {
     CircularBuffer cBuf = CircularBufferCreate(10);
     char *data = "Hello";
     CircularBufferPush(cBuf, data, 5);
-    char *dataOut = malloc(5);
+    char *dataOut = kmalloc(5);
     CircularBufferRead(cBuf, 5, dataOut);
-    CircularBufferFree(cBuf);
+    CircularBufferkfree(cBuf);
     print_test_result(strcmp(data, dataOut) == 0, "test_circular_buffer_read");
 }
 
@@ -157,16 +157,16 @@ void test_circular_buffer_push_when_full() {
     CircularBufferPush(cBuf, data, 5);
     CircularBufferPush(cBuf, data, 5);
     size_t data_size = CircularBufferGetDataSize(cBuf);
-    CircularBufferFree(cBuf);
+    CircularBufferkfree(cBuf);
     print_test_result(data_size == 4, "test_circular_buffer_push_when_full");
 }
 
 void test_circular_buffer_pop_when_empty() {
     //Pop data from an empty buffer
     CircularBuffer cBuf = CircularBufferCreate(4);
-    char *dataOut = malloc(5);
+    char *dataOut = kmalloc(5);
     int result = CircularBufferPop(cBuf, 5, dataOut);
-    CircularBufferFree(cBuf);
+    CircularBufferkfree(cBuf);
     print_test_result(result == 0, "test_circular_buffer_pop_when_empty");
 }
 

@@ -372,7 +372,7 @@ DWORD ff_wtoupper (DWORD uni);			/* Unicode upper-case conversion */
 /* O/S dependent functions (samples available in ffsystem.c) */
 
 #if FF_USE_LFN == 3		/* Dynamic memory allocation */
-void* ff_memalloc (UINT msize);		/* Allocate memory block */
+void* ff_mekmalloc (UINT msize);		/* Allocate memory block */
 void ff_memfree (void* mblock);		/* Free memory block */
 #endif
 #if FF_FS_REENTRANT	/* Sync functions */

@@ -1,5 +1,5 @@
 #include "fifo_dd.h"
-#include "../../dev/fifo/fifo.h"
+#include "../../devices/fifo/fifo.h"
 
 uint64_t fifo_dd_read(uint64_t port, uint64_t size, uint64_t skip, uint8_t* buffer) {
     struct fifo * fifo = (struct fifo*)port;

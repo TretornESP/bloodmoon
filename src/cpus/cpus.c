@@ -1,8 +1,9 @@
 #include "cpus.h"
 #include "../arch/gdt.h"
+#include "../proc/syscall.h"
 #include "../arch/msr.h"
 #include "../arch/tss.h"
-#include "../dev/apic/apic.h"
+#include "../devices/apic/apic.h"
 #include "../memory/paging.h"
 #include "../io/interrupts.h"
 #include "../memory/heap.h"
@@ -50,21 +51,28 @@ void startup_cpu(uint8_t cpuid) {
     printf("Booting CPU %d\n", cpuid);
 
     struct cpu * lcpu = &cpu[cpuid];
-    lcpu->tss = get_tss(cpuid);
-    lcpu->ctx = malloc(sizeof(struct cpu_context));
-    memset(lcpu->ctx, 0, sizeof(struct cpu_context));
-    lcpu->ustack = stackalloc(USER_STACK_SIZE) + USER_STACK_SIZE;
-    memset(lcpu->ustack - USER_STACK_SIZE, 0, USER_STACK_SIZE);
-    lcpu->kstack = stackalloc(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
-    memset(lcpu->kstack - KERNEL_STACK_SIZE, 0, KERNEL_STACK_SIZE);
+    cpu->tss = get_tss(cpuid);
+
+    cpu->ctx = kmalloc(sizeof(struct cpu_context));
+    memset(cpu->ctx, 0, sizeof(struct cpu_context));
+
+    cpu->kstack = kstackalloc(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
+    memset(cpu->kstack - KERNEL_STACK_SIZE, 0, KERNEL_STACK_SIZE);
     
+    void * ist0 = kstackalloc(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
+    memset(ist0 - KERNEL_STACK_SIZE, 0, KERNEL_STACK_SIZE);
+    void * ist1 = kstackalloc(KERNEL_STACK_SIZE) + KERNEL_STACK_SIZE;
+    memset(ist1 - KERNEL_STACK_SIZE, 0, KERNEL_STACK_SIZE);
+
     tss_set_stack(lcpu->tss, lcpu->kstack, 0);
-    tss_set_stack(lcpu->tss, lcpu->ustack, 3);
+    tss_set_ist(cpu->tss, 0, (uint64_t)ist0);
+    tss_set_ist(cpu->tss, 1, (uint64_t)ist1);
+
 
     reloadGsFs();
     setGsBase((uint64_t) lcpu->ctx);
-
     load_gdt(cpuid);
+    syscall_enable(GDT_KERNEL_CODE_ENTRY * sizeof(gdt_entry_t), GDT_USER_CODE_ENTRY * sizeof(gdt_entry_t));
     load_interrupts_for_local_cpu();
     lcpu->ready = 1;
 }
@@ -82,7 +90,7 @@ void init_cpus() {
     cpu_count = get_smp_cpu_count();
     cpus = get_smp_cpus();
 
-    cpu = malloc(sizeof(struct cpu) * cpu_count);
+    cpu = kmalloc(sizeof(struct cpu) * cpu_count);
     memset(cpu, 0, sizeof(struct cpu) * cpu_count);
 
     //Make cpus idle once they are initialized
@@ -109,8 +117,7 @@ struct cpu *get_cpu(uint64_t index) {
 extern uint64_t getGsBase();
 uint8_t get_cpu_index() {
     //Get gs base
-    uint64_t base;
-    cpuGetMSR64(MSR_GS_BASE, &base);
+    uint64_t base = cpu_get_msr_u64(MSR_GS_BASE);
     for (uint64_t i = 0; i < cpu_count; i++) {
         if (cpu[i].ctx == (struct cpu_context *) base) {
             return i;
@@ -120,6 +127,6 @@ uint8_t get_cpu_index() {
 }
 
 struct cpu_context * fork_context(void * init, void * stack) {
-    struct cpu_context * ctx = malloc(sizeof(struct cpu_context));
+    struct cpu_context * ctx = kmalloc(sizeof(struct cpu_context));
     memset(ctx, 0, sizeof(struct cpu_context));
 }

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include "generic/vfs_compat.h"
-#include "../dev/devices.h"
+#include "../devices/devices.h"
 
 /// MBR and boot sector
 #define MBR_BOOTSTRAP		0

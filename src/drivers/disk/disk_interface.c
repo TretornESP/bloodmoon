@@ -5,7 +5,9 @@
 
 #include "disk_interface.h"
 #include "disk.h"
-#include "../../dev/devices.h"
+#include "../../devices/devices.h"
+#include "../../util/printf.h"
+
 
 uint8_t disk_get_status(const char * disk) {
 	return (device_search(disk) != 0) ? STATUS_READY : STATUS_NOT_READY;

@@ -171,14 +171,14 @@ static int net_i825xx_rx_init( net_device_t *netdev )
 	i825xx_device_t *dev = (i825xx_device_t *)netdev->lldev;
 	
 	// unaligned base address
-	uint64_t tmpbase = (uint64_t)malloc((sizeof(i825xx_rx_desc_t) * NUM_RX_DESCRIPTORS) + 16);
+	uint64_t tmpbase = (uint64_t)kmalloc((sizeof(i825xx_rx_desc_t) * NUM_RX_DESCRIPTORS) + 16);
 	// aligned base address
 	dev->rx_desc_base = (tmpbase % 16) ? (uint8_t *)((tmpbase) + 16 - (tmpbase % 16)) : (uint8_t *)tmpbase;
 	
 	for( i = 0; i < NUM_RX_DESCRIPTORS; i++ )
 	{
 		dev->rx_desc[i] = (i825xx_rx_desc_t *)(dev->rx_desc_base + (i * 16));
-		dev->rx_desc[i]->address = (uint64_t)malloc(8192+16); // packet buffer size (8K)
+		dev->rx_desc[i]->address = (uint64_t)kmalloc(8192+16); // packet buffer size (8K)
 		dev->rx_desc[i]->status = 0;
 	}
 	
@@ -209,7 +209,7 @@ static int net_i825xx_tx_init( net_device_t *netdev )
 	int i;
 	i825xx_device_t *dev = (i825xx_device_t *)netdev->lldev;
 	
-	uint64_t tmpbase = (uint64_t)malloc((sizeof(i825xx_tx_desc_t) * NUM_TX_DESCRIPTORS) + 16);
+	uint64_t tmpbase = (uint64_t)kmalloc((sizeof(i825xx_tx_desc_t) * NUM_TX_DESCRIPTORS) + 16);
 	dev->tx_desc_base = (tmpbase % 16) ? (uint8_t *)((tmpbase) + 16 - (tmpbase % 16)) : (uint8_t *)tmpbase;
 	
 	for( i = 0; i < NUM_TX_DESCRIPTORS; i++ )
@@ -380,8 +380,8 @@ static void i825xx_interrupt_handler( CPUContext *ctx )
 /*
 int net_i825xx_init( pci_device_t *pcidev )
 {
-	net_device_t *netdev = (net_device_t *)malloc(sizeof(net_device_t));
-	i825xx_device_t *dev = (i825xx_device_t *)malloc(sizeof(i825xx_device_t));
+	net_device_t *netdev = (net_device_t *)kmalloc(sizeof(net_device_t));
+	i825xx_device_t *dev = (i825xx_device_t *)kmalloc(sizeof(i825xx_device_t));
 	
 	netdev->pci = pcidev;			// pci structure
 	netdev->lldev = (void *)dev;	// i825xx-specific structure

@@ -33,7 +33,7 @@
 #define C_OS_DEVICE_NET_E1000_H
 
 #include <stdint.h>
-#include "../../../dev/pci/pci.h"
+#include "../../../devices/pci/pci.h"
 
 #define NUM_RX_DESC 32
 #define NUM_TX_DESC 8

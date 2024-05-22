@@ -2,7 +2,7 @@
 #define _GUI_H
 #include <stdint.h>
 #include "ux/cursor.h"
-#include "../../dev/fb/framebuffer.h"
+#include "../../devices/fb/framebuffer.h"
 
 #define MAX_GUI_DEVICES 8
 #define GUI_FPS 30

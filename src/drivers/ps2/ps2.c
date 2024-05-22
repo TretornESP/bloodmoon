@@ -85,7 +85,7 @@ void keyboard_halt_until_enter() {
 }
 
 void ps2_subscribe(void* handler, uint8_t device, uint8_t event) {
-    struct ps2_subscriber *new_subscriber = (struct ps2_subscriber*)malloc(sizeof(struct ps2_subscriber));
+    struct ps2_subscriber *new_subscriber = (struct ps2_subscriber*)kmalloc(sizeof(struct ps2_subscriber));
     struct ps2_subscriber *current = 0;
     if (device == PS2_DEVICE_MOUSE) {
         new_subscriber->parent = 0x0;
@@ -128,7 +128,7 @@ void ps2_unsubscribe(void *handler) {
             } else {
                 keyboard_all_subscribers = current->next;
             }
-            free(current);
+            kfree(current);
             return;
         }
         prev = current;
@@ -144,7 +144,7 @@ void ps2_unsubscribe(void *handler) {
             } else {
                 mouse_all_subscribers = current->next;
             }
-            free(current);
+            kfree(current);
             return;
         }
         prev = current;
@@ -160,7 +160,7 @@ void ps2_unsubscribe(void *handler) {
             } else {
                 keyboard_event_subscribers = current->next;
             }
-            free(current);
+            kfree(current);
             return;
         }
         prev = current;
@@ -176,7 +176,7 @@ void ps2_unsubscribe(void *handler) {
             } else {
                 mouse_event_subscribers = current->next;
             }
-            free(current);
+            kfree(current);
             return;
         }
         prev = current;

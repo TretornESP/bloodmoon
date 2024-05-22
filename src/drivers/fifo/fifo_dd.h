@@ -1,6 +1,6 @@
 #ifndef _FIFO_DD_H
 #define _FIFO_DD_H
-#include "../../dev/devices.h"
+#include "../../devices/devices.h"
 #include <stdint.h>
 
 #define IOCTL_FIFO_FLUSH 0x01

@@ -34,11 +34,11 @@ void linked_list_print(struct linked_list * list);
 
 typedef struct s_circularBuffer* CircularBuffer;
 
-// Construct CircularBuffer with ‘size' in byte. You must call CircularBufferFree() in balance for destruction.
+// Construct CircularBuffer with ‘size' in byte. You must call CircularBufferkfree() in balance for destruction.
 extern CircularBuffer CircularBufferCreate(int size);
 
 // Destruct CircularBuffer 
-extern void CircularBufferFree(CircularBuffer cBuf);
+extern void CircularBufferkfree(CircularBuffer cBuf);
 
 // Reset the CircularBuffer
 extern void CircularBufferReset(CircularBuffer cBuf);

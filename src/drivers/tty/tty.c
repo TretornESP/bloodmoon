@@ -4,7 +4,7 @@
 #include "tty.h"
 #include "../../util/string.h"
 #include "../../util/printf.h"
-#include "../../dev/devices.h"
+#include "../../devices/devices.h"
 #include "../../memory/heap.h"
 
 //TODO: This dependencies are awful
@@ -163,7 +163,7 @@ void _tty_add_subscriber(struct tty* tty, void (*handler)(void*, uint8_t)) {
         subscriber = subscriber->next;
     }
 
-    subscriber->next = malloc(sizeof(struct tty_subscriber));
+    subscriber->next = kmalloc(sizeof(struct tty_subscriber));
     subscriber->next->next = 0;
     subscriber->next->handler = handler;
 }
@@ -178,7 +178,7 @@ void _tty_remove_subscriber(struct tty* tty, void (*handler)(void*, uint8_t)) {
         if (subscriber->handler == handler) {
             struct tty_subscriber * to_remove = subscriber->next;
             subscriber->next = subscriber->next->next;
-            free(to_remove);
+            kfree(to_remove);
             return;
         }
         subscriber = subscriber->next;
@@ -187,10 +187,10 @@ void _tty_remove_subscriber(struct tty* tty, void (*handler)(void*, uint8_t)) {
 
 void tty_destroy(struct tty* tty) {
     if (tty == 0 || !tty->valid) return;
-    if (tty->inb) free(tty->inb);
-    if (tty->outb) free(tty->outb);
-    if (tty->subscribers) free(tty->subscribers);
-    if (tty->line_discipline) free(tty->line_discipline);
+    if (tty->inb) kfree(tty->inb);
+    if (tty->outb) kfree(tty->outb);
+    if (tty->subscribers) kfree(tty->subscribers);
+    if (tty->line_discipline) kfree(tty->line_discipline);
     tty->valid = 0;
 }
 
@@ -214,24 +214,24 @@ int tty_init(char* indev, char* outdev, int mode, int inbs, int outbs) {
     strncpy(tty->indev, indev, 32);
     strncpy(tty->outdev, outdev, 32);
     tty->signal = 0;
-    tty->inb = (char*)calloc(1, inbs);
+    tty->inb = (char*)kcalloc(1, inbs);
     if (tty->inb == 0) return -1;
     tty->inb_size = inbs;
     tty->inb_write = 0;
     tty->inb_read = 0;
-    tty->outb = (char*)calloc(1, outbs);
+    tty->outb = (char*)kcalloc(1, outbs);
     if (tty->outb == 0) {
-        free(tty->inb);
+        kfree(tty->inb);
         return -1;
     }
     tty->outb_size = outbs;
     tty->outb_write = 0;
     tty->outb_read = 0;
 
-    tty->subscribers = malloc(sizeof(struct tty_subscriber));
+    tty->subscribers = kmalloc(sizeof(struct tty_subscriber));
     if (tty->subscribers == 0) {
-        free(tty->inb);
-        free(tty->outb);
+        kfree(tty->inb);
+        kfree(tty->outb);
         return -1;
     }
     tty->subscribers->next = 0;
@@ -250,9 +250,9 @@ int tty_init(char* indev, char* outdev, int mode, int inbs, int outbs) {
     tty->echo = 1;
     tty->pty_read = tty_read_cb;
     if (tty->line_discipline == 0) {
-        free(tty->inb);
-        free(tty->outb);
-        free(tty->subscribers);
+        kfree(tty->inb);
+        kfree(tty->outb);
+        kfree(tty->subscribers);
         return -1;
     }
     

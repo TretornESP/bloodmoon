@@ -1,6 +1,6 @@
 #include "serial_dd.h"
 #include "serial.h"
-#include "../../dev/devices.h"
+#include "../../devices/devices.h"
 #include "../../util/printf.h"
 
 uint64_t serial_dd_read_block(uint64_t port, uint64_t size, uint64_t skip, uint8_t* buffer) {

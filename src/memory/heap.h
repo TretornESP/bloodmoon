@@ -2,7 +2,8 @@
 #define HEAP_H
 
 #include <stdint.h>
-
+#include "../proc/process.h"
+#include "../sched/concurrency.h"
 //This code comes from https://github.com/kot-org/Kot/blob/main/Sources/Kernel/Src/heap/heap.h
 //Thank you Konect!!!
 
@@ -23,18 +24,30 @@ struct heap {
     uint64_t totalSize;
     uint64_t usedSize;
     uint64_t freeSize;
+    uint8_t isKernel;
+    uint8_t ready;
+    lock_t heap_lock;
+    lock_t stack_lock;
 };
 
-extern struct heap globalHeap;
+extern struct heap kernelGlobalHeap;
+extern struct heap userGlobalHeap;
 
 void init_heap();
-int heap_safeguard();
-void* malloc(uint64_t size);
-void* realloc(void* buffer, uint64_t size);
-void free(void* address);
-void expand_heap(uint64_t length);
-void *calloc (uint64_t num, uint64_t size);
-void* stackalloc(uint64_t length);
-void debug_heap();
-void walk_heap();
+
+void * kmalloc(uint64_t size);
+void kfree(void* address);
+void * kcalloc(uint64_t num, uint64_t size);
+void * krealloc(void* buffer, uint64_t size);
+void * kstackalloc(uint64_t length);
+
+void create_user_heap(struct task * task, struct heap * cheap);
+void * umalloc(struct task* task, uint64_t size);
+void ufree(struct task* task, void* address);
+void * ucalloc(struct task* task, uint64_t num, uint64_t size);
+void * urealloc(struct task* task, void* buffer, uint64_t size);
+void * ustackalloc(struct task* task, uint64_t length);
+int heap_safeguard(struct heap * cheap);
+//void debug_heap();
+//void walk_heap();
 #endif

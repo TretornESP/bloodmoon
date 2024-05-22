@@ -9,10 +9,10 @@ struct hashmap * create_hashmap(uint64_t items) {
     if (items > HASHMAP_MAX_ITEMS)
         return 0;
 
-    struct hashmap * hmap = (struct hashmap*)malloc(sizeof(struct hashmap));
+    struct hashmap * hmap = (struct hashmap*)kmalloc(sizeof(struct hashmap));
     hmap->items = items;
     uint64_t size = sizeof(struct hashmap_item) * items;
-    hmap->pointer = (uint64_t)malloc(size);
+    hmap->pointer = (uint64_t)kmalloc(size);
 
     memset((void*)hmap->pointer, 0, size);
     if (hmap->pointer == 0 || (zerocheck((void*)hmap->pointer, size) >= 0)) {
@@ -26,15 +26,15 @@ void delete_hashmap(struct hashmap * hmap) {
     for (uint64_t i = 0; i < hmap->items; i++) {
         struct hashmap_item * item = (struct hashmap_item*)(hmap->pointer + (i * sizeof(struct hashmap_item)));
         if (item->key) {
-            free(item);
+            kfree(item);
         }
     }
-    free(hmap);
+    kfree(hmap);
 }
 
 uint64_t calculate_hash(void * address, uint64_t size) {
 
-    uint8_t * hash = (uint8_t*)malloc(16);
+    uint8_t * hash = (uint8_t*)kmalloc(16);
     MD5_Digest(hash, address, size);
 
     uint64_t hash_value = 0;
@@ -42,7 +42,7 @@ uint64_t calculate_hash(void * address, uint64_t size) {
         hash_value += hash[i];
     }
 
-    free(hash);
+    kfree(hash);
     return hash_value;
 }
 

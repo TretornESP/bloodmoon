@@ -1,5 +1,5 @@
 #include "timeout.h"
-#include "../dev/smbios/smbios_interface.h"
+#include "../devices/smbios/smbios_interface.h"
 
 #define DEFAULT_CPU_FREQ 2000
 

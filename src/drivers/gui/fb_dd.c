@@ -1,5 +1,5 @@
 #include "fb_dd.h"
-#include "../../dev/fb/framebuffer.h"
+#include "../../devices/fb/framebuffer.h"
 
 uint64_t framebuffer_dd_read(uint64_t port, uint64_t size, uint64_t skip, uint8_t* buffer) {
     struct framebuffer *fb = get_framebuffer(port);

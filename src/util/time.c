@@ -1,5 +1,5 @@
 #include "time.h"
-#include "../scheduling/pit.h"
+#include "../sched/pit.h"
 #include "string.h"
 #include "printf.h"
 

@@ -1,6 +1,6 @@
 #ifndef _FB_DD_H
 #define _FB_DD_H
-#include "../../dev/devices.h"
+#include "../../devices/devices.h"
 #include <stdint.h>
 
 #define FB_IOCTL_PUTC 0x1

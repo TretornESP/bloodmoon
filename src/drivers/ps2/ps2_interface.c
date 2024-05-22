@@ -1,5 +1,5 @@
 #include "ps2_interface.h"
-#include "../../dev/devices.h"
+#include "../../devices/devices.h"
 
 uint8_t ps2_keyboard_read(const char* device, char* buffer) {
     return device_read(device, 0, 0, (uint8_t*)buffer);

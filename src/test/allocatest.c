@@ -22,7 +22,7 @@ void allocatest() {
 
 
     dbg_print("Starting tests...\n");
-    struct system_memory * memory = test_get_memory();
+    struct system_memory * memory = get_memory();
     uint64_t last_addr;
     void * first_addr;
     first_addr = request_page();

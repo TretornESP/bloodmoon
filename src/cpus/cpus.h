@@ -14,17 +14,17 @@ uint64_t get_smp_cpu_number();
 struct bmoon_smp_info *get_bsp_cpu();
 uint64_t get_smp_bsp_index();
 
-typedef struct{
-    void* kernel_stack;
+struct cpu_context_info {
+    uint64_t stack;
     uint64_t cs;
     uint64_t ss;
-    void* thread;
-}__attribute__((packed)) context_info_t;
+    uint64_t thread;
+}__attribute__((packed));
 
 struct cpu_context {
     uint64_t cr3;
 
-    context_info_t* ctx_info;
+    struct cpu_context_info* info;
     
     uint64_t rax;
     uint64_t rbx;

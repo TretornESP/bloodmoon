@@ -2,7 +2,7 @@
 #include "e1000_dd.h"
 #include "../../../util/printf.h"
 #include "../../../util/string.h"
-#include "../../../dev/devices.h"
+#include "../../../devices/devices.h"
 
 uint64_t dd_send(void* nic, uint8_t* buffer, uint16_t len) {
     return sendPacket(nic, buffer, len);

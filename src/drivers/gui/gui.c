@@ -5,14 +5,14 @@
 #include "ux/cursor.h"
 #include "../ps2/ps2.h"
 #include "../ps2/ps2_interface.h"
-#include "../../dev/fb/framebuffer.h"
+#include "../../devices/fb/framebuffer.h"
 #include "../../util/dbgprinter.h"
 #include "../../util/common.h"
 #include "../../vfs/vfs.h"
 #include "../../util/string.h"
 #include "../../memory/heap.h"
-#include "../../scheduling/scheduler.h"
-#include "../../scheduling/pit.h"
+#include "../../sched/scheduler.h"
+#include "../../sched/pit.h"
 #include "../../vfs/vfs_interface.h"
 #include "../tty/tty_interface.h"
 #include "../tty/tty.h"
@@ -154,7 +154,7 @@ uint8_t load_image(const char * path, uint64_t x, uint64_t y, struct ppm * image
     uint64_t size = vfs_file_tell(fd);
     vfs_file_seek(fd, 0, 0x0); //SEEK_SET
 
-    uint8_t* buf = malloc(size);
+    uint8_t* buf = kmalloc(size);
     memset(buf, 0, size);
     vfs_file_read(fd, buf, size);
     vfs_file_close(fd);
@@ -162,7 +162,7 @@ uint8_t load_image(const char * path, uint64_t x, uint64_t y, struct ppm * image
     uint16_t magic = (buf[0] << 8) | buf[1];
     if (magic != 0x5036) {
         printf("Invalid magic number\n");
-        free(buf);
+        kfree(buf);
         return 0;
     }
 
@@ -211,9 +211,9 @@ uint8_t draw_image(const char * path, uint64_t x, uint64_t y) {
     if (!gui.ready) return 0;
     if (path == 0) return 0;
 
-    struct ppm * image = malloc(sizeof(struct ppm));
+    struct ppm * image = kmalloc(sizeof(struct ppm));
     if (!load_image(path, x, y, image)) {
-        free(image);
+        kfree(image);
         return 0;
     }
     
@@ -443,5 +443,5 @@ void startx(struct gui_device * devices, uint8_t count) {
     clear(0x000000);
     load_font();
     preload_ux();
-    add_task(create_task(render, 3, get_current_tty()));
+    add_task(create_task(render, get_current_tty(), KERNEL_TASK));
 }

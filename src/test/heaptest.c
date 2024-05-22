@@ -25,30 +25,27 @@ void heaptest() {
     
     printf("Heap test started\n");
     void * allocations[TEST_ROUNDS];
-    set_debug_msg("Initial allocation");
     for (int i = 0; i < TEST_ROUNDS; i++) {
         if (i%1000 == 0) {
             printf("Round %d\n", i);
         }
         int size = rand() % TEST_MAX_SIZE;
-        allocations[i] = malloc(size + 0x1000);
+        allocations[i] = kmalloc(size + 0x1000);
         memset(allocations[i], TEST_VALUE, size);
     }
     printf("Random free\n");
     int freeCount = 0;
-    set_debug_msg("Random free");
     for (int i = 0; i < TEST_ROUNDS; i++) {
-        if (rand() & 1) {free(allocations[i]); freeCount++;}
+        if (rand() & 1) {kfree(allocations[i]); freeCount++;}
     }
     printf("Free count: %d\n", freeCount);
     printf("Random reallocation\n");
-    set_debug_msg("Random reallocation");
     for (int i = 0; i < TEST_ROUNDS; i++) {
         if (i%1000 == 0) {
             printf("Round %d\n", i);
         }
         int size = rand() % TEST_MAX_SIZE;
-        void * ptr = malloc(size + 0x1000);
+        void * ptr = kmalloc(size + 0x1000);
         memset(ptr, TEST_VALUE, size);
     }
     printf("Heap test finished\n");

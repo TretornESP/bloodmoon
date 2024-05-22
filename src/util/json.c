@@ -104,13 +104,13 @@ typedef struct
 static void * default_alloc (size_t size, int zero, void * user_data)
 {
    (void)user_data; /* ignore unused-parameter warn */
-   return zero ? calloc (1, size) : malloc (size);
+   return zero ? kcalloc(1, size) : kmalloc(size);
 }
 
 static void default_free (void * ptr, void * user_data)
 {
    (void)user_data; /* ignore unused-parameter warn */
-   free (ptr);
+   kfree(ptr);
 }
 
 static void * json_alloc (json_state * state, size_t size, int zero)

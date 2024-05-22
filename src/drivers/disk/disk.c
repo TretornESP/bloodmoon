@@ -3,7 +3,7 @@
 #include "../../util/string.h"
 #include "../../util/printf.h"
 #include "../../util/dbgprinter.h"
-#include "../../dev/devices.h"
+#include "../../devices/devices.h"
 
 uint64_t dd_disk_read(uint64_t port, uint64_t size, uint64_t offset, uint8_t* buffer) {
     uint8_t * hw_buffer = get_buffer((uint8_t)port);

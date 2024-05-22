@@ -35,7 +35,7 @@
 #include "../../../util/printf.h"
 #include "../../../util/dbgprinter.h"
 #include "../../../util/string.h"
-#include "../../../dev/pci/pci.h"
+#include "../../../devices/pci/pci.h"
 #include "../../../memory/heap.h"
 #include "../../../memory/paging.h"
 
@@ -259,7 +259,13 @@ void e1000_rxinit(struct e1000 *e)
 {
 	uint8_t* ptr;
 	struct e1000_rx_desc *descs;
-    ptr = (uint8_t*)request_current_pages_identity(GET_PAGE_SIZE(sizeof(struct e1000_rx_desc)*NUM_RX_DESC + 16));
+
+    ptr = (uint8_t*)TO_KERNEL_MAP(
+		request_contiguous_pages(
+			GET_PAGE_SIZE(sizeof(struct e1000_rx_desc)*NUM_RX_DESC + 16)
+		)
+	);
+
     memset(ptr, 0, sizeof(struct e1000_rx_desc)*NUM_RX_DESC);
 	e->rx_free = (uint8_t *)ptr;
 	if((uint64_t)ptr % 16 != 0)
@@ -269,16 +275,21 @@ void e1000_rxinit(struct e1000 *e)
 	{
 		e->rx_descs[i] = (struct e1000_rx_desc *)((uint8_t*)descs + i*16);
 		//XXX: Don't use kmalloc here
-		e->rx_descs[i]->addr = (uint64_t)(uint8_t*)(request_current_pages_identity(GET_PAGE_SIZE(8192 + 16)));
+		e->rx_descs[i]->addr = (uint64_t)(uint8_t*)(TO_KERNEL_MAP(
+			request_contiguous_pages(
+				GET_PAGE_SIZE(8192 + 16))
+			)
+		);
+
         memset((void*)e->rx_descs[i]->addr, 0, 8192);
 		e->rx_descs[i]->status = 0;
 	}
 
 	//give the card the pointer to the descriptors
-    WriteRegister(e, REG_TXDESCLO, (uint32_t)((uint64_t)ptr >> 32) );
-    WriteRegister(e, REG_TXDESCHI, (uint32_t)((uint64_t)ptr & 0xFFFFFFFF));
+    WriteRegister(e, REG_TXDESCLO, (uint32_t)((uint64_t)FROM_KERNEL_MAP(ptr) >> 32) );
+    WriteRegister(e, REG_TXDESCHI, (uint32_t)((uint64_t)FROM_KERNEL_MAP(ptr) & 0xFFFFFFFF));
  
-    WriteRegister(e, REG_RXDESCLO, (uint64_t)ptr);
+    WriteRegister(e, REG_RXDESCLO, (uint64_t)FROM_KERNEL_MAP(ptr));
     WriteRegister(e, REG_RXDESCHI, 0);
 
 	//now setup total length of descriptors
@@ -305,7 +316,11 @@ void e1000_txinit(struct e1000 *e)
 {
 	uint8_t* ptr;
 	struct e1000_tx_desc *descs;
-    ptr = (uint8_t *)(request_current_pages_identity(GET_PAGE_SIZE(sizeof(struct e1000_tx_desc)*NUM_TX_DESC + 16)));
+    ptr = (uint8_t *)TO_KERNEL_MAP(
+		request_contiguous_pages(
+			GET_PAGE_SIZE(sizeof(struct e1000_tx_desc)*NUM_TX_DESC + 16)
+		)
+	);
     memset(ptr, 0, sizeof(struct e1000_tx_desc)*NUM_TX_DESC);
     e->tx_free = (uint8_t *)ptr;
 	if((uint64_t)ptr % 16 != 0)
@@ -314,14 +329,18 @@ void e1000_txinit(struct e1000 *e)
 	for(int i = 0; i < NUM_TX_DESC; i++)
 	{
 		e->tx_descs[i] = (struct e1000_tx_desc *)((uint8_t*)descs + i*16);
-		e->tx_descs[i]->addr = (uint64_t)(uint8_t *)(request_current_pages_identity(GET_PAGE_SIZE(8192 + 16)));
+		e->tx_descs[i]->addr = (uint64_t)(uint8_t *)TO_KERNEL_MAP(
+			request_contiguous_pages(
+				GET_PAGE_SIZE(8192 + 16)
+			)
+		);
         memset((void*)e->tx_descs[i]->addr, 0, 8192);
 		e->tx_descs[i]->cmd = 0;
 	}
 
 	//give the card the pointer to the descriptors
-    WriteRegister(e, REG_TXDESCHI, (uint32_t)((uint64_t)ptr >> 32) );
-    WriteRegister(e, REG_TXDESCLO, (uint32_t)((uint64_t)ptr & 0xFFFFFFFF));
+    WriteRegister(e, REG_TXDESCHI, (uint32_t)((uint64_t)FROM_KERNEL_MAP(ptr) >> 32) );
+    WriteRegister(e, REG_TXDESCLO, (uint32_t)((uint64_t)FROM_KERNEL_MAP(ptr) & 0xFFFFFFFF));
 
 	//now setup total length of descriptors
 	WriteRegister(e, REG_TXDESCLEN, NUM_TX_DESC * 16);
@@ -359,7 +378,7 @@ void print_mac(char *mac)
 
 struct e1000 *e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t base_address)
 {
-	struct e1000 *e = (struct e1000 *)malloc(sizeof(*e));
+	struct e1000 *e = (struct e1000 *)kmalloc(sizeof(*e));
 	e->inject_packet = 0x0;
 	e->inject_status_change = 0x0;
 	e->pciConfigHeader = _pciConfigHeader;
@@ -374,7 +393,14 @@ struct e1000 *e1000_init(struct pci_device_header_0 * _pciConfigHeader, uint32_t
     } else {
         printf("[NIC] Memory Base: %x\n", bar_address);
         uint64_t bar_size = get_bar_size((void*)(uint64_t)bar_address, base_address);
-        map_current_memory_size((void*)(uint64_t)bar_address, (void*)(uint64_t)bar_address, bar_size);
+		uint64_t bar_size_pages = GET_PAGE_SIZE(bar_size);
+		for (uint64_t i = 0; i < bar_size_pages; i++) {
+			map_current_memory(
+				(void*)(uint64_t)bar_address + (i * 4096),
+				(void*)(uint64_t)bar_address + (i * 4096),
+				PAGE_WRITE_BIT
+			);
+		}
         e->mem_base = (uint8_t*)(uint64_t) bar_address;
     }
 	

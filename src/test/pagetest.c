@@ -19,8 +19,8 @@ void pagetest() {
     void * target = request_page();
     memset(target, 0x0, 0x1000);
 
-    map_current_memory((void*)TEST_ADDR1, target);
-    map_current_memory((void*)TEST_ADDR2, target);
+    map_current_memory((void*)TEST_ADDR1, target, PAGE_WRITE_BIT);
+    map_current_memory((void*)TEST_ADDR2, target, PAGE_WRITE_BIT);
 
     *ptr1 = TEST_MAGIC;
 

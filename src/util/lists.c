@@ -5,7 +5,7 @@
 #include "../memory/heap.h"
 
 struct linked_list * linked_list_create() {
-    struct linked_list * list = (struct linked_list *) malloc(sizeof(struct linked_list));
+    struct linked_list * list = (struct linked_list *) kmalloc(sizeof(struct linked_list));
     list->size = 0;
     list->head = NULL;
     list->tail = NULL;
@@ -14,11 +14,11 @@ struct linked_list * linked_list_create() {
 
 void linked_list_destroy(struct linked_list * list) {
     linked_list_remove_all(list);
-    free(list);
+    kfree(list);
 }
 
 void linked_list_add(struct linked_list * list, void * data) {
-    struct node * node = (struct node *) malloc(sizeof(struct node));
+    struct node * node = (struct node *) kmalloc(sizeof(struct node));
     node->data = data;
     node->next = NULL;
     node->prev = NULL;
@@ -47,7 +47,7 @@ void linked_list_remove(struct linked_list * list, void * data) {
             } else {
                 list->tail = node->prev;
             }
-            free(node);
+            kfree(node);
             list->size--;
             return;
         }
@@ -70,7 +70,7 @@ void linked_list_remove_at(struct linked_list * list, int index) {
             } else {
                 list->tail = node->prev;
             }
-            free(node);
+            kfree(node);
             list->size--;
             return;
         }
@@ -83,7 +83,7 @@ void linked_list_remove_all(struct linked_list * list) {
     struct node * node = list->head;
     while (node != NULL) {
         struct node * next = node->next;
-        free(node);
+        kfree(node);
         node = next;
     }
     list->size = 0;
@@ -172,7 +172,7 @@ struct s_circularBuffer{
 extern CircularBuffer CircularBufferCreate(int size)
 {
     int totalSize = sizeof(struct s_circularBuffer) + size;
-    void *p = malloc(totalSize);
+    void *p = kmalloc(totalSize);
     CircularBuffer buffer = (CircularBuffer)p;
     buffer->buffer = p + sizeof(struct s_circularBuffer);
     buffer->size = size;
@@ -180,13 +180,13 @@ extern CircularBuffer CircularBufferCreate(int size)
     return buffer;
 }
 
-void CircularBufferFree(CircularBuffer cBuf)
+void CircularBufferkfree(CircularBuffer cBuf)
 {
     CircularBufferReset(cBuf);
     cBuf->size = 0;
     cBuf->dataSize = 0;
     cBuf->buffer = NULL;
-    free(cBuf);
+    kfree(cBuf);
 }
 
 void CircularBufferReset(CircularBuffer cBuf)
@@ -363,7 +363,7 @@ void CircularBufferPrint(CircularBuffer cBuf, bool hex)
 {
     char *b = cBuf->buffer;
     int cSize = CircularBufferGetSize(cBuf);
-    char *str = malloc(2*cSize+1);
+    char *str = kmalloc(2*cSize+1);
     
     char c;
     
@@ -395,5 +395,5 @@ void CircularBufferPrint(CircularBuffer cBuf, bool hex)
     
     printf("CircularBuffer: %s <size %zu dataSize:%zu>\n",str,CircularBufferGetSize(cBuf),CircularBufferGetDataSize(cBuf));
     
-    free(str);
+    kfree(str);
 }

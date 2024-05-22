@@ -2,7 +2,6 @@
 #define _INTERRUPTS_H
 #include "idt.h"
 
-
 //Modify this to your liking or die trying (DSDT AML STUFF)
 #define PIT_IRQ 0x22
 #define KBD_IRQ 0x21
@@ -84,7 +83,6 @@ struct interrupt_frame_error {
 }__attribute__((packed)); 
 
 void init_interrupts();
-void enable_interrupts();
 void load_interrupts_for_local_cpu();
 void hook_interrupt(uint8_t interrupt, void* handler);
 void unhook_interrupt(uint8_t interrupt);
@@ -93,4 +91,5 @@ void raise_interrupt(uint8_t interrupt);
 void mask_interrupt(uint8_t irq);
 void unmask_interrupt(uint8_t irq);
 void set_io_tty(const char * tty);
+const char * get_io_tty();
 #endif

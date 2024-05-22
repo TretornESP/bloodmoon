@@ -2,15 +2,15 @@
 #include "../util/printf.h"
 #include "../memory/heap.h"
 #include "../util/string.h"
-#include "../dev/devices.h"
+#include "../devices/devices.h"
 
 struct buffer * dbg_buffer = 0;
 char dbg_device[32];
 int started = 0;
 
 struct buffer* allocate() {
-    struct buffer* buffer = (struct buffer*)malloc(sizeof(struct buffer));
-    buffer->data = malloc(MSG_BUFFER_LEN);
+    struct buffer* buffer = (struct buffer*)kmalloc(sizeof(struct buffer));
+    buffer->data = kmalloc(MSG_BUFFER_LEN);
     buffer->size = MSG_BUFFER_LEN;
     buffer->pos = 0;
     buffer->next = 0;
@@ -47,28 +47,28 @@ void clean() {
     struct buffer* current = dbg_buffer;
     while (current != 0) {
         struct buffer* next = current->next;
-        if (current->data) free(current->data);
-        free(current);
+        if (current->data) kfree(current->data);
+        kfree(current);
         current = next;
     }
     dbg_buffer = 0;
 }
 
 void vdbg(const char* format, va_list va) {
-    if (!heap_safeguard()) return;
-    char* buffer = (char*)calloc(1, MSG_MAX_LEN);
+    if (!heap_safeguard(&kernelGlobalHeap)) return;
+    char* buffer = (char*)kcalloc(1, MSG_MAX_LEN);
     if (!buffer) return;
 
     vsnprintf(buffer, MSG_MAX_LEN, format, va);
 
     add_message(buffer);
 
-    free(buffer);
+    kfree(buffer);
 }
 
 uint8_t dbg(const char* format, ...) {
-    if (!heap_safeguard()) return 0;
-    char* buffer = (char*)calloc(1, MSG_MAX_LEN);
+    if (!heap_safeguard(&kernelGlobalHeap)) return 0;
+    char* buffer = (char*)kcalloc(1, MSG_MAX_LEN);
     if (!buffer) return 0;
 
     va_list va;
@@ -78,7 +78,7 @@ uint8_t dbg(const char* format, ...) {
 
     add_message(buffer);
 
-    free(buffer);
+    kfree(buffer);
     return 1;
 }
 
@@ -105,7 +105,7 @@ void dbg_init(const char* device) {
 }
 
 uint8_t dbg_flush() {
-    if (!heap_safeguard()) return 0;
+    if (!heap_safeguard(&kernelGlobalHeap)) return 0;
 
     if (dbg_buffer == 0) {
         return 0;

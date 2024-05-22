@@ -1,6 +1,6 @@
 #include "tty_interface.h"
 #include "tty.h"
-#include "../../dev/devices.h"
+#include "../../devices/devices.h"
 
 
 char * create_tty(char* in, char* out, int mode, int inbs, int outbs) {
@@ -9,14 +9,14 @@ char * create_tty(char* in, char* out, int mode, int inbs, int outbs) {
     if (!is_valid_tty(tty)) {
         return 0;
     }
-    return create_device((void*)tty, TTY_MAJOR, index);
+    return device_create((void*)tty, TTY_MAJOR, index);
 }
 
 void destroy_tty(const char * device) {
     struct device* tty_dev = device_search(device);
     struct tty* tty = (struct tty*)tty_dev->internal_id;
     tty_destroy(tty);
-    destroy_device(device);
+    device_destroy(device);
 }
 
 

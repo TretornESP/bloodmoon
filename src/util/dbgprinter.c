@@ -1,34 +1,22 @@
 #include "dbgprinter.h"
 #include "../bootservices/bootservices.h"
-#include "../scheduling/scheduler.h"
+#include "../sched/scheduler.h"
 #include "../debugger/debug.h"
 #include "../io/io.h"
 #include "../drivers/ps2/keyboard.h"
-#include "../arch/ints.h"
-#include "../dev/fadt/fadt.h"
+#include "../devices/fadt/fadt.h"
+#include "../util/printf.h"
 #include "string.h"
-#define BUFFERSIZE 128
+#define BUFFERSIZE 0x1000
 #define MSG_NUM 0x1000
 
-struct dmsg * head = 0;
-char dbgmsg[MSG_NUM][BUFFERSIZE] = {0};
 char boot_conversor_buffer[BUFFERSIZE] = {0};
-int dbgmsg_index = 0;
-int dbgmsg_index2 = 0;
 
 #define MAXSTR(x) (strlen(x) > BUFFERSIZE ? BUFFERSIZE : strlen(x))
 
-void dbg_print(const char * str) {
+void __attribute__((noinline)) dbg_print(const char * str) {
     void (*writer)(const char*, uint64_t) = get_terminal_writer();
     writer(str, MAXSTR(str));
-}
-
-void set_debug_msg(const char * str) {
-    memset(dbgmsg[dbgmsg_index], 0, BUFFERSIZE);
-    strncpy(dbgmsg[dbgmsg_index], str, BUFFERSIZE);
-    dbgmsg[dbgmsg_index][BUFFERSIZE - 1] = 0;
-    dbgmsg_index = (dbgmsg_index + 1) % MSG_NUM;
-    dbgmsg_index2++;
 }
 
 void putchar(char chr) {
@@ -36,135 +24,18 @@ void putchar(char chr) {
     writer(&chr, 1);
 }
 
-void set_debug_data(const char * file, int line, const char * func) {
-    memset(dbgmsg[dbgmsg_index], 0, BUFFERSIZE);
-    strncpy(dbgmsg[dbgmsg_index], file, BUFFERSIZE);
-    dbgmsg[dbgmsg_index][BUFFERSIZE - 1] = 0;
-    strncat(dbgmsg[dbgmsg_index], ":", BUFFERSIZE - strlen(dbgmsg[dbgmsg_index]));
-    strncat(dbgmsg[dbgmsg_index], itoa(line, 10), BUFFERSIZE - strlen(dbgmsg[dbgmsg_index]));
-    strncat(dbgmsg[dbgmsg_index], ":", BUFFERSIZE - strlen(dbgmsg[dbgmsg_index]));
-    strncat(dbgmsg[dbgmsg_index], func, BUFFERSIZE - strlen(dbgmsg[dbgmsg_index]));
-    //Add \\n
-    strncat(dbgmsg[dbgmsg_index], "\n", BUFFERSIZE - strlen(dbgmsg[dbgmsg_index]));
-    dbgmsg[dbgmsg_index][BUFFERSIZE - 1] = 0;
-    dbgmsg_index = (dbgmsg_index + 1) % MSG_NUM;
-    dbgmsg_index2++;
-}
-
 __attribute__((noreturn)) void panic_reboot(const char * str) {
-    
+    __asm__ volatile("cli");
     dbg_print("\nKERNEL PANIC!\n");
     dbg_print(str);
-
-    dbg_print("\n\n");
-
-    dbg_print("Stack trace, calls: ");
-    dbg_print(itoa(dbgmsg_index2, 10));
-    dbg_print("\n");
-    for (int i = 0; i < MSG_NUM; i++) {
-        if (dbgmsg[i][0] != 0) {
-            dbg_print(dbgmsg[i]);
-        }
-    }
-    dbg_print("\n");
-
-    if (!dbg_is_present()) {
-        dbg_print("Debugger not present\n");
-        
-    } else {
-        dbg_print("Debugger attached to ");
-        dbg_print(dbg_get_device());
-        dbg_print("\n");
-
-
-        if (!dbg("[KERNEL PANIC!]\n")) {
-            goto fallback;
-        }
-        if (!dbg("[str: %s]\n", str)) {
-            goto fallback;
-        }
-        if (!dbg("[dbgmsg: %s]\n", dbgmsg)) {
-            goto fallback;
-        }
-        if (!dbg_flush()) {
-            goto fallback;
-        }
-    }
-
-    lock_scheduler_explicit();
-    __asm__ volatile("sti");
-    char pressed = 0;
-    printf("Press enter to reboot...");
-    while (pressed != 0x1C) {
-        pressed = inb(0x60);
-    }
     reboot();
-    __asm__ volatile("cli");
-    while(1); //Supress warning
-
-    fallback:
-    dbg_print("Debugger failed to print panic message, probably the heap isn't working fine!\n");
-    
-    lock_scheduler_explicit();
-    __asm__ volatile("sti");
-    pressed = 0;
-    printf("Press enter to reboot...");
-    while (pressed != 0x1C) {
-        dbg_print(itoa(pressed, 16));
-        pressed = inb(0x60);
-    }
-    reboot();
-    __asm__ volatile("cli");
     while(1); //Supress warning
 }
 
 __attribute__((noreturn)) void panic(const char * str) {
-    
+    __asm__ volatile("cli");
     dbg_print("\nKERNEL PANIC!\n");
     dbg_print(str);
-
-    dbg_print("\n\n");
-
-    dbg_print("Stack trace, calls: ");
-    dbg_print(itoa(dbgmsg_index2, 10));
-    dbg_print("\n");
-    for (int i = 0; i < MSG_NUM; i++) {
-        if (dbgmsg[i][0] != 0) {
-            dbg_print(dbgmsg[i]);
-        }
-    }
-    dbg_print("\n");
-
-    if (!dbg_is_present()) {
-        dbg_print("Debugger not present\n");
-        
-    } else {
-        dbg_print("Debugger attached to ");
-        dbg_print(dbg_get_device());
-        dbg_print("\n");
-
-
-        if (!dbg("[KERNEL PANIC!]\n")) {
-            goto fallback;
-        }
-        if (!dbg("[str: %s]\n", str)) {
-            goto fallback;
-        }
-        if (!dbg("[dbgmsg: %s]\n", dbgmsg)) {
-            goto fallback;
-        }
-        if (!dbg_flush()) {
-            goto fallback;
-        }
-    }
-
-    __asm__ volatile("cli");
-    while(1);
-
-    fallback:
-    dbg_print("Debugger failed to print panic message, probably the heap isn't working fine!\n");
-    
-    __asm__ volatile("cli");
     while(1);
 }
 

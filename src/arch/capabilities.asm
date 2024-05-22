@@ -29,6 +29,29 @@ getCr8:
     mov rax, cr8
     ret
 
+getEfer:
+    mov rax, 0xC0000080
+    rdmsr
+    ret
+
+;Get the fs base msr
+getFsBase:
+    mov rax, 0xC0000100
+    rdmsr
+    ret
+
+;Get the gs base msr
+getGsBase:
+    mov rax, 0xc0000101
+    rdmsr
+    ret
+
+;Get the kernel gs base msr
+getKernelGsBase:
+    mov rax, 0xC0000102
+    rdmsr
+    ret
+
 ;Get the rflags register
 getRflags:
     pushfq
@@ -69,6 +92,10 @@ GLOBAL getCr2
 GLOBAL getCr3
 GLOBAL getCr4
 GLOBAL getCr8
+GLOBAL getEfer
+GLOBAL getFsBase
+GLOBAL getGsBase
+GLOBAL getKernelGsBase
 GLOBAL getRflags
 GLOBAL getApicId
 GLOBAL reloadGsFs

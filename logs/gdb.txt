@@ -1,0 +1,7 @@
+Continuing.
+
+Thread 1 hit Breakpoint 3, PageFault_Handler (ctx=ctx@entry=0xffffffff7ffdfaf0, cpuid=cpuid@entry=0 '\000') at /home/norte/bloodmoon/src/io/interrupts.c:56
+56	void PageFault_Handler(struct cpu_context* ctx, uint8_t cpuid) {
+warning: Error detected on fd 0
+error detected on stdin
+Remote communication error.  Target disconnected.: Broken pipe.
