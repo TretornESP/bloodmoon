@@ -8,7 +8,7 @@
 #include "../memory/heap.h"
 #include "../io/interrupts.h"
 
-lock_t sleep_lock = 0;
+spinlock_t sleep_lock = {.mut = 0, .flags = 0};
 
 struct sleep_queue {
     uint64_t started_at;
@@ -24,7 +24,7 @@ struct sleep_queue * sleep_reason_queue_head = 0x0;
 
 void wakeup_handler() {
     //Remove all elements which have expired
-    acquire_lock_ns(&sleep_lock);
+    acquire_spinlock(&sleep_lock);
     struct sleep_queue * sq = sleep_time_queue_head;
     uint32_t res = 0;
     while (sq != 0x0) {
@@ -51,14 +51,14 @@ void wakeup_handler() {
 
             struct sleep_queue * tmp = sq;
             sq = sq->next;
-            kfree(tmp);
+            sfree(tmp);
 
             res++;
         } else {
             sq = sq->next;
         }
     }
-    release_lock_ns(&sleep_lock);
+    release_spinlock(&sleep_lock);
 }
 
 void init_sline() {
@@ -66,16 +66,16 @@ void init_sline() {
 }
 
 void _tsleep(uint64_t ticks) {
-    acquire_lock_ns(&sleep_lock);
+    acquire_spinlock(&sleep_lock);
 
     struct task *ctask = get_current_task();
     if (ctask == 0x0) {
-        release_lock_ns(&sleep_lock);
+        release_spinlock(&sleep_lock);
         return;
     }
 
     //printf("I want to sleep for %d ticks\n", ticks);
-    struct sleep_queue * sq = (struct sleep_queue *)kmalloc(sizeof(struct sleep_queue));
+    struct sleep_queue * sq = (struct sleep_queue *)smalloc(sizeof(struct sleep_queue));
     sq->started_at = get_ticks_since_boot();
     sq->expires_in = ticks;
     sq->task = ctask;
@@ -92,7 +92,7 @@ void _tsleep(uint64_t ticks) {
     sleep_time_queue_head = sq;
 
     sq->task->state = TASK_UNINTERRUPTIBLE;
-    release_lock_ns(&sleep_lock);
+    release_spinlock(&sleep_lock);
 }
 
 void _ssleep(uint64_t seconds) {
@@ -105,15 +105,15 @@ void _msleep(uint64_t milliseconds) {
 }
 
 void _ksleep(void* addr) {
-    acquire_lock_ns(&sleep_lock);
+    acquire_spinlock(&sleep_lock);
 
     struct task *ctask = get_current_task();
     if (ctask == 0x0) {
-        release_lock_ns(&sleep_lock);
+        release_spinlock(&sleep_lock);
         return;
     }
 
-    struct sleep_queue * sq = (struct sleep_queue *)kmalloc(sizeof(struct sleep_queue));
+    struct sleep_queue * sq = (struct sleep_queue *)smalloc(sizeof(struct sleep_queue));
     sq->started_at = get_ticks_since_boot();
     sq->expires_in = 0;
     sq->task = ctask;
@@ -131,11 +131,11 @@ void _ksleep(void* addr) {
     sleep_reason_queue_head = sq;
 
     sq->task->state = TASK_UNINTERRUPTIBLE;
-    acquire_lock_ns(&sleep_lock);
+    acquire_spinlock(&sleep_lock);
 }
 
 void _kwakeup(void* addr) {
-    acquire_lock_ns(&sleep_lock);
+    acquire_spinlock(&sleep_lock);
     //Remove all elements which match the address
 
     struct sleep_queue * sq = sleep_reason_queue_head;
@@ -162,10 +162,10 @@ void _kwakeup(void* addr) {
 
             struct sleep_queue * tmp = sq;
             sq = sq->next;
-            kfree(tmp);
+            sfree(tmp);
         } else {
             sq = sq->next;
         }
     }
-    release_lock_ns(&sleep_lock);
+    release_spinlock(&sleep_lock);
 }

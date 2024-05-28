@@ -26,8 +26,8 @@ struct heap {
     uint64_t freeSize;
     uint8_t isKernel;
     uint8_t ready;
-    lock_t heap_lock;
-    lock_t stack_lock;
+    spinlock_t heap_lock;
+    spinlock_t stack_lock;
 };
 
 extern struct heap kernelGlobalHeap;
@@ -40,6 +40,12 @@ void kfree(void* address);
 void * kcalloc(uint64_t num, uint64_t size);
 void * krealloc(void* buffer, uint64_t size);
 void * kstackalloc(uint64_t length);
+
+void * smalloc(uint64_t size);
+void sfree(void* address);
+
+void * sigmalloc(uint64_t size);
+void sigfree(void* address);
 
 void create_user_heap(struct task * task, struct heap * cheap);
 void * umalloc(struct task* task, uint64_t size);

@@ -1,12 +1,13 @@
 #include "concurrency.h"
+#include "../arch/capabilities.h"
 #include "scheduler.h"
 #include "sline.h"
 
 inline int wait(semaphore_t * lock) {
-	acquire_lock_ns(&lock->mut);
+	acquire_spinlock(&(lock->mut));
 	while (atomic_load_explicit(&lock->val, memory_order_relaxed) <= 0);
 	atomic_decrement(&lock->val);
-	release_lock_ns(&lock->mut);
+	release_spinlock(&(lock->mut));
 	return 0;
 }
 
@@ -15,11 +16,13 @@ inline int signal(semaphore_t * lock) {
 	return 0;
 }
 
-inline void acquire_lock_ns(lock_t* lock) {
-	while( atomic_flag_test_and_set_explicit( lock, memory_order_acquire ) )
+inline void acquire_spinlock(spinlock_t* lock) {
+	while( atomic_flag_test_and_set_explicit(&(lock->mut), memory_order_acquire ) )
 	{
 		__asm__ volatile("pause");
 	}
+	lock->flags = getRflags();
+	__asm__ volatile("cli");
 }
 
 inline void acquire_lock(lock_t* lock) {
@@ -30,8 +33,9 @@ inline void acquire_lock(lock_t* lock) {
     }
 }
 
-inline void release_lock_ns(lock_t* lock) {
-	atomic_flag_clear_explicit(lock, memory_order_release);
+inline void release_spinlock(spinlock_t* lock) {
+	atomic_flag_clear_explicit(&(lock->mut), memory_order_release);
+	if (lock->flags & 0x200) __asm__ volatile("sti");
 }
 
 inline void release_lock(lock_t * lock )

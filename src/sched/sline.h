@@ -29,9 +29,8 @@
     yield();
 
 #define KWAKEUP(addr) \
-    _kwakeup(addr); \
-    yield();
-
+    _kwakeup(addr);
+    
 void init_sline();
 
 void _tsleep(uint64_t ticks);

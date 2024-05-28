@@ -50,6 +50,7 @@ newctxswtch:
     save(20,rax) ;cs
     pushfq
     pop rax
+    or rax, 0x200 ; Interrupts will be enabled
     save(21,rax) ; rflags
     mov rax, rsp
     save(22,rax) ; rsp
@@ -57,6 +58,8 @@ newctxswtch:
     save(23,rax) ; ss
 
     fxsave [rdx]
+
+    ;Set IF bit in offset 21
 
     load(0,rax)
     mov cr3, rax

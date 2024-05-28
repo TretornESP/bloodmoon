@@ -87,6 +87,11 @@ setGsBase:
     wrmsr
     ret
 
+setRflags:
+    push rdi
+    popfq
+    ret
+
 GLOBAL getCr0
 GLOBAL getCr2
 GLOBAL getCr3
@@ -100,3 +105,4 @@ GLOBAL getRflags
 GLOBAL getApicId
 GLOBAL reloadGsFs
 GLOBAL setGsBase
+GLOBAL setRflags

@@ -10,6 +10,8 @@
 #include "../../io/interrupts.h"
 
 struct apic_context actx;
+volatile uint8_t apic_eoi_required = 0;
+volatile uint64_t apic_last_interrupt = 0;
 
 void write_lapic_register(void * lapic_addr, uint64_t offset, uint32_t value) {
     *((volatile uint32_t*)((void*)((uint64_t)lapic_addr+offset))) = value;
@@ -264,8 +266,31 @@ void register_apic(struct madt_header * madt, char* (*cb)(void*, uint8_t, uint64
 
 }
 
-void local_apic_eoi(uint8_t cpu_id){        
+void local_apic_eoi(uint8_t cpu_id, uint64_t interrupt_number) {
+    if (!apic_eoi_required) {
+        panic("No EOI was requested\n");
+    }
+    if (interrupt_number != apic_last_interrupt) {
+        panic("Invalid EOI request\n");
+    }
+    apic_eoi_required = 0;
     write_lapic_register(actx.lapic_address[cpu_id]->virtual_address, LAPIC_EOI, 0);
+}
+
+void notify_eoi_required(uint64_t interrupt_number){
+    if (apic_eoi_required) {
+        panic("EOI already requested\n");
+    }
+    apic_eoi_required = 1;
+    apic_last_interrupt = interrupt_number;
+}
+
+uint64_t eoi_pending() {
+    if (apic_eoi_required) {
+        return apic_last_interrupt;
+    } else {
+        return 0;
+    }
 }
 
 void io_change_irq_state(uint8_t irq, uint8_t io_apic_id, uint8_t is_enable){

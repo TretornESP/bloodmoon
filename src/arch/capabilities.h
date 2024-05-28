@@ -12,4 +12,5 @@ extern uint64_t getGsBase();
 extern uint64_t getKernelGsBase();
 extern uint64_t getRflags();
 extern uint8_t  getApicId();
+extern void setRflags(uint64_t flags);
 #endif

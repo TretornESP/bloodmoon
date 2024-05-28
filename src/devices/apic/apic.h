@@ -158,7 +158,9 @@ struct apic_context {
 };
 
 void register_apic(struct madt_header *, char* (*cb)(void*, uint8_t, uint64_t));
-void local_apic_eoi(uint8_t cpu_id);
+void local_apic_eoi(uint8_t cpu_id, uint64_t interrupt_number);
 uint8_t ioapic_mask(uint8_t irq, uint8_t enable);
 uint8_t ioapic_get_max_interrupts();
+void notify_eoi_required(uint64_t interrupt_number);
+uint64_t eoi_pending();
 #endif

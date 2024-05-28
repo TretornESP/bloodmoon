@@ -97,7 +97,16 @@ void unblock_task(struct task * task) {
 }
 
 void __attribute__((noinline)) yield() {
-    if (irq_disable_counter || !scheduler_ready) return;
+    __asm__("cli");
+    if (irq_disable_counter || !scheduler_ready) {
+        __asm__("sti");
+        return;
+    }
+    volatile uint64_t eoi = eoi_pending();
+    if (eoi) {
+        printf("EOI %llx\n", eoi);
+        panic("EOI pending\n");
+    }
     if (current_task->last_scheduled != 0)
         current_task->cpu_time += (get_ticks_since_boot() - current_task->last_scheduled);
 
@@ -319,7 +328,7 @@ void add_signal(int16_t pid, int signal, void * data, uint64_t size) {
     }
 
     //Add signal to signal_queue linked list
-    struct task_signal * signal_struct = kmalloc(sizeof(struct task_signal));
+    struct task_signal * signal_struct = sigmalloc(sizeof(struct task_signal));
     signal_struct->signal = signal;
     signal_struct->next = 0;
     signal_struct->signal_data = data;
@@ -550,7 +559,7 @@ void __attribute__((noinline)) process_signals() {
         }
 
         sighandler_t handler = current_task->signal_handlers[current->signal];
-        kfree(current);
+        sigfree(current);
 
         if (handler != 0) {
             handler(current->signal, current->signal_data, current->signal_data_size);

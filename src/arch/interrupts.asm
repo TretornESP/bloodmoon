@@ -40,7 +40,7 @@ donotswapgs:
     mov rsi, [gs:0x0]
 
     call global_interrupt_handler
-
+    
     pop    rax
     mov    cr3, rax
     pop    qword [gs:0x8]

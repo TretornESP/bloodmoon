@@ -206,6 +206,7 @@ const char * get_io_tty() {
 }
 
 void global_interrupt_handler(struct cpu_context* ctx, uint8_t cpu_id) {
+    notify_eoi_required(ctx->interrupt_number);
     void (*handler)(struct cpu_context* ctx, uint8_t cpu_id) = (void*)dynamic_interrupt_handlers[ctx->interrupt_number];
     
     if (ctx->interrupt_number == DYNAMIC_HANDLER) {
@@ -238,12 +239,18 @@ void global_interrupt_handler(struct cpu_context* ctx, uint8_t cpu_id) {
         current_task->tty = current_task->regular_tty;
     }
 
-    local_apic_eoi(cpu_id);
-
-    if (requires_wakeup()) {
-        wakeup();
-    } else if (requires_preemption()) {
-        yield();
+    if (ctx->interrupt_number == PIT_IRQ) {
+        if (requires_wakeup()) {
+            wakeup();
+            local_apic_eoi(cpu_id, ctx->interrupt_number);
+        } else if (requires_preemption()) {
+            local_apic_eoi(cpu_id, ctx->interrupt_number);
+            yield();
+        } else {
+            local_apic_eoi(cpu_id, ctx->interrupt_number);
+        }
+    } else {
+        local_apic_eoi(cpu_id, ctx->interrupt_number);
     }
 }
 

@@ -13,27 +13,33 @@ typedef volatile _Atomic(uint8_t) atomic_uint8_t;
 typedef volatile _Atomic(int) lock_t;
 typedef volatile _Atomic(int) atomic_flag_t;
 typedef volatile struct {
-	volatile atomic_int_t val;
+	volatile uint64_t flags;
 	volatile lock_t mut;
+} spinlock_t;
+typedef volatile struct {
+	volatile atomic_int_t val;
+	volatile spinlock_t mut;
 } semaphore_t;
+
+
+void init_lock(lock_t * lock);
+void acquire_lock(lock_t* lock);
+void release_lock(lock_t* lock);
+int try_acquire_lock(lock_t * lock);
+
+void acquire_spinlock(spinlock_t* lock);
+void release_spinlock(spinlock_t* lock);
 
 int wait(semaphore_t * lock);
 int signal(semaphore_t * lock);
-void acquire_lock(lock_t* lock);
-void acquire_lock_ns(lock_t* lock);
-void release_lock(lock_t* lock);
-void release_lock_ns(lock_t* lock);
-int try_acquire_lock(lock_t * lock);
-void init_lock(lock_t * lock);
-
 #define LOCK(x) \
 	acquire_lock(x);
 #define UNLOCK(x) \
 	release_lock(x);
 #define LOCK_NS(x) \
-	acquire_lock_ns(x);
+	acquire_spinlock(x);
 #define UNLOCK_NS(x) \
-	release_lock_ns(x);
+	release_spinlock(x);
 
 static inline void atomic_set_to_zero(atomic_int_t * value) {
 	atomic_store_explicit( value, 0, memory_order_relaxed );

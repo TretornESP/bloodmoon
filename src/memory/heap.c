@@ -11,14 +11,16 @@
 #include "../util/string.h"
 #include "../util/dbgprinter.h"
 
-#define LOCK_HEAP(heap) (acquire_lock(&((heap)->heap_lock)))
-#define UNLOCK_HEAP(heap) (release_lock(&((heap)->heap_lock)))
-#define UNLOCK_RETURN(heap, ret) {release_lock(&((heap)->heap_lock)); return ret;}
-#define LOCK_STACK(heap) (acquire_lock(&((heap)->heap_lock)))
-#define UNLOCK_STACK(heap) (release_lock(&((heap)->heap_lock)))
-#define UNLOCK_RETURN_STACK(heap, ret) {release_lock(&((heap)->heap_lock)); return ret;}
+#define LOCK_HEAP(heap) (acquire_spinlock(&((heap)->heap_lock)))
+#define UNLOCK_HEAP(heap) (release_spinlock(&((heap)->heap_lock)))
+#define UNLOCK_RETURN(heap, ret) {release_spinlock(&((heap)->heap_lock)); return ret;}
+#define LOCK_STACK(heap) (acquire_spinlock(&((heap)->stack_lock)))
+#define UNLOCK_STACK(heap) (release_spinlock(&((heap)->stack_lock)))
+#define UNLOCK_RETURN_STACK(heap, ret) {release_spinlock(&((heap)->stack_lock)); return ret;}
 
 struct heap kernelGlobalHeap;
+struct heap kernelSleepHeap;
+struct heap kernelSignalHeap;
 
 void * _malloc(struct page_directory* pml4, struct heap * cheap, uint64_t size);
 void expand_heap(struct page_directory* pml4, struct heap * cheap, uint64_t length);
@@ -59,8 +61,10 @@ void _initHeap(struct page_directory * pml4, struct heap * cheap, void* heapStar
     cheap->totalSize += PAGESIZE;
     cheap->freeSize += PAGESIZE;
     cheap->isKernel = !user;
-    cheap->heap_lock = 0;
-    cheap->stack_lock = 0;
+    cheap->heap_lock.mut = 0;
+    cheap->heap_lock.flags = 0;
+    cheap->stack_lock.mut = 0;
+    cheap->stack_lock.flags = 0;
     cheap->ready = 1;
 }
 
@@ -324,8 +328,17 @@ void init_heap() {
     void * kernelHeapEndAddress =    (void*)0xffffffff6ffff000;
     void * kernelStackStartAddress = (void*)0xffffffff70000000;
     void * kernelStackEndAddress =   (void*)0xffffffff7ffff000;
-    
+    void * kernelSHeapStartAddress = (void*)0xffffffff80000000;
+    void * kernelSHeapEndAddress =   (void*)0xffffffff8ffff000;
+    void * kernelSStackStartAddress = (void*)0xffffffff90000000;
+    void * kernelSStackEndAddress =   (void*)0xffffffff9ffff000;
+    void * kernelSleepHeapStartAddress = (void*)0xffffffffa0000000;
+    void * kernelSleepHeapEndAddress =   (void*)0xffffffffaffff000;
+    void * kernelSleepStackStartAddress = (void*)0xffffffffb0000000;
+    void * kernelSleepStackEndAddress =   (void*)0xffffffffbffff000;
     _initHeap(get_pml4(), &kernelGlobalHeap, kernelHeapStartAddress, kernelHeapEndAddress, kernelStackStartAddress, kernelStackEndAddress, 0);
+    _initHeap(get_pml4(), &kernelSleepHeap, kernelSHeapStartAddress, kernelSHeapEndAddress, kernelSStackStartAddress, kernelSStackEndAddress, 0);
+    _initHeap(get_pml4(), &kernelSignalHeap, kernelSleepHeapStartAddress, kernelSleepHeapEndAddress, kernelSleepStackStartAddress, kernelSleepStackEndAddress, 0);
 }
 
 void create_user_heap(struct task * task, struct heap * cheap) {
@@ -336,6 +349,32 @@ void create_user_heap(struct task * task, struct heap * cheap) {
     
     _initHeap(TO_KERNEL_MAP(task->pd), cheap, userHeapStartAddress, userHeapEndAddress, userStackStartAddress, userStackEndAddress, 1);
     task->heap = (void*)cheap;
+}
+
+void * smalloc(uint64_t size) {
+    LOCK_HEAP(&kernelSleepHeap);
+    void * result = _malloc(get_pml4(), &kernelSleepHeap, size);
+    UNLOCK_HEAP(&kernelSleepHeap);
+    return result;
+}
+
+void sfree(void* address) {
+    LOCK_HEAP(&kernelSleepHeap);
+    _free(&kernelSleepHeap, address);
+    UNLOCK_HEAP(&kernelSleepHeap);
+}
+
+void * sigmalloc(uint64_t size) {
+    LOCK_HEAP(&kernelSignalHeap);
+    void * result = _malloc(get_pml4(), &kernelSignalHeap, size);
+    UNLOCK_HEAP(&kernelSignalHeap);
+    return result;
+}
+
+void sigfree(void* address) {
+    LOCK_HEAP(&kernelSignalHeap);
+    _free(&kernelSignalHeap, address);
+    UNLOCK_HEAP(&kernelSignalHeap);
 }
 
 void * kmalloc(uint64_t size) {
