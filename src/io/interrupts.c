@@ -21,6 +21,7 @@
 #include "../sched/sline.h"
 #include "../syscall/syscall.h"
 #define __UNDEFINED_HANDLER __asm__("cli"); dbg_print(__func__); (void)frame; panic("Undefined interrupt handler");
+#define IS_EXCEPTION(ctx)(ctx->interrupt_number < 32)
 
 extern void* interrupt_vector[IDT_ENTRY_COUNT];
 char io_tty[32] = "default\0";
@@ -206,7 +207,7 @@ const char * get_io_tty() {
 }
 
 void global_interrupt_handler(struct cpu_context* ctx, uint8_t cpu_id) {
-    notify_eoi_required(ctx->interrupt_number);
+    if (!IS_EXCEPTION(ctx)) notify_eoi_required(ctx->interrupt_number);
     void (*handler)(struct cpu_context* ctx, uint8_t cpu_id) = (void*)dynamic_interrupt_handlers[ctx->interrupt_number];
     
     if (ctx->interrupt_number == DYNAMIC_HANDLER) {
@@ -239,6 +240,8 @@ void global_interrupt_handler(struct cpu_context* ctx, uint8_t cpu_id) {
         current_task->tty = current_task->regular_tty;
     }
 
+    if (IS_EXCEPTION(ctx)) return;
+    
     if (ctx->interrupt_number == PIT_IRQ) {
         if (requires_wakeup()) {
             wakeup();

@@ -1,0 +1,6 @@
+[binaries]
+c = 'x86_64-bloodmoon-gcc'
+cpp = 'x86_64-bloodmoon-g++'
+
+[properties]
+needs_exe_wrapper = true

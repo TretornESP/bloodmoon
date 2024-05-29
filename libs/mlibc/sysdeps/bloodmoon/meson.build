@@ -61,8 +61,8 @@ if not no_headers
 		subdir: 'abi-bits'
 	)
 	install_headers(
-		'include/kot/syscall.h',
-		subdir: 'kot'
+		'include/bloodmoon/syscall.h',
+		subdir: 'bloodmoon'
 	)
 endif
 

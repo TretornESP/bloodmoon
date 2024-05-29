@@ -1,4 +1,4 @@
-project('mlibc', default_options: ['warning_level=2', 'cpp_std=c++20'])
+project('mlibc', default_options: ['warning_level=2', 'cpp_std=c++20'], version: '5.0.0')
 
 fs = import('fs')
 
@@ -248,6 +248,10 @@ elif host_machine.system() == 'dripos'
 	rtld_include_dirs += include_directories('sysdeps/dripos/include')
 	libc_include_dirs += include_directories('sysdeps/dripos/include')
 	subdir('sysdeps/dripos')
+elif host.machine.system() == 'bloodmoon'
+	rtld_include_dirs += include_directories('sysdeps/bloodmoon/include')
+	libc_include_dirs += include_directories('sysdeps/bloodmoon/include')
+	subdir('sysdeps/bloodmoon')
 else
 	error('No sysdeps defined for OS: ' + host_machine.system())
 endif

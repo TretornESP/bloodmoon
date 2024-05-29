@@ -1393,9 +1393,10 @@ int sys_eventfd_create(unsigned int initval, int flags, int *fd) {
 	SignalGuard sguard;
 
 	uint32_t proto_flags = 0;
-	if (flags & EFD_NONBLOCK) proto_flags |= managarm::posix::EventFdFlags::NONBLOCK;
-	if (flags & EFD_CLOEXEC) proto_flags |= managarm::posix::EventFdFlags::CLOEXEC;
-	if (flags & EFD_SEMAPHORE) proto_flags |= managarm::posix::EventFdFlags::SEMAPHORE;
+	if (flags & EFD_NONBLOCK) proto_flags |= managarm::posix::OpenFlags::OF_NONBLOCK;
+	if (flags & EFD_CLOEXEC) proto_flags |= managarm::posix::OpenFlags::OF_CLOEXEC;
+	if (flags & EFD_SEMAPHORE)
+		return ENOSYS;
 
 	managarm::posix::EventfdCreateRequest<MemoryAllocator> req(getSysdepsAllocator());
 	req.set_flags(proto_flags);
@@ -1619,8 +1620,6 @@ int sys_read(int fd, void *data, size_t max_size, ssize_t *bytes_read) {
 		return EINVAL;
 	}else if(resp.error() == managarm::fs::Errors::WOULD_BLOCK) {
 		return EAGAIN;
-	}else if(resp.error() == managarm::fs::Errors::IS_DIRECTORY) {
-		return EISDIR;
 	}else if(resp.error() == managarm::fs::Errors::END_OF_FILE) {
 		*bytes_read = 0;
 		return 0;

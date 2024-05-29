@@ -17,7 +17,6 @@
 
 import argparse
 import io
-import os
 import pathlib
 import string
 import sys
@@ -634,7 +633,7 @@ def parse(file: pathlib.Path, base_dir: pathlib.Path):
     try:
         tu = index.parse(
             base_dir / file,
-            args=[f"-I{p}" for p in config["includes"]] + ["-I" + str(base_dir), "-D_GNU_SOURCE"],
+            args=[f"-I{p}" for p in config["includes"]] + ["-I" + str(base_dir)],
             options=clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
             | clang.cindex.TranslationUnit.PARSE_SKIP_FUNCTION_BODIES,
         )
@@ -668,12 +667,12 @@ if __name__ == "__main__":
 
     colorama.just_fix_windows_console()
 
-    with io.open(os.path.join(os.path.dirname(__file__), "rust-libc-config.yml"), "r") as f:
+    with io.open("scripts/rust-libc-config.yml", "r") as f:
         config = yaml.load(f, yaml.CSafeLoader)
 
     path = pathlib.Path(args.path)
 
-    with io.open(os.path.join(os.path.dirname(__file__), "rust-libc-header.rs"), "r") as f:
+    with io.open("scripts/rust-libc-header.rs", "r") as f:
         emit(f.read())
 
     state = State()

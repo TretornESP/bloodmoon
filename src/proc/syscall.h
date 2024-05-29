@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "../cpus/cpus.h"
+#include "process.h"
 
 #define SYSCALL_INITIAL_FLAGS 0x200
 
@@ -12,7 +13,7 @@
 
 #define SYSCALL_HANDLER_COUNT 256
 
-typedef void (*syscall_handler)(struct cpu_context* ctx);
+typedef void (*syscall_handler)(struct task* caller_task, struct cpu_context* ctx);
 extern void syscall_enable(uint16_t kernel_segment, uint16_t user_segment);
 void global_syscall_handler(struct cpu_context* ctx);
 void syscall_set_user_gs(uint64_t addr);
