@@ -111,7 +111,7 @@ void spawn_terminal(int argc, char* argv[]) {
         return;
     }
 
-    add_task(create_task((void*)init_terminal, "ttya", KERNEL_TASK));
+    add_task(create_task((void*)init_terminal, "ttya", KERNEL_TASK, 0x0));
 }
 
 void lsdsk(int argc, char* argv[]) {
@@ -264,9 +264,9 @@ void sched(int argc, char* argv[]) {
 }
 
 void spawn(int argc, char* argv[]) {
-    if (argc < 3) {
+    if (argc < 4) {
         printf("Spawns a process\n");
-        printf("Usage: spawn <nice> <addr of init>\n");
+        printf("Usage: spawn <nice> <addr of init> <privilege>\n");
         return;
     }
 
@@ -275,7 +275,8 @@ void spawn(int argc, char* argv[]) {
     long nice = atoi(argv[1]);
     (void)nice;
     uint64_t addr = strtoull(argv[2], &endptr, 16);
-    add_task(create_task((void*)addr, get_current_tty(), KERNEL_TASK));
+    uint64_t privilege = atoi(argv[3]);
+    add_task(create_task((void*)addr, get_current_tty(), privilege, 0x0));
 }
 
 void kill(int argc, char* argv[]) {

@@ -391,7 +391,19 @@ void initialize_context(struct task* task, void * init_function) {
 
 }
 
-struct task* create_task(void * init_func, const char * tty, uint8_t privilege) {
+struct page_directory * get_new_pd(uint8_t privilege) {
+    struct page_directory * pd = 0;
+    if (privilege == KERNEL_TASK) {
+        pd = FROM_KERNEL_MAP(duplicate_current_pml4());
+    } else {
+        pd = FROM_KERNEL_MAP(duplicate_current_kernel_pml4());
+    }
+
+    return pd;
+
+}
+
+struct task* create_task(void * init_func, const char * tty, uint8_t privilege, struct page_directory * startup_pd) {
     lock_scheduler();
 
     struct task * task = kmalloc(sizeof(struct task));
@@ -456,21 +468,29 @@ struct task* create_task(void * init_func, const char * tty, uint8_t privilege) 
     //Set r12-r15 to 0, rbx to 0
     //Set rip to init_func
     if (task->privilege == KERNEL_TASK) {
-        task->pd = FROM_KERNEL_MAP(duplicate_current_pml4());
+
+        if (startup_pd == 0)
+            task->pd = FROM_KERNEL_MAP(duplicate_current_pml4());
+        else
+            task->pd = startup_pd;
+
         task->stack_base = (uint64_t)kstackalloc(KERNEL_STACK_SIZE);
         task->stack_top = task->stack_base + KERNEL_STACK_SIZE;
-//        ctxcreat(&(task->stack_top), init_func, task->fxsave_region);
         task->cs = get_kernel_code_selector();
         task->ds = get_kernel_data_selector();
         initialize_context(task, init_func);
     } else {
-        task->pd = FROM_KERNEL_MAP(duplicate_current_kernel_pml4());
+
+        if (startup_pd == 0)
+            task->pd = FROM_KERNEL_MAP(duplicate_current_kernel_pml4());
+        else
+            task->pd = startup_pd;
+
         create_user_heap(task, TO_KERNEL_MAP(request_page()));
         task->stack_base = (uint64_t)ustackalloc(task, USER_STACK_SIZE);
         task->stack_top = task->stack_base + USER_STACK_SIZE;
         task->alt_stack_base = (uint64_t)kstackalloc(KERNEL_STACK_SIZE);
         task->alt_stack_top = task->alt_stack_base + KERNEL_STACK_SIZE;
-//        uctxcreat(&(task->stack_top), init_func, task->fxsave_region);
         task->cs = get_user_code_selector();
         task->ds = get_user_data_selector();
         initialize_context(task, init_func);
@@ -512,7 +532,7 @@ void invstack() {
 void init_scheduler() {
     printf("### SCHEDULER STARTUP ###\n");
     lock_scheduler();
-    struct task * idle_task = create_task(idle, "default", KERNEL_TASK); //Spawn idle task
+    struct task * idle_task = create_task(idle, "default", KERNEL_TASK, 0x0); //Spawn idle task
     idle_task->pid = 0;
     idle_task->state = TASK_IDLE;
 

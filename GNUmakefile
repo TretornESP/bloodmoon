@@ -44,7 +44,7 @@ BLOCKSIZE := 1024
 MEMSIZE := 4G
 VMEMSIZE := 1024M
 NUMAFLAGS := \
--smp cpus=4
+-smp cpus=1
 #-object memory-backend-ram,size=1G,id=mem0 \
 #-object memory-backend-ram,size=1G,id=mem1 \
 #-object memory-backend-ram,size=1G,id=mem2 \
@@ -138,6 +138,10 @@ override OBJS := $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(CFILES))
 override OBJS += $(patsubst $(SRCDIR)/%.S, $(OBJDIR)/%_s.o, $(ASFILES))
 override OBJS += $(patsubst $(SRCDIR)/%.asm, $(OBJDIR)/%_asm.o, $(NASMFILES))
 override HEADER_DEPS := $(CFILES:.c=.d) $(ASFILES:.S=.d)
+
+deps:
+	@sudo apt update
+	@sudo apt install git make build-essential nasm parted dosfstools tree qemu-system gdb
 
 # You may comment @make run in this target if you intend
 # to use virtualbox or real hardware.
@@ -251,6 +255,7 @@ setup:
 	@cp $(ABSDIR)/OVMFbin/OVMF_VARS-pure-efi.fd /mnt/c/Users/$(WINUSER)/$(WDIR)/OVMF_VARS-pure-efi.fd
 	@echo file $(BUILDDIR)/$(KERNEL) > debug.gdb
 	@echo target remote $(WSLHOSTIP):$(GDBPORT) >> debug.gdb
+	@echo set non-stop on >> debug.gdb
 	@echo set disassembly-flavor intel >> debug.gdb
 	@echo b $(KERNEL_ENTRY) >> debug.gdb
 	@echo b interrupt_exception_handler >> debug.gdb
@@ -329,6 +334,9 @@ buildimggpt:
 	@sudo mount $(LOOP_DEV_PATH)p3 $(DATDIR)
 	@sudo cp -r $(PROGSBUILDDIR) $(DATDIR)
 	@sudo cp -r $(PROGSDATADIR) $(DATDIR)
+	@sudo cp -r ./libtest/etc $(DATDIR)/etc
+	@sudo cp -r ./libtest/usr $(DATDIR)/usr
+	@sudo cp ./libtest/init.elf $(DATDIR)/init.elf
 	@sudo tree $(DATDIR)
 	@sudo umount $(DATDIR)
 

@@ -56,12 +56,13 @@ extern void newctxcreat(void* rsp, void* intro);
 extern void newuctxcreat(void* rsp, void* intro);
 
 void dump_processes();
+struct page_directory * get_new_pd(uint8_t privilege);
 struct task* get_current_task();
 char * get_current_tty();
 void set_current_tty(char *);
 void reset_current_tty();
 void add_task(struct task* task);
-struct task* create_task(void * init_func, const char* tty, uint8_t privilege);
+struct task* create_task(void * init_func, const char* tty, uint8_t privilege, struct page_directory * startup_pd);
 void kill_task(int16_t pid);
 void pause_task(struct task* task);
 void resume_task(struct task* task);

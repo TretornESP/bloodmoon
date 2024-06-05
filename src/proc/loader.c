@@ -3,6 +3,8 @@
 #include "../memory/paging.h"
 #include "../memory/heap.h"
 #include "../sched/scheduler.h"
+#include "../vfs/vfs.h"
+#include "../vfs/vfs_interface.h"
 
 #include "loader.h"
 #include "process.h"
@@ -159,6 +161,8 @@ const char * elf_version[] = {
     "Current version"
 };
 
+#define DYNAMIC_LINKER_BASE_ADDRESS ((void*)0x40000000)
+
 uint8_t parse_elf_file(uint8_t * buffer) {
     Elf64_Ehdr * header = (Elf64_Ehdr *) buffer;
     if (memcmp(header->e_ident, ELFMAG, SELFMAG) != 0) {
@@ -206,11 +210,11 @@ void elf_readelf(uint8_t * buffer, uint64_t size) {
     printf("  Section header string table index: %d\n", elf_header->e_shstrndx);
 }
 
-void allocate_segment(struct task * task, Elf64_Phdr * program_header, void * buffer) {
+void allocate_segment(struct page_directory * pd, Elf64_Phdr * program_header, void * buffer, void* base) {
     if (program_header->p_type != PT_LOAD) return;
 
     uint64_t vaddr_offset = program_header->p_vaddr & 0xfff;
-    uint64_t vaddr = program_header->p_vaddr & ~0xfff;
+    uint64_t vaddr = (program_header->p_vaddr & ~0xfff) + (uint64_t)base;
 
     uint64_t total_size = program_header->p_memsz + vaddr_offset;
     uint64_t page_no = total_size / 0x1000;
@@ -228,14 +232,14 @@ void allocate_segment(struct task * task, Elf64_Phdr * program_header, void * bu
     for (uint64_t i = 0; i < page_no; i++) {
         void * partial_buffer = TO_KERNEL_MAP(request_page());
         physical = virtual_to_physical(get_pml4(), partial_buffer);
-        map_memory(TO_KERNEL_MAP(task->pd), (void*)(vaddr + i * 0x1000), (void*)physical, perms);
+        map_memory(TO_KERNEL_MAP(pd), (void*)(vaddr + i * 0x1000), (void*)physical, perms);
         printf("Para el proceso padre %llx mapea a %llx\n", partial_buffer + i * 0x1000, physical);
-        physical = virtual_to_physical(TO_KERNEL_MAP(task->pd), (void*)(vaddr + i * 0x1000));
+        physical = virtual_to_physical(TO_KERNEL_MAP(pd), (void*)(vaddr + i * 0x1000));
         printf("Para el proceso hijo  %llx mapea a %llx\n", vaddr + i * 0x1000, physical);
         memset(partial_buffer, 0, 0x1000);
         memcpy(partial_buffer, complete_buffer + i * 0x1000, 0x1000);
 
-        printf("Dump for %llx\n", program_header->p_vaddr);
+        printf("Dump for %llx\n", program_header->p_vaddr + (uint64_t)base);
         for (int i = 0; i < 100; i++) {
             if (i % 16 == 0) printf("\n");
             printf("%02x ", ((uint8_t*)partial_buffer)[i]);
@@ -245,6 +249,30 @@ void allocate_segment(struct task * task, Elf64_Phdr * program_header, void * bu
 
     kfree(complete_buffer);    
 
+}
+
+uint8_t elf_open_file(const char * filename, uint8_t ** buffer, uint64_t * filesize) {
+    int fd = vfs_file_open(filename, 0, 0);
+    if (fd < 0) {
+        printf("Could not open file %s\n", filename);
+        return 0;
+    }
+
+    vfs_file_seek(fd, 0, 0x2); //SEEK_END
+    *filesize = (uint64_t)vfs_file_tell(fd);
+    vfs_file_seek(fd, 0, 0x0); //SEEK_SET
+
+    *buffer = kmalloc(*filesize);
+    if (!*buffer) {
+        printf("Could not allocate buffer for file\n");
+        return 0;
+    }
+
+    memset(*buffer, 0, *filesize);
+    vfs_file_read(fd, *buffer, *filesize);
+    vfs_file_close(fd);
+    
+    return 1;
 }
 
 uint8_t elf_load_elf(uint8_t * buffer, uint64_t size, void* env) {
@@ -268,44 +296,64 @@ uint8_t elf_load_elf(uint8_t * buffer, uint64_t size, void* env) {
     }
 
     Elf64_Phdr * program_header = (Elf64_Phdr *) (buffer + elf_header->e_phoff);
-
+    struct proc_ld pld = {0};
+    struct page_directory * pd = get_new_pd(USER_TASK);
+    printf("Spawning process at 0x%x\n", elf_header->e_entry);
 
     for (int i = 0; i < elf_header->e_phnum; i++) {
         if (program_header[i].p_type == PT_LOAD) {
-            if (elf_header->e_entry >= program_header[i].p_vaddr && elf_header->e_entry < program_header[i].p_vaddr + program_header[i].p_memsz) {
-                printf("Spawning process at 0x%x\n", elf_header->e_entry);
-                struct task * task = create_task((void*)elf_header->e_entry, "ttya\0", USER_TASK);
-                if (!task) {
-                    printf("Failed to create task\n");
-                    return 0;
-                }
-                
-                for (int i = 0; i < elf_header->e_phnum; i++) {
-                    if (program_header[i].p_type == PT_LOAD) {
-                        allocate_segment(task, &program_header[i], buffer);
-                        printf("Loaded segment at 0x%x with size 0x%x and flags 0x%x\n", program_header[i].p_vaddr, program_header[i].p_memsz, program_header[i].p_flags);
-                    }
-                }
+            allocate_segment(pd, &program_header[i], buffer, 0);
+        } else if (program_header[i].p_type == PT_PHDR) {
+            pld.at_phdr = (void*)(program_header[i].p_vaddr);
+        } else if (program_header[i].p_type == PT_INTERP) {
+            if (pld.ld_path) {
+                printf("Interp path already set\n");
+                return 0;
+            }
 
-                if (!is_present(TO_KERNEL_MAP(task->pd), (void*)elf_header->e_entry)) {
-                    printf("Entry point not present\n");
-                    return 0;
-                }
+            if (program_header[i].p_filesz > 0x1000) {
+                printf("Interp path too long\n");
+                return 0;
+            }
 
-                if (!is_user_access(TO_KERNEL_MAP(task->pd), (void*)elf_header->e_entry)) {
-                    printf("Entry point not user accessible\n");
-                    return 0;
-                }
+            pld.ld_path = (char*)TO_KERNEL_MAP(request_page());
+            memcpy(pld.ld_path, buffer + program_header[i].p_offset, program_header[i].p_filesz);
+        }
+    }
 
-                if (!is_executable(TO_KERNEL_MAP(task->pd), (void*)elf_header->e_entry)) {
-                    printf("Entry point not executable\n");
-                    return 0;
-                }
+    if (pld.ld_path) {
+        printf("Dynamic linker path: %s\n", pld.ld_path);
 
-                add_task(task);
+        //Load dynamic linker
+        uint8_t * ld_buffer;
+        uint64_t ld_size;
+        if (!elf_open_file(pld.ld_path, &ld_buffer, &ld_size)) {
+            printf("Failed to open dynamic linker\n");
+            return 0;
+        }
 
-                return 1;
+        if (!parse_elf_file(ld_buffer)) return 0;
+        if (elf_header->e_ident[EI_CLASS] == ELFCLASS32) {
+            readelf_32(ld_buffer, ld_size);
+            return 0;
+        }
+
+        Elf64_Ehdr * ld_elf_header = (Elf64_Ehdr *) ld_buffer;
+        if (ld_elf_header->e_type != ET_DYN) {
+            printf("Invalid ELF type\n");
+            return 0;
+        }
+
+        Elf64_Phdr * ld_program_header = (Elf64_Phdr *) (ld_buffer + ld_elf_header->e_phoff);
+        for (int i = 0; i < ld_elf_header->e_phnum; i++) {
+            if (ld_program_header[i].p_type == PT_LOAD) {
+                allocate_segment(pd, &ld_program_header[i], ld_buffer, DYNAMIC_LINKER_BASE_ADDRESS);
             }
         }
+
+        kfree(ld_buffer);
+        add_task(create_task((void*)(ld_elf_header->e_entry + (uint64_t)DYNAMIC_LINKER_BASE_ADDRESS), "ttya\0", USER_TASK, pd));
+    } else {
+        add_task(create_task((void*)elf_header->e_entry, "ttya\0", USER_TASK, pd));
     }
 }

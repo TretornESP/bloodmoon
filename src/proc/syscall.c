@@ -38,13 +38,23 @@ void write_syscall_handler(struct task* task, struct cpu_context* ctx) {
     }
 }
 
+void sched_yield_syscall_handler(struct task* task, struct cpu_context* ctx) {
+    (void)task;
+    (void)ctx;
+    //Do nothing, we will yield at the beginning of the syscall handler
+}
+
 syscall_handler syscall_handlers[SYSCALL_HANDLER_COUNT] = {
     [0] = read_syscall_handler,
     [1] = write_syscall_handler,
-    [2 ... SYSCALL_HANDLER_COUNT-1] = undefined_syscall_handler
+    [2 ... 23] = undefined_syscall_handler,
+    [24] = sched_yield_syscall_handler,
+    [25 ... SYSCALL_HANDLER_COUNT-1] = undefined_syscall_handler
 };
 
 void global_syscall_handler(struct cpu_context* ctx) {
+
+    yield();
 
     struct task * current_task = get_current_task();
 

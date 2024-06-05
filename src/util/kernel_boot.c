@@ -88,14 +88,14 @@ void boot() {
     if (madt != 0) {
         register_apic(madt, 0x0);
     }
-    init_pit(1);
+    init_pit(1000);
     //disable_pit();
     init_drive();
     init_fb_dd();
     init_serial_dd();
     init_tty_dd();
     init_fifo_dd();
-    init_e1000_dd(); //Careful, without this pci fills the memory!!!
+    //init_e1000_dd(); //Careful, without this pci fills the memory!!!
     init_smbios_interface();
     init_devices();
     enable_debug(0);
@@ -108,10 +108,10 @@ void boot() {
     init_sline();
     set_io_tty("ttya");
     __asm__ volatile("sti");
-    add_task(create_task((void*)spawn_network_worker, "ttya", KERNEL_TASK));
-    add_task(create_task((void*)init_dbgshell, "ttya", KERNEL_TASK));
+    //add_task(create_task((void*)spawn_network_worker, "ttya", KERNEL_TASK, 0x0));
+    add_task(create_task((void*)init_dbgshell, "ttya", KERNEL_TASK, 0x0));
     //dump_task_queues();
-    go(5); //The number is the number of ticks for preemption, zero for cooperative scheduling
+    go(50); //The number is the number of ticks for preemption, zero for cooperative scheduling
     panic("Kernel returned to boot() (this should never happen!)\n");
 }
 

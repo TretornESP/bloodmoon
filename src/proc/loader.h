@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 
+struct proc_ld {
+    void* at_phdr;
+    char* ld_path;
+};
+
 void elf_readelf(uint8_t * buffer, uint64_t size);
 uint8_t elf_load_elf(uint8_t * buffer, uint64_t size, void* env);
 
