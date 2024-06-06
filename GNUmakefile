@@ -255,7 +255,6 @@ setup:
 	@cp $(ABSDIR)/OVMFbin/OVMF_VARS-pure-efi.fd /mnt/c/Users/$(WINUSER)/$(WDIR)/OVMF_VARS-pure-efi.fd
 	@echo file $(BUILDDIR)/$(KERNEL) > debug.gdb
 	@echo target remote $(WSLHOSTIP):$(GDBPORT) >> debug.gdb
-	@echo set non-stop on >> debug.gdb
 	@echo set disassembly-flavor intel >> debug.gdb
 	@echo b $(KERNEL_ENTRY) >> debug.gdb
 	@echo b interrupt_exception_handler >> debug.gdb

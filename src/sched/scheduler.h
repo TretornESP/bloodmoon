@@ -4,6 +4,7 @@
 #include "../memory/paging.h"
 #include "../proc/process.h"
 #include "../io/interrupts.h"
+#include "../proc/loader.h"
 #include "concurrency.h"
 
 #define KERNEL_TASK 0
@@ -62,7 +63,9 @@ char * get_current_tty();
 void set_current_tty(char *);
 void reset_current_tty();
 void add_task(struct task* task);
-struct task* create_task(void * init_func, const char* tty, uint8_t privilege, struct page_directory * startup_pd);
+void debug_task(struct task* task, uint64_t original_stack_top);
+uint64_t initialize_stack(void * stack, int argc, char* argv[], char *envp[], struct auxv *auxv);
+struct task* create_task(void * init_func, const char* tty, uint8_t privilege, int argc, char* argv[], char *envp[], struct auxv *auxv, struct page_directory * startup_pd);
 void kill_task(int16_t pid);
 void pause_task(struct task* task);
 void resume_task(struct task* task);

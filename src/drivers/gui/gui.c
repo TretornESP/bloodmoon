@@ -443,5 +443,5 @@ void startx(struct gui_device * devices, uint8_t count) {
     clear(0x000000);
     load_font();
     preload_ux();
-    add_task(create_task(render, get_current_tty(), KERNEL_TASK, 0x0));
+    add_task(create_task(render, get_current_tty(), KERNEL_TASK, 0x0, 0x0, 0x0, 0x0, 0x0));
 }

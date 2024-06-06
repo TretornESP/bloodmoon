@@ -275,7 +275,7 @@ uint8_t elf_open_file(const char * filename, uint8_t ** buffer, uint64_t * files
     return 1;
 }
 
-uint8_t elf_load_elf(uint8_t * buffer, uint64_t size, void* env) {
+uint8_t elf_load_elf(uint8_t * buffer, uint64_t size, int argc, char* argv[], char *envp[]) {
     if (!parse_elf_file(buffer)) return 0;
 
     Elf64_Ehdr * elf_header = (Elf64_Ehdr *) buffer;
@@ -321,6 +321,31 @@ uint8_t elf_load_elf(uint8_t * buffer, uint64_t size, void* env) {
         }
     }
 
+    struct auxv vectors[5] = {
+        {
+            .a_type = AT_NULL,
+            .a_val = 0
+        },
+        {
+            .a_type = AT_ENTRY,
+            .a_val = (void*)elf_header->e_entry
+        },
+        {
+            .a_type = AT_PHDR,
+            .a_val = (void*)pld.at_phdr
+        },
+        {
+            .a_type = AT_PHENT,
+            .a_val = (void*)(uint64_t)elf_header->e_phentsize
+        },
+        {
+            .a_type = AT_PHNUM,
+            .a_val = (void*)(uint64_t)elf_header->e_phnum
+        }
+    };
+
+    struct task * task = 0x0;
+
     if (pld.ld_path) {
         printf("Dynamic linker path: %s\n", pld.ld_path);
 
@@ -352,8 +377,14 @@ uint8_t elf_load_elf(uint8_t * buffer, uint64_t size, void* env) {
         }
 
         kfree(ld_buffer);
-        add_task(create_task((void*)(ld_elf_header->e_entry + (uint64_t)DYNAMIC_LINKER_BASE_ADDRESS), "ttya\0", USER_TASK, pd));
+        task = create_task((void*)(ld_elf_header->e_entry + (uint64_t)DYNAMIC_LINKER_BASE_ADDRESS), "ttya\0", USER_TASK, argc, argv, envp, vectors, pd);
     } else {
-        add_task(create_task((void*)elf_header->e_entry, "ttya\0", USER_TASK, pd));
+        task = create_task((void*)elf_header->e_entry, "ttya\0", USER_TASK, argc, argv, envp, vectors, pd);
+    }
+
+    if (task) {
+        add_task(task);
+    } else {
+        printf("Failed to create task\n");
     }
 }

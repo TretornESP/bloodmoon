@@ -111,7 +111,7 @@ void spawn_terminal(int argc, char* argv[]) {
         return;
     }
 
-    add_task(create_task((void*)init_terminal, "ttya", KERNEL_TASK, 0x0));
+    add_task(create_task((void*)init_terminal, "ttya", KERNEL_TASK, 0x0, 0x0, 0x0, 0x0, 0x0));
 }
 
 void lsdsk(int argc, char* argv[]) {
@@ -177,7 +177,7 @@ void readelf(int argc, char* argv[]) {
 void loadelf(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Loads an ELF file into memory\n");
-        printf("Usage: loadelf <file>\n");
+        printf("Usage: loadelf <file> <arg0> <arg1> ...\n");
         return;
     }
 
@@ -196,7 +196,7 @@ void loadelf(int argc, char* argv[]) {
     vfs_file_read(fd, buf, size);
     vfs_file_close(fd);
 
-    elf_load_elf(buf, size, 0);
+    elf_load_elf(buf, size, argc - 1, argv + 1, 0);
     kfree(buf);
 }
 
@@ -276,7 +276,7 @@ void spawn(int argc, char* argv[]) {
     (void)nice;
     uint64_t addr = strtoull(argv[2], &endptr, 16);
     uint64_t privilege = atoi(argv[3]);
-    add_task(create_task((void*)addr, get_current_tty(), privilege, 0x0));
+    add_task(create_task((void*)addr, get_current_tty(), privilege, 0x0, 0x0, 0x0, 0x0, 0x0));
 }
 
 void kill(int argc, char* argv[]) {

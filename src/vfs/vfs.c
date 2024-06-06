@@ -10,6 +10,7 @@
 #include "partition/mbr.h"
 
 uint16_t vfs_root_size = 0;
+struct vfs_mount * current_root = 0x0;
 struct vfs_devmap vfs_root[VFS_MAX_DEVICES];
 struct vfs_file_system_type * file_system_type_list_head;
 struct vfs_mount * mount_list_head;
@@ -277,7 +278,25 @@ int is_safe_for_removing(const char* path, uint8_t force) {
     return 1;
 }
 
+uint8_t set_vfs_root(const char * root) {
+    struct vfs_mount * mount = mount_list_head;
+    while (mount != 0 && mount->device != 0 && mount->fst != 0 && mount->partition != 0) {
+        if (strcmp(mount->partition->name, root) == 0) {
+            current_root = mount;
+            return 1;
+        }
+        mount = mount->next;
+    }
+    return 0;
+}
+
 struct vfs_mount* get_mount_from_path(const char* path, char* native_path) {
+    if (path[0] == '/' && current_root != 0) {
+        memcpy(native_path, path, strlen(path));
+        native_path[strlen(path)] = 0;
+        return current_root;
+    }
+
     struct vfs_mount * mount = mount_list_head;
     while (mount != 0 && mount->device != 0 && mount->fst != 0 && mount->partition != 0) {
         uint32_t mountpoint_len = strlen(mount->partition->name);

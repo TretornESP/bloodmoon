@@ -1,13 +1,11 @@
-override PROGRAM := loop.elf
+override PROGRAM := shell.elf
 
 CC := /usr/bin/cc
 LD := /usr/bin/ld
 
-LIBPATH := ../../../libs/smol
-
 PROGRAM_ENTRY := main
 
-CFLAGS ?= -O2 -g -Wall -Wextra -Wpedantic -pipe -std=c11 -I $(LIBPATH)/
+CFLAGS ?= -O2 -g -Wall -Wextra -Wpedantic -pipe -std=c11
 LDFLAGS ?= 
 
 ABSDIR := $(shell pwd)

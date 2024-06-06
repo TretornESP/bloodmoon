@@ -104,12 +104,13 @@ void boot() {
     register_filesystem(tty_registrar);
     register_filesystem(fifo_registrar);
     probe_fs();
+    set_vfs_root("hdap2");
     init_scheduler();
     init_sline();
     set_io_tty("ttya");
     __asm__ volatile("sti");
-    //add_task(create_task((void*)spawn_network_worker, "ttya", KERNEL_TASK, 0x0));
-    add_task(create_task((void*)init_dbgshell, "ttya", KERNEL_TASK, 0x0));
+    //add_task(create_task((void*)spawn_network_worker, "ttya", KERNEL_TASK, 0x0, 0x0, 0x0, 0x0, 0x0));
+    add_task(create_task((void*)init_dbgshell, "ttya", KERNEL_TASK, 0x0, 0x0, 0x0, 0x0, 0x0));
     //dump_task_queues();
     go(50); //The number is the number of ticks for preemption, zero for cooperative scheduling
     panic("Kernel returned to boot() (this should never happen!)\n");

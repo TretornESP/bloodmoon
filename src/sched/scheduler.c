@@ -1,3 +1,5 @@
+#include <elf.h>
+
 #include "scheduler.h"
 #include "pit.h"
 #include "../cpus/cpus.h"
@@ -125,6 +127,27 @@ void __attribute__((noinline)) yield() {
     }
     //ctxswtch(prev, current_task, prev->fxsave_region, current_task->fxsave_region);
     newctxswtch(prev->context, current_task->context, prev->fxsave_region, current_task->fxsave_region);
+}
+
+void debug_task(struct task* task, uint64_t original_stack_top) {
+    //Print stack
+    printf("Task %d\n", task->pid);
+    printf("State: %d\n", task->state);
+    printf("Flags: %d\n", task->flags);
+    printf("Privilege: %d\n", task->privilege);
+    printf("Entry: %p\n", task->entry);
+
+    printf("------------------------\n");
+    uint64_t size = original_stack_top - task->stack_top;
+    printf("Stack dump, size: %d\n", size);
+    uint64_t * stack = (uint64_t*)task->stack_top;
+    for (uint64_t i = 0; i < size; i++) {
+        if (i % 8 == 0) {
+            printf("\n");
+        }
+        printf("%02x ", ((uint8_t*)stack)[i]);
+    }
+    printf("\n------------------------\n");
 }
 
 void add_task(struct task* task) {
@@ -347,7 +370,72 @@ void add_signal(int16_t pid, int signal, void * data, uint64_t size) {
     unlock_scheduler();
 }
 
-void initialize_context(struct task* task, void * init_function) {
+//Stack grows downwards
+void* push_u64(void * stack, uint64_t value) {
+    stack -= 8;
+    *(uint64_t*)stack = value;
+    return stack;
+}
+
+void* push_str(void * stack, char * str) {
+    int len = strlen(str);
+    stack -= len;
+    memcpy(stack, str, len);
+    return stack;
+}
+
+uint64_t initialize_stack(void * stack, int argc, char* argv[], char *envp[], struct auxv *auxv) {
+    int envc = 0;
+    if(envp != 0){
+        while(envp[envc] != NULL){
+            envc++;
+        }
+    }
+
+    //Stack layout
+    //Auxv
+    if (auxv != 0) {
+        for (uint8_t i = 0; i < 5; i++) {
+            if (&auxv[i] == 0) continue;
+            printf("Auxv[%d]: %d %p\n", i, auxv[i].a_type, auxv[i].a_val);
+            stack = push_u64(stack, auxv[i].a_type);
+            stack = push_u64(stack, (uint64_t)auxv[i].a_val);
+        }
+    }
+    //Envp
+    for (int i = envc - 1; i >= 0; i--) {
+        printf("Envp[%d]: %s\n", i, envp[i]);
+        stack = push_str(stack, envp[i]);
+    }
+
+    //Allign stack adding nulls
+    while ((uint64_t)stack % 16 != 0) {
+        *(uint8_t*)stack = 0;
+        stack++;
+    }
+
+    //Argv
+    for (int i = argc - 1; i >= 0; i--) {
+        printf("Argv[%d]: %s\n", i, argv[i]);
+        stack = push_str(stack, argv[i]);
+    }
+
+    //Allign stack adding nulls
+    while ((uint64_t)stack % 16 != 0) {
+        *(uint8_t*)stack = 0;
+        stack++;
+    }
+    
+    //Argc
+    stack = push_u64(stack, argc);
+    printf("Argc: %d\n", argc);
+
+    return (uint64_t)stack;
+}
+
+void initialize_context(struct task* task, void * init_function, int argc, char* argv[], char *envp[], struct auxv *auxv) {
+    uint64_t original_stack = task->stack_top;
+    task->stack_top = initialize_stack((void*)task->stack_top, argc, argv, envp, auxv);
     if (task->privilege == KERNEL_TASK) {
         newctxcreat(&(task->stack_top), init_function);
     } else {
@@ -388,7 +476,7 @@ void initialize_context(struct task* task, void * init_function) {
     __asm__ volatile("fxsave %0" : "=m" (task->fxsave_region));
 
     task->context->rsp = task->stack_top;
-
+    debug_task(task, original_stack);
 }
 
 struct page_directory * get_new_pd(uint8_t privilege) {
@@ -400,10 +488,18 @@ struct page_directory * get_new_pd(uint8_t privilege) {
     }
 
     return pd;
-
 }
 
-struct task* create_task(void * init_func, const char * tty, uint8_t privilege, struct page_directory * startup_pd) {
+struct task* create_task(
+    void * init_func,
+    const char * tty,
+    uint8_t privilege,
+    int argc,
+    char* argv[],
+    char* envp[],
+    struct auxv *auxv,
+    struct page_directory * startup_pd
+) {
     lock_scheduler();
 
     struct task * task = kmalloc(sizeof(struct task));
@@ -478,7 +574,7 @@ struct task* create_task(void * init_func, const char * tty, uint8_t privilege, 
         task->stack_top = task->stack_base + KERNEL_STACK_SIZE;
         task->cs = get_kernel_code_selector();
         task->ds = get_kernel_data_selector();
-        initialize_context(task, init_func);
+        initialize_context(task, init_func, argc, argv, envp, auxv);
     } else {
 
         if (startup_pd == 0)
@@ -493,7 +589,7 @@ struct task* create_task(void * init_func, const char * tty, uint8_t privilege, 
         task->alt_stack_top = task->alt_stack_base + KERNEL_STACK_SIZE;
         task->cs = get_user_code_selector();
         task->ds = get_user_data_selector();
-        initialize_context(task, init_func);
+        initialize_context(task, init_func, argc, argv, envp, auxv);
     }
 
     strncpy(task->regular_tty, tty, strlen(tty));
@@ -532,7 +628,7 @@ void invstack() {
 void init_scheduler() {
     printf("### SCHEDULER STARTUP ###\n");
     lock_scheduler();
-    struct task * idle_task = create_task(idle, "default", KERNEL_TASK, 0x0); //Spawn idle task
+    struct task * idle_task = create_task(idle, "default", KERNEL_TASK, 0x0, 0x0, 0x0, 0x0, 0x0); //Spawn idle task
     idle_task->pid = 0;
     idle_task->state = TASK_IDLE;
 
